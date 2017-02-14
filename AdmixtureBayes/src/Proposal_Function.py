@@ -8,10 +8,10 @@ def prop(x):
     '''
     Input x: tree
     output tuple:
-        output z:  new treedensity of jumping back divided by the density of jumping forward
+        output  z: new tree
         output g1: density of jumping forwards
         output g2: density of jumping backwards
-        output Jh: the jacobian of the transition(necessary for Reversible Jump MCMC).
+        output Jh: the Jacobian of the transition(necessary for Reversible Jump MCMC).
         output j1: probability of trying forward jump
         output j2: probability of trying backward jump
     '''

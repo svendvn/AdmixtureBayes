@@ -1,12 +1,16 @@
 from numpy.random import random, choice
 from copy import deepcopy
 from scipy.special import binom
-from tree_operations import *
-
+from tree_operations import get_number_of_admixes, get_all_branch_lengths
 
 
 
 def _update_branch(b,other,direction,prop):
+    '''
+    This function takes a branch, B, of the form [root, destination, branch length 1, admixture event 1, branch length 2, admixture event 2, ..., branch length n]
+    and induces an extra admixture event at the relative position, pos_de_new, which are generated in this function. 
+    The direction is in DIRECTION and the source/sink is encoded in OTHER. PROP is the admixture proportion.
+    '''
     #the times of events on the branch
     times=b[2::2]
     b_length=sum(times)
@@ -46,12 +50,12 @@ def addadmix(tree):
     cop=deepcopy(tree)     
     
     cop[i1],c1,u1=_update_branch(cop[i1], cop[i2][1],">",None)
-    w=random()
-    cop[i2],c2,u2=_update_branch(cop[i2], cop[i1][1],"<", w*0.5)
+    w=random() #admixture proportion.
+    cop[i2],c2,u2=_update_branch(cop[i2], cop[i1][1],"<", w)
     
-    absolut_jacobian=abs(_jacobian(c1,c2,u1,u2,w))
+    absolut_jacobian=1#abs(_jacobian(c1,c2,u1,u2,w))
         
-    return cop, 1.0/(binom(len(cop),2)*2), 1.0/float(no_admixs+1),absolut_jacobian 
+    return cop, 1,1,1#1.0/(binom(len(cop),2)*2), 1.0/float(no_admixs+1),absolut_jacobian 
 
 
 def deladmix(tree):
@@ -88,8 +92,8 @@ def deladmix(tree):
                 if branch[3+j*2][1]==source:
                     c2=branch[(3+j*2-1)]+branch[(3+j*2+1)]
                     cop[n]=branch[:(3+j*2-1)]+[c2]+branch[(3+j*2+2):] #removing the receiver branch
-                    absolute_jacobian=1.0/abs(_jacobian(c1,c2,0,0,0)) #u1,u2 and w are not extracted. 
-                    return cop,1.0/float(no_admixs), 1.0/(binom(len(cop),2)*2), absolute_jacobian
+                    absolute_jacobian=1.0#/abs(_jacobian(c1,c2,0,0,0)) #u1,u2 and w are not extracted. 
+                    return cop,1,1,1#1.0/float(no_admixs), 1.0/(binom(len(cop),2)*2), absolute_jacobian
 
 
 class Tester():

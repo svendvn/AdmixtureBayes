@@ -52,11 +52,13 @@ if __name__=="__main__":
     post=posterior(x)
     print post
     admixes=[]
-    for i in range(10000):
+    for i in range(100000):
         x,post=one_jump(x,post, 1.0)
         tot_length=sum(map(len, x))
         no_admixs=(tot_length-len(x)*3)/4
         admixes.append(no_admixs)
+        if i%1000==0:
+            print i
     from collections import Counter
     print Counter(admixes)
     
