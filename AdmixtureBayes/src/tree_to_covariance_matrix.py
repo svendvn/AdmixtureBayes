@@ -1,7 +1,6 @@
-import newick
+
 from copy import deepcopy
 from numpy import zeros, diag
-from scipy.stats import wishart
 
 from tree_operations import get_number_of_admixes_on_branch
 
@@ -60,6 +59,7 @@ def make_covariance(tree, nodes):
 
     node_to_index={node:i for i,node in enumerate(nodes)}
     pops=[Population([1.0],[node]) for node in nodes]
+    tree=deepcopy(tree)
     tree_dict={b[1]:(b[:1]+b[2:]) for b in tree}
     tree_dict["r"]="stop"
     attaches=dict(  (branch_key,(pops[n],"ready")) for n,branch_key in enumerate(nodes) if (branch_key in nodes))
@@ -154,8 +154,7 @@ if __name__=="__main__":
     
     print make_covariance(a,nodes)
     
-    emp_cov=diag(0.5,4)
-    print emp_cov
+    
     #print make_covariance(tree_flatter_list2,["s1","s2","s3","s4"])
 
 

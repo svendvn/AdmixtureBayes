@@ -2,10 +2,10 @@ from numpy.random import random, choice
 from copy import deepcopy
 from scipy.special import binom
 from tree_operations import get_number_of_admixes, get_all_branch_lengths
+from random import getrandbits
 
 
-
-def _update_branch(b,other,direction,prop):
+def _update_branch(b,other,direction,prop,identifier):
     '''
     This function takes a branch, B, of the form [root, destination, branch length 1, admixture event 1, branch length 2, admixture event 2, ..., branch length n]
     and induces an extra admixture event at the relative position, pos_de_new, which are generated in this function. 
@@ -17,11 +17,12 @@ def _update_branch(b,other,direction,prop):
     u=random()
     pos_de_new=u*b_length
     cumtime=0
+    print pos_de_new,b_length
     for n,time in enumerate(times):
         old_cumtime=cumtime
         cumtime+=time
-        if cumtime>pos_de_new:
-            insertion=[pos_de_new-old_cumtime, [direction, other, prop], cumtime-pos_de_new]
+        if cumtime>(pos_de_new-1e-7):
+            insertion=[pos_de_new-old_cumtime, [direction, other, prop, identifier], cumtime-pos_de_new]
             break
     return b[:(2+n*2)] + insertion + b[(2+n*2+1):], b_length, u
 
@@ -49,9 +50,11 @@ def addadmix(tree):
     
     cop=deepcopy(tree)     
     
-    cop[i1],c1,u1=_update_branch(cop[i1], cop[i2][1],">",None)
+    identifier=getrandbits(128)
+    
+    cop[i1],c1,u1=_update_branch(cop[i1], cop[i2][1],">",None,identifier)
     w=random() #admixture proportion.
-    cop[i2],c2,u2=_update_branch(cop[i2], cop[i1][1],"<", w)
+    cop[i2],c2,u2=_update_branch(cop[i2], cop[i1][1],"<", w,identifier)
     
     absolut_jacobian=1#abs(_jacobian(c1,c2,u1,u2,w))
         
@@ -79,17 +82,18 @@ def deladmix(tree):
         no_admixes_in_branch=(len(branch)-3)/2
         if no_admixes_in_branch>i:
             source=branch[1]
-            admixture_partner=branch[3+i*2][1]
+            admixture_partner_branch_key=branch[3+i*2][1]
+            admixture_partner_identifier=branch[3+i*2][3]
             c1=branch[(3+i*2-1)]+branch[(3+i*2+1)]
             cop[n]=branch[:(3+i*2-1)]+[c1]+branch[(3+i*2+2):] #removing the branch
             break
         else:
             i-=no_admixes_in_branch
     for n,branch in enumerate(cop):
-        if admixture_partner==branch[1]:
+        if admixture_partner_branch_key==branch[1]:
             no_admixes_in_branch=(len(branch)-3)/2
             for j in range(0,no_admixes_in_branch):
-                if branch[3+j*2][1]==source:
+                if branch[3+j*2][1]==source and branch[3+2*j][3]==admixture_partner_identifier:
                     c2=branch[(3+j*2-1)]+branch[(3+j*2+1)]
                     cop[n]=branch[:(3+j*2-1)]+[c2]+branch[(3+j*2+2):] #removing the receiver branch
                     absolute_jacobian=1.0#/abs(_jacobian(c1,c2,0,0,0)) #u1,u2 and w are not extracted. 
@@ -100,9 +104,9 @@ class Tester():
     
     def __init__(self, tree=None):
         if tree is None:
-            tree=[["r","s1",0.3,[">","s3",None], 0.1], 
+            tree=[["r","s1",0.3,[">","s3",None,32123], 0.1], 
                    ["s2s3","s2",0.2],
-                   ["s2s3","s3",0.15, ["<","s1",0.44],0.05],
+                   ["s2s3","s3",0.15, ["<","s1",0.44,32123],0.05],
                    ["r","s2s3",0.2]]
         self.tree=tree
         
