@@ -17,7 +17,7 @@ def _update_branch(b,other,direction,prop,identifier):
     u=random()
     pos_de_new=u*b_length
     cumtime=0
-    print pos_de_new,b_length
+    #print pos_de_new,b_length
     for n,time in enumerate(times):
         old_cumtime=cumtime
         cumtime+=time

@@ -7,12 +7,13 @@ def likelihood(tree, emp_cov, nodes=None):
     r=emp_cov.shape[0]
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
-    print nodes
+    #print nodes
     par_cov=make_covariance(tree, nodes)
-    print par_cov
-    print tree
+    #print par_cov
+    #print tree
+    M=12
     try:
-        d=wishart.pdf(emp_cov, df=r, scale= par_cov)
+        d=wishart.pdf(r*M*emp_cov, df=r*M-1, scale= par_cov)
     except ValueError:
         print "illegal par_cov"
         return 0
