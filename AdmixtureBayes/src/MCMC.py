@@ -2,6 +2,7 @@ from Proposal_Function import prop
 from scipy.stats import poisson
 from likelihood import likelihood
 from numpy.random import random
+from math import exp
 
 
 def initialize_posterior(emp_cov):
@@ -31,12 +32,14 @@ def one_jump(x, post, temperature, posterior_function):
 #     print "j1",j1
 #     print "j2", j2
     
-    #print "newx",newx
+    print "newx",newx
     post_new=posterior_function(newx)
     
 #     print "post_ratio", (post_new/post)
     
-    mhr=(post_new-post)**temperature*g2*j2/j1/g1*Jh
+    mhr=exp(post_new-post)**temperature*g2*j2/j1/g1*Jh
+    print "mhr", mhr
+    print newx
     
 #     print "mhr",mhr
     
@@ -82,7 +85,7 @@ if __name__=="__main__":
         print posteriors
     
     import cProfile
-    cProfile.run('run_this(3)')
+    cProfile.run('run_this(10)')
     
         
 

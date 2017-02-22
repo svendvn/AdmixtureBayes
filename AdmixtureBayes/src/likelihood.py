@@ -9,14 +9,17 @@ def likelihood(tree, emp_cov, nodes=None):
         nodes=["s"+str(i) for i in range(1,r+1)]
     #print nodes
     par_cov=make_covariance(tree, nodes)
+    if par_cov is None:
+        print "illegal par_cov structure"
+        return -float('inf')
     #print par_cov
     #print tree
     M=12
     try:
-        d=wishart.pdf(r*M*emp_cov, df=r*M-1, scale= par_cov)
+        d=wishart.logpdf(r*M*emp_cov, df=r*M-1, scale= par_cov)
     except ValueError:
-        print "illegal par_cov"
-        return 0
+        print "illegal par_cov matrix"
+        return -float("inf")
     return d
         
     
