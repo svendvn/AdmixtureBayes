@@ -2,7 +2,7 @@ from copy import deepcopy
 from numpy.random import normal
 
 sigma=0.01
-def rescale(tree):
+def rescale(tree,pks={}):
     
     cop=deepcopy(tree)#only changes the memory in this line
     

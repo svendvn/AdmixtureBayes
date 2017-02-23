@@ -5,27 +5,21 @@
 
 from tree_operations import get_number_of_admixes, get_all_branch_lengths
 
-class Summary():
-    
-    name='default'
+class Summary(object):
+       
+    def __init__(self, name):
+        self.name=name
     
     def __call__(self, **kwargs):
         pass
     
-    def string_answer(self, output):
+    def pretty_print(self, output):
         return str(output)
     
-
-class s_posterior(Summary):
-
-    name='posterior'
-
-    def __call__(self, **kwargs):
-        return kwargs['old_pos']
-    
 class s_no_admixes(Summary):
-
-    name='no_admixes'
+    
+    def __init__(self):
+        super(s_no_admixes,self).__init__('no_admixes')
 
     def __call__(self, **kwargs):
         old_tree=kwargs['old_tree']
@@ -33,12 +27,19 @@ class s_no_admixes(Summary):
 
 class s_branch_length(Summary):
 
-    name='total_length'
+    def __init__(self):
+        super(s_branch_length,self).__init__('branch_length')
 
     def __call__(self, **kwargs):
         old_tree=kwargs['old_tree']
-        return sum(get_all_branch_lengths(old_tree))
+        return sum(get_all_branch_lengths(old_tree).values())
+    
+class s_variable(Summary):
+    
+    def __init__(self, variable):
+        super(s_variable, self).__init__(variable)
 
+    def __call__(self, **kwargs):
+        return kwargs[self.name]
 
-print False and (8%0)
  

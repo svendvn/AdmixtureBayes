@@ -32,7 +32,7 @@ def _jacobian(c1,c2,u1,u2,w):
     '''
     return -0.5*c1*c2
 
-def addadmix(tree):
+def addadmix(tree,pks={}):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -61,7 +61,7 @@ def addadmix(tree):
     return cop, 1,1,1#1.0/(binom(len(cop),2)*2), 1.0/float(no_admixs+1),absolut_jacobian 
 
 
-def deladmix(tree):
+def deladmix(tree,pks={}):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''
