@@ -12,18 +12,18 @@ class Population:
         self.members=members
         
     def remove_partition(self, weight):
-        print "weight",weight
-        print "self.weight",self.weights
+        #print "weight",weight
+        #print "self.weight",self.weights
         n_w=[w*weight for w in self.weights]
         self.weights=[w*(1-weight) for w in self.weights]
-        print "weight",weight
-        print "self.weight",self.weights
-        return Population(n_w, self.members)
+        #print "weight",weight
+        #print "self.weight",self.weights
+        return Population(n_w, deepcopy(self.members))
     
     def merge_with_other(self, other):
         #print "merge", self.pop, other.pop
-        print "self",self.members, self.weights
-        print "other", other.members, other.weights
+        #print "self",self.members, self.weights
+        #print "other", other.members, other.weights
      
         self.weights=[w+other.weights[other.members.index(m)] if m in other.members else w for m,w in izip(self.members,self.weights) ]
         tmpl=[(w,m) for w,m in izip(other.weights, other.members) if m not in self.members]
@@ -393,15 +393,15 @@ if __name__=="__main__":
     
 
     print "before",tricky_tree6   
-    a=make_covariance(tricky_tree6,["s"+str(i) for i in range(1,11)])
-    print a
+    #a=make_covariance(tricky_tree6,["s"+str(i) for i in range(1,11)])
+    #print a
     print "after", tricky_tree6    
-    a=make_covariance(tricky_tree4,["s"+str(i) for i in range(1,11)])
-    a=make_covariance(tricky_tree,["s"+str(i) for i in range(1,11)])
+    #a=make_covariance(tricky_tree4,["s"+str(i) for i in range(1,11)])
+    #a=make_covariance(tricky_tree,["s"+str(i) for i in range(1,11)])
     
     
     def som():
-        for i in range(10):
+        for i in range(100):
             make_covariance(a,nodes)
         
     from numpy.random import randn
@@ -413,7 +413,7 @@ if __name__=="__main__":
         print res
     import cProfile
      
-    #print cProfile.run('som()')
+    print cProfile.run('som()')
     
     #print cProfile.run("likewise()")
     
