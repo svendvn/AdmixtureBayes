@@ -31,15 +31,15 @@ def get_all_branch_lengths(tree):
         branch_lengths[branch[0]+branch[1]]=sum(times)
     return branch_lengths
 
-# def tree_prune(tree, remove_code):
-#     pruned=[]
-#     not_pruned=[]
-#     for branch in tree:
-#         if branch[1] in remove_code:
-#             pruned.append(branch)
-#         else:
-#             for element in 
-#             not_pruned_append(branch)
+def tree_prune(tree, remove_code):
+    pruned=[]
+    not_pruned=[]
+    for branch in tree:
+        if branch[1] in remove_code:
+            pruned.append(branch)
+        else:
+            for element in 
+            not_pruned_append(branch)
 
 def make_flat_list_no_admix(size=2):
     step_size=1.0/size

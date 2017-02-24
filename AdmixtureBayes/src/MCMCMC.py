@@ -1,5 +1,5 @@
 from MCMC import basic_chain, initialize_posterior
-from pathos.multiprocessing import Pool
+from pathos.multiprocessing import Pool, freeze_support
 import pandas as pd
 
 def _basic_chain_unpacker(args):
@@ -151,7 +151,7 @@ if __name__=='__main__':
                proposal_scheme= [prop_flat for _ in range(n)], 
                cores=n, 
                no_chains=n)
-    
+    run()
     import cProfile
-    cProfile.run('run()')
+    #cProfile.run('run()')
     
