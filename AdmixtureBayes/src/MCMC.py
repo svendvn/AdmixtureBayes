@@ -25,10 +25,10 @@ def initialize_posterior(emp_cov):
     return posterior
      
 
-def one_jump(x, post, temperature, posterior_function,pks={}):
+def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
-    newx,g1,g2,Jh,j1,j2=prop_flat(x,pks)
-    pks['prop_x']=newx
+    newx,g1,g2,Jh,j1,j2=proposal(x,pks)
+    pks['proposed_tree']=newx
     pks['g1']=g1
     pks['g2']=g2
     pks['Jh']=Jh
@@ -36,46 +36,42 @@ def one_jump(x, post, temperature, posterior_function,pks={}):
     pks['j2']=j2
     
     post_new=posterior_function(newx,pks)
-    pks['prop_pos']=post_new
-    
-#     print "post_ratio", (post_new/post)
+    pks['proposed_posterior']=post_new
     
     mhr=exp(post_new-post)**temperature*g2*j2/j1/g1*Jh
-    pks['mhr']=mhr
-    #print "mhr", mhr
-    #print newx
-    #print post,post_new
     
-#     print "mhr",mhr
+    pks['mhr']=mhr
     
     u=random()
     pks['U']=u
+    #proposal.update(mhr, u, post_new, post, temperature)
     if u<mhr:
         return newx,post_new
     return x,post
 
-def basic_chain(start_tree,summaries, posterior_function, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0):
+def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0):
     tree=start_tree
-    post=posterior_function(tree)
+    if post is None:
+        post=posterior_function(tree)
     
     iteration_summary=[]
     
     proposal_knowledge_scraper={}
         
     for i in range(i_start_from,i_start_from+N):
-        new_tree,new_post=one_jump(tree, post, temperature, posterior_function, proposal_knowledge_scraper)
-        if i%overall_thinning==0:
+        new_tree,new_post=one_jump(tree, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
+        if overall_thinning!=0 and i%overall_thinning==0:
             iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,
                                                                summaries,
                                                                tree=new_tree,
                                                                posterior=new_post,
                                                                old_post=post,
                                                                old_tree=tree,
-                                                               iteration_number=i/overall_thinning,**proposal_knowledge_scraper))
+                                                               iteration_number=i,**proposal_knowledge_scraper))
         tree=new_tree
         post=new_post
     
-    return zip(*iteration_summary)
+    return tree, post, zip(*iteration_summary)
         
     
         
@@ -98,15 +94,6 @@ def _calc_and_print_summaries(sample_verbose_scheme,summaries,**kwargs):
         else:
             res.append(None)
     return res
-    
-def _initialize_verbose_list(verbose_list,verbose,summaries):
-    if verbose_list is None and verbose:
-        verbose_list=[]
-        for n in range(len(summaries)):
-            verbose_list.append((n,1))
-    if not verbose:
-        return []
-    return verbose_list
     
     
 
