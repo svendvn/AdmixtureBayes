@@ -1,6 +1,7 @@
 from MCMC import basic_chain, initialize_posterior
 from pathos.multiprocessing import Pool, freeze_support
 import pandas as pd
+from multiprocessing_helpers import basic_chain_pool
 
 def _basic_chain_unpacker(args):
     return basic_chain(*args)
@@ -45,18 +46,18 @@ def MCMCMC(starting_trees,
     total_permutation=range(no_chains)
     permuts=[]
     
-    pool = Pool(cores)
+    pool = basic_chain_pool(summaries, posterior_function, proposal_scheme)
     trees = starting_trees
-    posteriors = pool.map(posterior_function, trees)
+    posteriors = [posterior_function(tree) for tree in trees]
     
     cum_iterations=0
     for no_iterations in iteration_scheme:
         #letting each chain run for no_iterations:
-        iteration_object=_pack_everything(trees, posteriors, summaries, posterior_function,temperature_scheme,printing_schemes,overall_thinnings, proposal_scheme,no_iterations, cum_iterations)
+        iteration_object=_pack_everything(trees, posteriors, temperature_scheme,printing_schemes,overall_thinnings,no_iterations, cum_iterations)
         if no_chains==1:#debugging purposes
             new_state=[_basic_chain_unpacker(iteration_object.next())]
         else:
-            new_state = pool.map(_basic_chain_unpacker, iteration_object)
+            new_state = pool.order_calculation(iteration_object)
         trees, posteriors, df_add = _unpack_everything(new_state, summaries, total_permutation)
         df_result=_update_results(df_result, df_add)
         
@@ -67,6 +68,8 @@ def MCMCMC(starting_trees,
         proposal_scheme=_handle_flipping_of_proposals(proposal_scheme, permut)
         total_permutation=_update_permutation(total_permutation, permut)
         cum_iterations+=no_iterations
+        
+    pool.terminate()
         
     return df_result, permuts
         
@@ -83,21 +86,19 @@ def _update_results(df_result, df_add):
         df_result = pd.concat([df_result, df_add])
     return df_result
 
-##should match basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0)
-def _pack_everything(trees, posteriors, summaries, posterior_function,temperature_scheme,printing_schemes,overall_thinnings, proposal_scheme,no_iterations,cum_iterations):
+##should match basic_chain_class.run_chain(start_tree, post, N, sample_verbose_scheme, overall_thinning, i_start_from, temperature, proposal_update)
+def _pack_everything(trees, posteriors, temperature_scheme,printing_schemes,overall_thinnings,no_iterations,cum_iterations, proposal_update=None):
     return ([tree, 
-             summaries,
-             posterior_function,
-             proposal,
              posterior,
              no_iterations,
              printing_scheme,
              overall_thinnings,
              cum_iterations,
-             temperature_scheme.get_temp(i)] for i,(tree,posterior,printing_scheme,proposal) in enumerate(zip(trees,posteriors,printing_schemes, proposal_scheme)))
+             temperature_scheme.get_temp(i),
+             None] for i,(tree,posterior,printing_scheme) in enumerate(zip(trees,posteriors,printing_schemes)))
 
 def _unpack_everything(new_state, summaries, total_permutation):
-    trees,posteriors, summs = zip(*new_state)
+    trees,posteriors, summs,_ = zip(*new_state)
     list_of_smaller_data_frames=[]
     for summ_data, n, i in zip(summs, total_permutation, range(len(total_permutation))):
         df=pd.DataFrame.from_items(((summ_object.name,summ_col) for summ_object,summ_col in zip(summaries,summ_data)))
@@ -105,7 +106,7 @@ def _unpack_everything(new_state, summaries, total_permutation):
         df['layer']=i
         list_of_smaller_data_frames.append(df)
     df=pd.concat(list_of_smaller_data_frames)
-    return trees, posteriors, df
+    return trees, posteriors, None #df
 
 def _handle_flipping_of_proposals(proposal_scheme, permut):
     return proposal_scheme
@@ -146,7 +147,7 @@ if __name__=='__main__':
                summaries=summaries, 
                temperature_scheme=fixed_geometrical(10.0,n), 
                printing_schemes=[sample_verbose_scheme for _ in range(n)], 
-               iteration_scheme=[100]*200, 
+               iteration_scheme=[10]*100, 
                overall_thinnings=5, 
                proposal_scheme= [prop_flat for _ in range(n)], 
                cores=n, 

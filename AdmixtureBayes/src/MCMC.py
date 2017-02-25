@@ -3,7 +3,7 @@ from scipy.stats import poisson
 from likelihood import likelihood
 from numpy.random import random
 from math import exp
-from tree_operations import get_number_of_admixes
+from tree_operations import get_number_of_admixes, illegal_branch_length
 from summary import *
 from multiprocessing import Queue, Process
 
@@ -12,11 +12,9 @@ def initialize_posterior(emp_cov):
     def posterior(x,pks={}):
         no_admixes=get_number_of_admixes(x)
 #         tot_branch_length=0
-        for branch in x:
-            times=branch[2::2]
-            less_than_zero=[1 for t in times if t<0]
-            if sum(less_than_zero)>0:
-                return -float('inf')
+        if illegal_branch_length(x):
+            return -float('inf')
+        
 #         #print tot_branch_length
         prior=poisson.logpmf(no_admixes,0.1)
         likelihood_value=likelihood(x, emp_cov)
@@ -50,62 +48,11 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
         return newx,post_new
     return x,post
 
-class basic_chain_class_as_process(object):
-    
-    def __init__(self, basic_chain_class):
-        self.chain=basic_chain_class
-        self.process= Process(target=self.remote_chain)
-    
-    def start(self, p):
-        self.chain.task_queue.put(p)
-    
-    def terminate(self):
-        self.process.terminate()
-        
-    def complete(self):
-        return self.chain.response_queue.get()
 
-class basic_chain_class(object):
+def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None):
+    if proposal_update is not None:
+        proposal.update(proposal_update)
     
-    def __init__(self, summaries, posterior_function, proposal):
-        self.summaries=summaries
-        self.posterior_function
-        self.proposal=proposal
-        self.task_queue= Queue()
-        self.response_queue = Queue()
-        
-    def run_chain(self, start_tree, post=None, N=10000, sample_verbose_scheme=None, overall_thinning, i_start_from=0, temperature=1.0, proposal_update=None):
-        self.proposal.update(proposal_update)
-        tree=start_tree
-        if post is None:
-            post=self.posterior_function(tree)
-        
-        iteration_summary=[]
-        
-        proposal_knowledge_scraper={}
-            
-        for i in range(i_start_from,i_start_from+N):
-            new_tree,new_post=one_jump(tree, post, temperature, self.posterior_function, self.proposal, proposal_knowledge_scraper)
-            if overall_thinning!=0 and i%overall_thinning==0:
-                iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,
-                                                                   self.summaries,
-                                                                   tree=new_tree,
-                                                                   posterior=new_post,
-                                                                   old_post=post,
-                                                                   old_tree=tree,
-                                                                   iteration_number=i,**proposal_knowledge_scraper))
-            tree=new_tree
-            post=new_post
-        return tree, post, zip(*iteration_summary), self.proposal.get_update()
-    
-    def __chain__(self):
-        while True:
-            input = self.task_queue.get()
-            self.response_queue.put(self.run_chain(*input))
-    
-    
-
-def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0):
     tree=start_tree
     if post is None:
         post=posterior_function(tree)
@@ -127,7 +74,7 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
         tree=new_tree
         post=new_post
     
-    return tree, post, zip(*iteration_summary)
+    return tree, post, zip(*iteration_summary), None#,proposal.get_update()
         
         
         

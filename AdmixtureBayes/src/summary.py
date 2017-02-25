@@ -7,8 +7,9 @@ from tree_operations import get_number_of_admixes, get_all_branch_lengths
 
 class Summary(object):
        
-    def __init__(self, name):
+    def __init__(self, name, pandable=True):
         self.name=name
+        self.pandable=pandable
     
     def __call__(self, **kwargs):
         pass
@@ -36,8 +37,8 @@ class s_branch_length(Summary):
     
 class s_variable(Summary):
     
-    def __init__(self, variable):
-        super(s_variable, self).__init__(variable)
+    def __init__(self, variable, pandable=True):
+        super(s_variable, self).__init__(variable, pandable)
 
     def __call__(self, **kwargs):
         return kwargs[self.name]

@@ -116,6 +116,8 @@ def make_covariance(tree, nodes):
         for branch_key, branch in tree_dict.iteritems():
             if branch_key in attaches and attaches[branch_key][1]=="ready" and len(attaches)>=2:
                 moves+=1
+                if branch[1]<0:
+                    return None
                 new_branch, attachments, code= follow_branch(branch, attaches[branch_key][0], covmat)
                 if code == "coalesce": #the branch has coalesced with another branch
                     del attaches[branch_key]
