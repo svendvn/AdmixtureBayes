@@ -21,9 +21,8 @@ class Population:
         return Population(n_w, deepcopy(self.members))
     
     def merge_with_other(self, other):
-        #print "merge", self.pop, other.pop
-        #print "self",self.members, self.weights
-        #print "other", other.members, other.weights
+        print "self",self.members, self.weights
+        print "other", other.members, other.weights
      
         self.weights=[w+other.weights[other.members.index(m)] if m in other.members else w for m,w in izip(self.members,self.weights) ]
         tmpl=[(w,m) for w,m in izip(other.weights, other.members) if m not in self.members]
@@ -63,118 +62,90 @@ class Covariance_Matrix():
         indices=self.get_indices(population.members)
         self.covmat[ix_(indices,indices)]+=self.get_addon(branch_length, population.weights)
         #self.covmat[ix_(indices,indices)]+=branch_length*outer(weights, weights)
+
+
+#node is p1key, p2key, adm_prop, p1length, p2length, 
+
+def node_is_coalescence(node):
+    '''
+    if a node has two parents, it is not a coalescence node
+    '''
+    return (node[1] is None)
     
 def leave_node(key, node, population, covmat):
-    if node[1] is None:
+    if node_is_coalescence(node): #if the node is coalescence it is not admixture
         return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, key=key)]
     else:
         new_pop=population.remove_partition(1.0-node[2])
-        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, key=key),
-                follow_branch(parent_key=node[1],branch_length=node[4], population=new_pop, covmat=covmat, key=key)]
+        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, dependent=node[1]),
+                follow_branch(parent_key=node[1],branch_length=node[4], population=new_pop, covmat=covmat, dependent=node[0])]
 
-def follow_branch(parent_key, branch_length, population, covmat, key):
-    branch_length=branch[1]
-    if len(branch)==2:
-        covmat.update(branch_length, population)
-        return None, (branch[0], population), "coalesce"
+def follow_branch(parent_key, branch_length, population, covmat, key, dependent="none"):
+    covmat.update(branch_length, population)
+    return parent_key, population, dependent
+
+def _add_to_waiting(dic,add,tree):
+    key,pop,dep=add
+    if key in dic:#this means that the node is a coalescence node
+        dic[key][0][1]=pop
+        dic[key][1][1]=dep
     else:
-        a_event=branch[2]
-        a_direction=a_event[0]
-        if a_direction==">":
-            if len(a_event)==4:
-                return branch, ((a_event[1],a_event[3]),None), "waiting for admixture in"
-            else:
-                covmat.update(branch_length, population)
-                population.merge_with_other(a_event[4])
-                return branch[:1]+branch[3:], (None, population), "received admixture in"
+        if key=='r' or node_is_coalescence(tree[key]):
+            dic[key]=[[pop,None],[dep,"empty"]]
         else:
-            covmat.update(branch_length, population)
-            a_dest=a_event[1]
-            a_proportion=a_event[2]
-            a_identifier=a_event[3]
-            new_pop=population.remove_partition(a_proportion)
-            return branch[:1]+branch[3:], ((a_dest,a_identifier),(population,new_pop)), "moving admixture out"
-        
-def calc_covariance_from_generators(generators, node_to_index):
-    res=zeros((len(node_to_index), len(node_to_index)))
-    for generator in generators:
-        for (a,b), x in generator:
-            res[node_to_index[a],node_to_index[b]]+=x
-    return res
+            dic[key]=[[pop],[dep]]
+    return dic
 
+def _full_node(key,dic):
+    if key in dic:
+        for dep in dic[key][1]:
+            if dep=="empty":
+                return False
+        return True
+    return False
+
+def _merge_pops(pops):
+    if len(pops)==1:
+        return pops[0]
+    else:
+        print pops
+        return pops[0].merge_with_other(pops[1])
+
+def _thin_out_dic(dic):
+    ready_nodes=[]
+    print dic
+    for key,[pops, deps] in dic.items():
+        print pops, deps
+        full_node=True
+        for dep in deps:
+            if dep is None or not (dep=="none" or _full_node(dep,dic)):
+                full_node=False
+        if full_node:
+            ready_nodes.append((key,_merge_pops(pops)))
+            del dic[key]
+    return dic,ready_nodes
+                
+def make_covariance(tree, node_keys):
+    pops=[Population([1.0],[node]) for node in node_keys]
+    ready_nodes=zip(node_keys,pops)
+    covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
+    waiting_nodes={}
+    while True:
+        for key,pop in ready_nodes:
+            upds=leave_node(key, tree[key], pop, covmat)
+            for upd in upds:
+                waiting_nodes=_add_to_waiting(waiting_nodes, upd,tree)
+        waiting_nodes,ready_nodes=_thin_out_dic(waiting_nodes)
+        if len(ready_nodes)==0:
+            return None
+        if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
+            break
+    return covmat
+                
             
             
-        
-def make_covariance(tree, nodes):
-
-    node_to_index={node:i for i,node in enumerate(nodes)}
-    pops=[Population([1.0],[node]) for node in nodes]
-    covmat=Covariance_Matrix(node_to_index)
-    #tree=deepcopy(tree)
-    tree_dict={b[1]:deepcopy(b[:1]+b[2:]) for b in tree}
-    tree_dict["r"]="stop"
-    attaches=dict(  (branch_key,(pops[n],"ready")) for n,branch_key in enumerate(nodes) if (branch_key in nodes))
-
-    waiting_in_list={}
-    waiting_out_list={}
-
-    #all_back_at_root=False
-    while len(attaches)>=2:
-        moves=0
-        for branch_key, branch in tree_dict.iteritems():
-            if branch_key in attaches and attaches[branch_key][1]=="ready" and len(attaches)>=2:
-                moves+=1
-                if branch[1]<0:
-                    return None
-                new_branch, attachments, code= follow_branch(branch, attaches[branch_key][0], covmat)
-                if code == "coalesce": #the branch has coalesced with another branch
-                    del attaches[branch_key]
-                    new_branch_key=attachments[0]
-                    new_population=attachments[1]
-                    if new_branch_key in attaches:
-                        new_population.merge_with_other(attaches[new_branch_key][0])
-                        attaches[new_branch_key]=(new_population, "ready")
-                    else:
-                        attaches[new_branch_key]=(new_population, "waiting for coalescer")
-                elif code == "waiting for admixture in": 
-                    identifier_key=attachments[0][1]
-                    travel_from_branch=attachments[0][0]
-                    if identifier_key in waiting_out_list:
-                        new_branch[2].append(waiting_out_list[identifier_key])
-                        attaches[branch_key]=(attaches[branch_key][0], "ready")
-                        attaches[travel_from_branch]=(attaches[travel_from_branch][0], "ready")
-                        del waiting_out_list[identifier_key]
-                    else:
-                        waiting_in_list[identifier_key]=travel_from_branch
-                        attaches[branch_key]=(attaches[branch_key][0], "waiting for admixturer")
-                elif code == "moving admixture out":
-                    
-                    travel_to_branch_key=attachments[0][0]
-                    identifier_key=attachments[0][1]
-                    new_population_stay=attachments[1][0]
-                    new_population_move=attachments[1][1]
-                    
-                    if identifier_key in waiting_in_list:
-                        #here there is already a branch waiting for the population that is being emitted.
-                        destination_branch=tree_dict[travel_to_branch_key]
-                        destination_branch[2].append(new_population_move)
-                        del waiting_in_list[identifier_key]
-                        attaches[branch_key]=(new_population_stay, "ready")
-                        attaches[travel_to_branch_key]=(attaches[travel_to_branch_key][0], "ready")  
-                    else:
-                        #no branch is waiting and we will put this on hold waiting for it to happen
-                        attaches[branch_key]=(new_population_stay, "waiting for admixture out")
-                        waiting_out_list[identifier_key]=new_population_move
-                elif code == "received admixture in":
-                    _,new_population=attachments
-                    attaches[branch_key]=(new_population, "ready")
-                    
-                tree_dict[branch_key]=new_branch
-        if moves==0:
-            return None #this means that the tree is illegal, because it does not progress.
-    return covmat.covmat
-
-
+            
+    
 
 
 if __name__=="__main__":
@@ -393,7 +364,12 @@ if __name__=="__main__":
     nodes=["s"+str(i) for i in range(1,N+1)]
     print nodes
     
-    #print make_covariance(a,nodes)
+    tree={'s1':['s1s2',None, None, 0.1,None],
+          's2':['s1s2', None, None, 0.1,None],
+          's1s2':['r',None, None, 0.2,None],
+          's3':['r',None, None, 0.4, None]}
+    
+    print make_covariance(tree,['s1','s2','s3'])
     nodes2=["s"+str(i) for i in range(1,4)]
 #     print make_covariance(tree_flatter_list,nodes2)
 #     print make_covariance(tree_flatter_list2,nodes2)
@@ -423,7 +399,7 @@ if __name__=="__main__":
         print res
     import cProfile
      
-    print cProfile.run('som()')
+    #print cProfile.run('som()')
     
     #print cProfile.run("likewise()")
     

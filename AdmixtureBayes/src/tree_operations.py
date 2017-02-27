@@ -45,8 +45,8 @@ def tree_prune(tree, remove_code):
                 branch[1]=branch[1].replace(remove_code, '')
             
             for admixture_event in branch[3::2]:
-                if remove_code in admixture_event[0] and remove_code!=remove_code:
-                    admixture_event[0]=element.replace(remove_code, '')
+                if remove_code in admixture_event[0] and remove_code!=admixture_event[0]:
+                    admixture_event[0]=admixture_event[0].replace(remove_code, '')
             if branch[0]==branch[1]:
                 orphans.append(branch)
             else:
