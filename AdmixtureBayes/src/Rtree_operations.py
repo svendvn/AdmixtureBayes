@@ -69,18 +69,22 @@ tree_admix_to_child={
     's3s2a':['r',None,None,0.01]
     }
 
-def regraft(tree, remove_key, add_to_branch):
-    tree=remove_parent_attachment(tree, remove_key)
+
     
-def remove_parent_attachment(tree, orphanonte_key):
+def remove_parent_attachment(tree, orphanota_key):
     '''
-    This takes the tree and removes the parent of orphanonte_key.
+    This takes the tree and removes the parent of orphanonte_key. It is assumed that any sibling is not an admixture event
     '''
-    pkey=get_parents(tree[orphanonte_key])[0]
-    children_of_parent=get_children(tree[pkey])
+    pkey=get_parents(tree[orphanota_key])[0]
+    children_of_parent=get_other_children(tree[pkey], orphanota_key)
+    assert children_of_parent, 'this list is surprisingly empty'
     for key in children_of_parent:
-        if key is not None:
-            tree[key]=
+        sib_node=tree[key]
+        assert node_is_non_admixture(sib_node), 'the function remove_parent_attachment is not built for sibling admixture events.'
+        tree[key]=[pkey, None,None, sib_node[3]+tree[pkey][3], None]+get_children(sib_node)
+        tree[pkey][5:7]=[key,None]
+        tree[orphonota_key][0]=None
+    return tree
     
 
 def node_is_non_admixture(node):
@@ -102,8 +106,23 @@ def get_descendants_and_rest(tree, key):
     descendant_keys=_get_descendants(tree, key)
     return descendant_keys, list(set(all_keys)-set(descendant_keys))
 
+def get_other_children(node, child_key):
+    res=[]
+    for n in get_children(node):
+        if n is not None and n!=child_key:
+            res.append(n)
+    return res
+    
+
 def get_children(node):
     return node[5:7]
+
+def _get_index_of_parent(node, parent):
+    if node[0]==parent:
+        return 0
+    if node[1]==parent:
+        return 1
+    return -1
 
 def has_child_admixture(tree, key):
     node=tree[key]
@@ -127,25 +146,56 @@ def _get_descendants(tree, key):
 def insert_children_in_tree(tree):
     children={key:[None, None] for key in tree}
     for key in tree:
-        parent1, parent2 = get_parents(tree[key])
-        print parent1, parent2, key
-        print children
-        if parent1!='r':
-            if children[parent1][0] is None:
-                children[parent1][0] = key
-            else:
-                children[parent1][1]=key
-        if parent2 is not None and parent2!='r':
-            if children[parent2][0] is None:
-                children[parent2][0] = key
-            else:
-                children[parent2][1]=key
+        parents = get_real_parents(tree[key])
+        for parent in parents:
+            if parent!='r':
+                children[parent].append(key)
     for key in tree:
-        tree[key]=tree[key][:5]+children[key]
+        tree[key]=_update_parents(tree[key], children[key])
     return tree
+
+def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code):
+    #updating the grafted_branch. Easy.
+    tree[remove_key][0]=new_node_code
+    
+    #updating the parental branch. easy.
+    parent=get_parents(tree[add_to_branch])[0]
+    if parent != 'r':
+        tree[parent]=_update_child(tree[parent], add_to_branch, new_node_code)
+        
+    #length
+    p_index=_get_index_of_parent(tree[add_to_branch], parent)
+    tree=[]
+    
+    #updating the the old child node.
+    
+def _update_parents(node, new_parents):
+    if len(new_parents)==1:
+        res=node[:5]+[new_parents[0],None]
+        return res
+    if len(new_parents)==2:
+        res=node[:5]+new_parents
+        return res
+    if len(new_parents)==0:
+        res=node[:5]+[None]*2
+        return res
+    assert False, 'how many parents do you think you have?'
+        
+def _update_child(node, old_child, new_child):
+    if node[5]==old_child:
+        node[5]=new_child
+    elif node[6]==old_child:
+        node[6]=new_child
+    else:
+        assert False, 'child could not be updated'
+    return node
         
 def get_parents(node):
     return node[:2]
+
+def get_real_parents(node):
+    ps=node[:2]
+    return [p for p in ps if p is not None]
 
 def is_root(*keys):
     ad=[key=='r' for key in list(keys)]
