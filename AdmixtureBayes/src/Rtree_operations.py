@@ -60,6 +60,18 @@ tree_on_the_border2={'s1':['d',None, None, 0.1,None],
       'e':['f',None,None,0.05,None],
       'd':['r',None,None,0.05,None]}
 
+tree_on_the_border2_with_children={'s1':['d',None, None, 0.1,None,None,None],
+      's2':['a',None, None,0.05,None,None,None],
+      's3':['e',None,None, 0.3,None,None,None],
+      's4':['b',None,None, 0.3,None,None,None],
+      'a':['b','c', 0.5,0.2,0.1,'s2',None],
+      'c':['e','d',0.5,0.1,0.1,'a',None],
+      'b':['f',None,None,0.05,None,'s4','a'],
+      'f':['r',None,None,0.02,None,'b','e'],
+      'e':['f',None,None,0.05,None,'c','s3'],
+      'd':['r',None,None,0.05,None,'s1','c']}
+
+
 tree_admix_to_child={
     's1':['r',None,None, 0.1,None],
     's2':['s2a',None,None,0.1,None],
@@ -73,18 +85,63 @@ tree_admix_to_child={
     
 def remove_parent_attachment(tree, orphanota_key):
     '''
-    This takes the tree and removes the parent of orphanonte_key. It is assumed that any sibling is not an admixture event
+    This takes the tree and removes the parent of orphanonte_key.
     '''
     pkey=get_parents(tree[orphanota_key])[0]
-    children_of_parent=get_other_children(tree[pkey], orphanota_key)
-    assert children_of_parent, 'this list is surprisingly empty'
-    for key in children_of_parent:
-        sib_node=tree[key]
-        assert node_is_non_admixture(sib_node), 'the function remove_parent_attachment is not built for sibling admixture events.'
-        tree[key]=[pkey, None,None, sib_node[3]+tree[pkey][3], None]+get_children(sib_node)
-        tree[pkey][5:7]=[key,None]
-        tree[orphonota_key][0]=None
+    if pkey=='r':
+        return remove_root_attachment(tree, orphanota_key)
+    grand_pkey=get_parents(tree[pkey])[0]
+    child_of_parent=get_other_children(tree[pkey], orphanota_key)[0]
+    sib_node=tree[child_of_parent]
+    u=sib_node[3]+tree[pkey][3]
+    tree[child_of_parent]=[grand_pkey, None,None, u, None, sib_node[5],sib_node[6]]
+    del tree[pkey]
+    if grand_pkey!='r':
+        tree[grand_pkey]=_rename_child(tree[grand_pkey], pkey, child_of_parent)
+    tree[orphanota_key][0]=None
+    return tree,"u",u
+
+def remove_root_attachment(tree, orphanota_key):
+    '''
+    The situation is different when the root is removed because of the special naming strategy.
+    Here a new root is born.
+    '''
+    rooted_keys=_find_rooted_nodes(tree)
+    for key,len_to_root in rooted_keys:
+        if key!=orphanota_key:
+            tree=_rename_root(tree, key)
+            r=len_to_root
+            del tree[key]
+            tree[orphanota_key][0]=None
+    return tree,'r', r
+    
+def _rename_root(tree, old_name):
+    for _,node in tree.items():
+        if node[0]==old_name:
+            node[0]='r'
+        if (node[1] is not None and node[1]==old_name):
+            node[1]='r'
     return tree
+
+def _rename_child(node, old_name, new_name):
+    if node[5]==old_name:
+        node[5]=new_name
+    elif node[6]==old_name:
+        node[6]=new_name
+    else:
+        assert False, "tried to rename a child that didn't exist in its parents documents."
+    return node
+    
+    
+def _find_rooted_nodes(tree):
+    res=[]
+    for key,node in tree.items():
+        if node[0]=='r' or (node[1] is not None and node[1]=='r'):
+            if node[0]=='r':
+                res.append((key,node[3]))
+            else:
+                res.append((key,node[4]))
+    return res
     
 
 def node_is_non_admixture(node):
@@ -144,31 +201,60 @@ def _get_descendants(tree, key):
         return ans+_get_descendants(tree, tree[key][6])
     
 def insert_children_in_tree(tree):
-    children={key:[None, None] for key in tree}
+    children={key:[] for key in tree}
     for key in tree:
         parents = get_real_parents(tree[key])
         for parent in parents:
             if parent!='r':
                 children[parent].append(key)
+    print children
     for key in tree:
         tree[key]=_update_parents(tree[key], children[key])
     return tree
 
-def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code):
+def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_branch):
+    #if we are at the root, things are different.
+    if add_to_branch=='r':
+        return graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root=new_node_code)
+    
     #updating the grafted_branch. Easy.
     tree[remove_key][0]=new_node_code
     
-    #updating the parental branch. easy.
-    parent=get_parents(tree[add_to_branch])[0]
-    if parent != 'r':
-        tree[parent]=_update_child(tree[parent], add_to_branch, new_node_code)
+    #dealing with the other child of the new node
+    index_of_pop_name_to_change=which_branch
+    index_of_branchl_to_change=which_branch+3
+    #saving info:
+    parent_of_branch=tree[add_to_branch][index_of_pop_name_to_change]
+    length_of_piece_to_break_up=tree[add_to_branch][index_of_branchl_to_change]
+    #updating node
+    tree[add_to_branch][index_of_pop_name_to_change]=new_node_code
+    tree[add_to_branch][index_of_branchl_to_change]=length_of_piece_to_break_up*insertion_spot
+    
+    #taking care of the new node
+    tree[new_node_code]=[parent_of_branch, None, None, length_of_piece_to_break_up*(1.0-insertion_spot), None, add_to_branch, remove_key]
+
+    #taking care of the parent of the new node
+    if parent_of_branch != 'r':
+        tree[parent_of_branch]=_update_child(tree[parent_of_branch], add_to_branch, new_node_code)
         
-    #length
-    p_index=_get_index_of_parent(tree[add_to_branch], parent)
-    tree=[]
+    return tree
     
-    #updating the the old child node.
+def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):    
+    root_keys=_find_rooted_nodes(tree)
     
+    #updating the grafted_branch. Easy.
+    tree[remove_key][0]='r'
+    
+    #dealing with the other child of the new node, but since the new node is the root, the old root is the new node. If that makes sense.
+    tree[new_name_for_old_root]=['r', None, None, insertion_spot, None]+root_keys
+    
+    #dealing with the children of the new node.
+    for rkey in root_keys:
+        tree[rkey]=_update_parent(tree[rkey], 'r', new_name_for_old_root)
+    
+    return tree
+
+
 def _update_parents(node, new_parents):
     if len(new_parents)==1:
         res=node[:5]+[new_parents[0],None]
@@ -180,6 +266,15 @@ def _update_parents(node, new_parents):
         res=node[:5]+[None]*2
         return res
     assert False, 'how many parents do you think you have?'
+    
+def _update_parent(node, old_parent, new_parent):
+    if node[0]==old_parent:
+        node[0]=new_parent
+    elif node[1]==old_parent:
+        node[1]=new_parent
+    else:
+        assert False, 'parent could not be updated'
+    return node
         
 def _update_child(node, old_child, new_child):
     if node[5]==old_child:
@@ -207,9 +302,12 @@ if __name__=='__main__':
           's1s2':['r',None, None, 0.2,None],
           's3':['r',None, None, 0.4, None]}
         
+        
         tree2=insert_children_in_tree(tree_on_the_border2)
         print tree2
+        print tree_on_the_border2_with_children
         
-        print get_children_and_rest(tree2, 'b')
-        print is_root(*get_parents(tree2['a']))
+        print remove_parent_attachment(tree2, "b")
+        #print get_descendants_and_rest(tree2, 'b')
+        #print is_root(*get_parents(tree2['a']))
         
