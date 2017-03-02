@@ -246,10 +246,10 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):
     tree[remove_key][0]='r'
     
     #dealing with the other child of the new node, but since the new node is the root, the old root is the new node. If that makes sense.
-    tree[new_name_for_old_root]=['r', None, None, insertion_spot, None]+root_keys
+    tree[new_name_for_old_root]=['r', None, None, insertion_spot, None,root_keys[0][0], root_keys[1][0]]
     
     #dealing with the children of the new node.
-    for rkey in root_keys:
+    for rkey, b_l in root_keys:
         tree[rkey]=_update_parent(tree[rkey], 'r', new_name_for_old_root)
     
     return tree
@@ -295,6 +295,25 @@ def get_real_parents(node):
 def is_root(*keys):
     ad=[key=='r' for key in list(keys)]
     return any(ad)
+
+def to_aarhus_admixture_graph(tree):
+    leaves=[]
+    inner_nodes=[]
+    edges=[]
+    admixture_proportions=[]
+    for key,node in tree.items():
+        if node_is_leaf_node(node):
+            leaves.append([key])
+        else:
+            inner_nodes.append([key])
+            if node_is_admixture(node):
+                admixture_proportions.append([key, node[0],node[1],node[2]])
+        ps=get_real_parents(node)
+        for p in ps:
+            edges.append([key,p])
+    return leaves, inner_nodes, edges, admixture_proportions
+
+
     
 if __name__=='__main__':
         tree={'s1':['s1s2',None, None, 0.1,None],
@@ -302,12 +321,16 @@ if __name__=='__main__':
           's1s2':['r',None, None, 0.2,None],
           's3':['r',None, None, 0.4, None]}
         
+        from copy import deepcopy
         
         tree2=insert_children_in_tree(tree_on_the_border2)
         print tree2
         print tree_on_the_border2_with_children
         
-        print remove_parent_attachment(tree2, "b")
+        tree3=remove_parent_attachment(deepcopy(tree2), "f")[0]
+        print tree3
+        print graft(tree3, 'f', 'r', 0.3, 'new_code', 0)
+        #print remove_parent_attachment(tree2, 'f')
         #print get_descendants_and_rest(tree2, 'b')
         #print is_root(*get_parents(tree2['a']))
         
