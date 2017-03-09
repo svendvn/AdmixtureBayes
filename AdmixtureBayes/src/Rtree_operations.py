@@ -1,3 +1,4 @@
+
 tree_clean={'s1':['s1s2',None, None, 0.1,None],
       's2':['s1s2', None, None, 0.1,None],
       's1s2':['r',None, None, 0.2,None],
@@ -81,6 +82,19 @@ tree_admix_to_child={
     's3s2a':['r',None,None,0.01]
     }
 
+def extend_branch(node, pkey, grand_parent_key, p_to_gp):
+    if node[0]==pkey:
+        node[0]=grand_parent_key
+        u=node[3]/(node[3]+p_to_gp)
+        node[3]+=p_to_gp
+        return node,u
+    elif node[1]==pkey:
+        node[1]=grand_parent_key
+        u=node[4]/(node[4]+p_to_gp)
+        node[4]+=p_to_gp
+        return node,u
+    else:
+        assert False, 'extension of branch was not possible'
 
     
 def remove_parent_attachment(tree, orphanota_key):
@@ -88,13 +102,14 @@ def remove_parent_attachment(tree, orphanota_key):
     This takes the tree and removes the parent of orphanonte_key.
     '''
     pkey=get_parents(tree[orphanota_key])[0]
+    
+    
     if pkey=='r':
         return remove_root_attachment(tree, orphanota_key)
     grand_pkey=get_parents(tree[pkey])[0]
     child_of_parent=get_other_children(tree[pkey], orphanota_key)[0]
     sib_node=tree[child_of_parent]
-    u=sib_node[3]+tree[pkey][3]
-    tree[child_of_parent]=[grand_pkey, None,None, u, None, sib_node[5],sib_node[6]]
+    tree[child_of_parent],u=extend_branch(sib_node, pkey, grand_pkey, tree[pkey][3])
     del tree[pkey]
     if grand_pkey!='r':
         tree[grand_pkey]=_rename_child(tree[grand_pkey], pkey, child_of_parent)
@@ -109,11 +124,28 @@ def remove_root_attachment(tree, orphanota_key):
     rooted_keys=_find_rooted_nodes(tree)
     for key,len_to_root in rooted_keys:
         if key!=orphanota_key:
-            tree=_rename_root(tree, key)
-            r=len_to_root
-            del tree[key]
+            if node_is_coalescence(tree[key]):
+                tree=_rename_root(tree, key)
+                r=len_to_root
+                del tree[key]
+            else:
+                tree[key],r=get_branch_length_and_reset(tree[key], 'r', 0)
             tree[orphanota_key][0]=None
+    print tree
+    print rooted_keys, orphanota_key
     return tree,'r', r
+    
+def get_branch_length_and_reset(node, parent_key, new_length):
+    if node[0]==parent_key:
+        old_length=node[3]
+        node[3]=new_length
+        return node, old_length
+    elif node[1]==parent_key:
+        old_length=node[4]
+        node[4]=new_length
+        return node, old_length
+    else:
+        assert False, 'could not give new length because the parent was unknown'
     
 def _rename_root(tree, old_name):
     for _,node in tree.items():
@@ -160,6 +192,7 @@ def node_is_leaf_node(node):
 
 def get_descendants_and_rest(tree, key):
     all_keys=tree.keys()
+    print tree, key
     descendant_keys=_get_descendants(tree, key)
     return descendant_keys, list(set(all_keys)-set(descendant_keys))
 
@@ -207,7 +240,7 @@ def insert_children_in_tree(tree):
         for parent in parents:
             if parent!='r':
                 children[parent].append(key)
-    print children
+    #print children
     for key in tree:
         tree[key]=_update_parents(tree[key], children[key])
     return tree
@@ -241,17 +274,26 @@ def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_
     
 def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):    
     root_keys=_find_rooted_nodes(tree)
+
+    if len(root_keys)==1:#this is the special case where an admixture leads to the new root
+        return graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_keys[0])
     
     #updating the grafted_branch. Easy.
     tree[remove_key][0]='r'
     
     #dealing with the other child of the new node, but since the new node is the root, the old root is the new node. If that makes sense.
+    print 'root_keys', root_keys
     tree[new_name_for_old_root]=['r', None, None, insertion_spot, None,root_keys[0][0], root_keys[1][0]]
     
     #dealing with the children of the new node.
     for rkey, b_l in root_keys:
         tree[rkey]=_update_parent(tree[rkey], 'r', new_name_for_old_root)
     
+    return tree
+
+def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key):
+    tree[remove_key][0]='r'
+    tree[root_key[0]],_=get_branch_length_and_reset(tree[root_key[0]], 'r', insertion_spot)
     return tree
 
 
@@ -292,6 +334,27 @@ def get_real_parents(node):
     ps=node[:2]
     return [p for p in ps if p is not None]
 
+def get_other_parent(node, parent_key):
+    if parent_key==node[0]:
+        return node[1]
+    elif parent_key==node[1]:
+        return node[0]
+    else:
+        assert False, 'the shared parent was not a parent of the sibling.'
+        
+def halfbrother_is_uncle(tree, key):
+    '''
+    key is a non coalescence node. This function checks if a sibling is an admixture that goes to the parent and the grandparent at the same time.
+    If removed, there would be a loop where one person has two of the same parent.
+    '''
+    parent_key=tree[key][0]
+    sibling_key=get_other_children(tree[parent_key], key)[0]
+    if node_is_non_admixture(tree[sibling_key]):
+        return False
+    bonus_parent=get_other_parent(tree[sibling_key], parent_key)
+    return bonus_parent==parent_key
+        
+
 def is_root(*keys):
     ad=[key=='r' for key in list(keys)]
     return any(ad)
@@ -327,10 +390,20 @@ if __name__=='__main__':
         print tree2
         print tree_on_the_border2_with_children
         
-        tree3=remove_parent_attachment(deepcopy(tree2), "f")[0]
+        tree3=remove_parent_attachment(deepcopy(tree2), "s1")[0]
         print tree3
         print graft(tree3, 'f', 'r', 0.3, 'new_code', 0)
         #print remove_parent_attachment(tree2, 'f')
         #print get_descendants_and_rest(tree2, 'b')
         #print is_root(*get_parents(tree2['a']))
+        
+        trouble={'a': ['132', 'c', 0.5, 0.06013128348912011, 0.1, 's2', None], 'c': ['212', 'r', 0.5, 0.03639623632910125, 0.15000000000000002, 'a', None], 'b': ['r', None, None, 0.07, None, '132', 's4'], 'e': ['132', None, None, 0.05, None, '212', 's3'], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['212', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '132': ['b', None, None, 0.1398687165108799, None, 'a', 'e'], '212': ['e', None, None, 0.06360376367089875, None, 'c', 's1']}
+        trouble= remove_parent_attachment(trouble, 'b')[0]
+        print trouble
+        print graft(trouble, 'b', 'r', 0.314, 'dont see me', 'hallo')
+        
+        trouble3={'a': ['n17', 'c', 0.5, 0.0006670327290825764, 0.1, 's2', None], 'c': ['n15', 'r', 0.5, 0.02087163982263861, 0.4814480657456043, 'a', None], 'n16': ['n17', None, None, 0.005272434567465561, None, 's4', 's3'], 'n17': [None, None, None, 0.013899593800954894, None, 'a', 'n16'], 'n15': ['r', None, None, 0.05969046586907494, None, 'c', 's1'], 's3': ['n16', None, None, 0.07815645814883887, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n15', None, None, 0.5947563021746359, None, None, None], 's4': ['n16', None, None, 0.00017898147838901196, None, None, None]}
+        print graft(trouble3, 'n17', 'a', 1, 'n18', 1)
+        
+        
         

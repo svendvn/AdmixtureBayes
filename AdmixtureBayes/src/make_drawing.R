@@ -1,7 +1,8 @@
 
-myArgs <- commandArgs()
-
+myArgs <- commandArgs(trailingOnly=TRUE)
+library('admixturegraph')
 draw_to_file=myArgs[1]
+print(draw_to_file)
 leaves.f=myArgs[2]
 inner_nodes.f=myArgs[3]
 edges.f=myArgs[4]
@@ -21,6 +22,7 @@ for(i in 1:nrow(edges.t)){
 edges=parent_edges(vector_of_edges)
 
 admixture_events.t=apply(read.csv(admixture_events.f,header=F),c(1,2),as.character)
+admixture_events.t=apply(admixture_events.t,c(1,2),function(x){gsub(" ", "", x, fixed = TRUE)})
 vector_of_adm=c()
 for(i in 1:nrow(admixture_events.t)){
   vector_of_adm=c(vector_of_adm, admix_props(admixture_events.t[i,1],admixture_events.t[i,2],

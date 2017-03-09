@@ -2,23 +2,27 @@ from copy import deepcopy
 from numpy.random import choice, random, exponential
 from Rtree_operations import (get_parents, is_root, get_descendants_and_rest, 
 node_is_non_admixture, node_is_non_admixture, has_child_admixture, insert_children_in_tree,
-remove_parent_attachment, graft, node_is_admixture, get_real_parents)
+remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle)
 from random import getrandbits
+#from os import urandom
 
 def _get_possible_regrafters(tree):
     res=[]
     for key in tree:
         parents=get_real_parents(tree[key])
-        print parents
+        #print parents
         if len(parents)==1:
             parent=parents[0]
             #print key,(not is_root(parent)),node_is_non_admixture(tree[parent]),(not has_child_admixture(tree, parent))
             #if (not is_root(parent)) and node_is_non_admixture(tree[parent]) and (not has_child_admixture(tree, parent)):
-            if parent=='r' or node_is_non_admixture(tree[parent]):
+            if parent=='r' or (node_is_non_admixture(tree[parent]) and not halfbrother_is_uncle(tree, key)):
                 res.append(key)
     return res
 
 def _get_possible_branches(tree, children, other):
+    '''
+    returns the keys of all non-rooted nodes, that can be grafted into.
+    '''
     res=[]
     for oth in other:
         if oth in tree:
@@ -26,14 +30,14 @@ def _get_possible_branches(tree, children, other):
             if tree[oth][1] is not None:
                 res.append((oth,1))
     for child in children:
-        if oth in tree:
+        if child in tree:
             if tree[child][0] in other:
                 res.append((child,0))
-            elif tree[child][1] is not None and tree[child][1] in other:
+            elif tree[child][1] is not None and tree[child][1] in other :
                 res.append((child,1))
     return res
 
-def make_regraft(tree):
+def make_regraft(tree, new_node=None):
     
     possible_nodes=_get_possible_regrafters(tree)
     
@@ -41,39 +45,68 @@ def make_regraft(tree):
     
     new_tree= deepcopy(tree)
     regrafter=choice(possible_nodes, 1)[0]
+    print 'regrafter', regrafter
     new_tree, remove_distrub, remove_val=remove_parent_attachment(new_tree, regrafter)
     children, other= get_descendants_and_rest(tree, regrafter)
     candidates=_get_possible_branches(new_tree, children, other)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     recipient_key, recipient_branch=candidates[ch]
-    new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key)
+    print 'regrafter', regrafter
+    print 'into_tree', candidates[ch]
+    print 'new_tree',new_tree
+    new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key, new_node=new_node)
     _, new_other =  get_descendants_and_rest(new_tree, regrafter)
-    print len(other), len(new_other)
+    #print len(other), len(new_other)
+    
+    
     
     return new_tree
 
-def regraft(tree, remove_key, add_to_branch):
+def regraft(tree, remove_key, add_to_branch, new_node=None):
     
     if add_to_branch=='r':
         insertion_spot=exponential()
+        which_branch=0
     else:
         insertion_spot=random()
         if node_is_admixture(tree[add_to_branch]):
             which_branch=choice(2,1)[0]
         which_branch=0
-    tree=graft(tree, remove_key, add_to_branch, insertion_spot, getrandbits(128), which_branch)
+    if new_node is None:
+        new_node=str(getrandbits(8)).strip()
+    tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch)
     return tree,1
     
 
 if __name__=='__main__':
     
     import Rtree_operations
+    from tree_plotting import plot_graph
+    
+    
+#     before_illegal_tree={'a': ['n1', 'c', 0.5, 0.06604174100033824, 0.1, 's2', None], 'c': ['e', 'n2', 0.5, 0.1, 0.1, 'a', None], 'e': ['f', None, None, 0.05, None, 'c', 's3'], 'f': ['r', None, None, 0.02, None, 'n1', 'e'], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n2', None, None, 0.1, None, None, None], 's4': ['n1', None, None, 0.3, None, None, None], 'n1': ['f', None, None, 0.18395825899966176, None, 'a', 's4'], 'n2': ['r', None, None, 1.9890637488986214, None, 'c', 's1']}
+#     plot_graph(before_illegal_tree)
+#     removed= remove_parent_attachment(before_illegal_tree, 'n1')[0]
+#     print removed
+#     nt=graft(removed, 'n1', 'a', 0.0001, 'hallo', 1)
+#     plot_graph(nt)
+    
     
     tr=insert_children_in_tree(Rtree_operations.tree_on_the_border2)
-    print tr
-    print _get_possible_regrafters(tr)
-    tree_final=make_regraft(tr)
+    tr1=deepcopy(tr)
+    for i in range(100):
+        print 'before', tr
+        #try:
+        tr=make_regraft(tr, new_node='n'+str(i+1))
+        #except Exception as e:
+        #    print e
+        #    plot_graph(tr, drawing_name=str(i)+'.png')
+        #    tr=make_regraft(tr, new_node='n'+str(i+1))
+        #    break
+        print 'after', tr
     
-    from tree_plotting import plot_graph
-    plot_graph(tree_final)
+
+    
+    
+    #plot_graph(tree_final)
     
