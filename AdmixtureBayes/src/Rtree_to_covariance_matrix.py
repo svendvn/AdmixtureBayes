@@ -140,9 +140,9 @@ def make_covariance(tree, node_keys):
                 waiting_nodes=_add_to_waiting(waiting_nodes, upd,tree)
             taken_nodes.append(key)
         waiting_nodes,ready_nodes=_thin_out_dic(waiting_nodes, taken_nodes[:])
-        print 'waiting_nodes', waiting_nodes
-        print 'ready_nodes', ready_nodes
-        print 'taken_nodes', taken_nodes
+        #print 'waiting_nodes', waiting_nodes
+        #print 'ready_nodes', ready_nodes
+        #print 'taken_nodes', taken_nodes
         if len(ready_nodes)==0:
             return None
         if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
@@ -245,14 +245,17 @@ if __name__=="__main__":
     print make_covariance(tree_two_admixture_cross,['s1','s2','s3'])
     
 
+    from Rtree_operations import create_trivial_tree
     
-    
+    N=40
+    tree=create_trivial_tree(N)
+    print make_covariance(tree,['s'+str(i+1) for i in range(N)])
     def som():
-        for i in range(100):
-            make_covariance(tree_two_admixture,['s1','s2','s3'])
+        for i in range(1000):
+            make_covariance(tree,['s'+str(i+1) for i in range(N)])
     import cProfile
      
-    #print cProfile.run('som()')
+    print cProfile.run('som()')
     
     #print cProfile.run("likewise()")
     

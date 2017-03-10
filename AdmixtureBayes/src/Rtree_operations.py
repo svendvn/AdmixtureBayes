@@ -82,7 +82,25 @@ tree_admix_to_child={
     's3s2a':['r',None,None,0.01]
     }
 
+def create_trivial_tree(size, total_height=1.0):
+    step_size=total_height/size
+    tree={'s1':['n1',None,None,step_size,None, None,None],
+          's2':['n1',None,None,step_size,None, None,None],
+          'n1':['n2',None,None,step_size,None, 's1','s2']}
+    nex_inner_node='n2'
+    new_inner_node='n1'
+    for k in range(3,size+1):
+        old_inner_node='n'+str(k-2)
+        new_inner_node='n'+str(k-1)
+        nex_inner_node='n'+str(k)
+        new_leaf='s'+str(k)
+        tree[new_leaf]=[new_inner_node, None,None, step_size*(k-1),None, None,None]
+        tree[new_inner_node]=[nex_inner_node, None,None, step_size, None, new_leaf,old_inner_node]
+    del tree[new_inner_node]
+    return _rename_root(tree, new_inner_node)
+
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
+    #print node, pkey, grand_parent_key, p_to_gp
     if node[0]==pkey:
         node[0]=grand_parent_key
         u=node[3]/(node[3]+p_to_gp)
@@ -129,10 +147,9 @@ def remove_root_attachment(tree, orphanota_key):
                 r=len_to_root
                 del tree[key]
             else:
-                tree[key],r=get_branch_length_and_reset(tree[key], 'r', 0)
+                tree[key],r=get_branch_length_and_reset(tree[key], 'r', 'closed_branch')
+                print 'closed_branch!'
             tree[orphanota_key][0]=None
-    print tree
-    print rooted_keys, orphanota_key
     return tree,'r', r
     
 def get_branch_length_and_reset(node, parent_key, new_length):
@@ -192,7 +209,7 @@ def node_is_leaf_node(node):
 
 def get_descendants_and_rest(tree, key):
     all_keys=tree.keys()
-    print tree, key
+    #print tree, key
     descendant_keys=_get_descendants(tree, key)
     return descendant_keys, list(set(all_keys)-set(descendant_keys))
 
@@ -282,7 +299,7 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):
     tree[remove_key][0]='r'
     
     #dealing with the other child of the new node, but since the new node is the root, the old root is the new node. If that makes sense.
-    print 'root_keys', root_keys
+    #print 'root_keys', root_keys
     tree[new_name_for_old_root]=['r', None, None, insertion_spot, None,root_keys[0][0], root_keys[1][0]]
     
     #dealing with the children of the new node.
@@ -292,9 +309,14 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):
     return tree
 
 def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key):
+    print 'undoing a closed branch', insertion_spot, remove_key, root_key
     tree[remove_key][0]='r'
     tree[root_key[0]],_=get_branch_length_and_reset(tree[root_key[0]], 'r', insertion_spot)
     return tree
+
+def get_number_of_admixes(tree):
+    return sum((1 for node in tree.values() if node_is_admixture(node)))
+            
 
 
 def _update_parents(node, new_parents):
@@ -352,7 +374,8 @@ def halfbrother_is_uncle(tree, key):
     if node_is_non_admixture(tree[sibling_key]):
         return False
     bonus_parent=get_other_parent(tree[sibling_key], parent_key)
-    return bonus_parent==parent_key
+    grand_parent_key=tree[parent_key][0]
+    return bonus_parent==grand_parent_key
         
 
 def is_root(*keys):
@@ -404,6 +427,16 @@ if __name__=='__main__':
         
         trouble3={'a': ['n17', 'c', 0.5, 0.0006670327290825764, 0.1, 's2', None], 'c': ['n15', 'r', 0.5, 0.02087163982263861, 0.4814480657456043, 'a', None], 'n16': ['n17', None, None, 0.005272434567465561, None, 's4', 's3'], 'n17': [None, None, None, 0.013899593800954894, None, 'a', 'n16'], 'n15': ['r', None, None, 0.05969046586907494, None, 'c', 's1'], 's3': ['n16', None, None, 0.07815645814883887, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n15', None, None, 0.5947563021746359, None, None, None], 's4': ['n16', None, None, 0.00017898147838901196, None, None, None]}
         print graft(trouble3, 'n17', 'a', 1, 'n18', 1)
+        
+        tree_trouble={'a': ['n37', 'c', 0.5, 1.5717637721311875, 0.1, 's1', None], 'n66': ['r', None, None, 0.008798782728668674, None, 's3', 's4'], 'c': ['n54', 'n37', 0.5, 0.771318479326775, 0.07345113788460944, 'a', None], 's3': ['n66', None, None, 0.010969920361510089, None, None, None], 's2': ['n54', None, None, 0.404441491678861, None, None, None], 's1': ['a', None, None, 0.06451508173696463, None, None, None], 's4': ['n66', None, None, 1.7305330689019498, None, None, None], 'n67': ['r', None, None, 0.24519067463109384, None, 'n54', 'n37'], 'n54': ['n67', None, None, 0.25870104556004564, None, 'c', 's2'], 'n37': ['n67', None, None, 0.9342460567572629, None, 'c', 'a']}
+        print 'tree_trouble', tree_trouble
+        removed=remove_parent_attachment(tree_trouble, 'n54')[0]
+        print 'pruned tree', removed
+        adm=graft(removed, 'n54', 'c', 0.3, 'n68', 0) #FIXME: the function is being called like this via make_regraft
+        print adm
+        
+
+
         
         
         

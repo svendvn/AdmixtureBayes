@@ -35,6 +35,11 @@ def _get_possible_branches(tree, children, other):
                 res.append((child,0))
             elif tree[child][1] is not None and tree[child][1] in other :
                 res.append((child,1))
+    
+    #removing closed branches, that is branches from admixture to root or from leaves to root. Normally, they would get the position of root, but because they are indespensible, they get a closed category.
+    #this clumsy exception suggests, that the root should have its own key in the tree.
+    res=[(r,w) for r,w in res if tree[r][3+w]!='closed_branch']
+    
     return res
 
 def make_regraft(tree, new_node=None):
@@ -54,7 +59,7 @@ def make_regraft(tree, new_node=None):
     print 'regrafter', regrafter
     print 'into_tree', candidates[ch]
     print 'new_tree',new_tree
-    new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key, new_node=new_node)
+    new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
     _, new_other =  get_descendants_and_rest(new_tree, regrafter)
     #print len(other), len(new_other)
     
@@ -62,16 +67,12 @@ def make_regraft(tree, new_node=None):
     
     return new_tree
 
-def regraft(tree, remove_key, add_to_branch, new_node=None):
+def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
     
     if add_to_branch=='r':
         insertion_spot=exponential()
-        which_branch=0
     else:
         insertion_spot=random()
-        if node_is_admixture(tree[add_to_branch]):
-            which_branch=choice(2,1)[0]
-        which_branch=0
     if new_node is None:
         new_node=str(getrandbits(8)).strip()
     tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch)
@@ -91,10 +92,13 @@ if __name__=='__main__':
 #     nt=graft(removed, 'n1', 'a', 0.0001, 'hallo', 1)
 #     plot_graph(nt)
     
+    tree2={'a': ['n5', 'c', 0.5, 0.07182199688586655, 0.1, 's2', None], 'c': ['n2', 'r', 0.5, 0.15000000000000002, 0.15000000000000002, 'a', None], 'b': ['n4', None, None, 0.0032455783560232784, None, 'n5', 's4'], 's3': ['n5', None, None, 0.2930455087788524, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n4', None, None, 0.10695449122114763, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], 'n2': ['r', None, None, 0.0596819405846814, None, 'n4', 'c'], 'n4': ['n2', None, None, 0.007072481059295323, None, 'b', 's1'], 'n5': ['b', None, None, 0.12817800311413347, None, 'a', 's3']}
+    
+    print _get_possible_regrafters(tree2)
     
     tr=insert_children_in_tree(Rtree_operations.tree_on_the_border2)
     tr1=deepcopy(tr)
-    for i in range(100):
+    for i in range(10000):
         print 'before', tr
         #try:
         tr=make_regraft(tr, new_node='n'+str(i+1))

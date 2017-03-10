@@ -21,16 +21,23 @@ for(i in 1:nrow(edges.t)){
 }
 edges=parent_edges(vector_of_edges)
 
-admixture_events.t=apply(read.csv(admixture_events.f,header=F),c(1,2),as.character)
-admixture_events.t=apply(admixture_events.t,c(1,2),function(x){gsub(" ", "", x, fixed = TRUE)})
-vector_of_adm=c()
-for(i in 1:nrow(admixture_events.t)){
-  vector_of_adm=c(vector_of_adm, admix_props(admixture_events.t[i,1],admixture_events.t[i,2],
-                                      admixture_events.t[i,3],admixture_events.t[i,4]))
+if(file.info(admixture_events.f)$size>0){
+  admixture_events.t=apply(read.csv(admixture_events.f,header=F),c(1,2),as.character)
+  admixture_events.t=apply(admixture_events.t,c(1,2),function(x){gsub(" ", "", x, fixed = TRUE)})
+  vector_of_adm=c()
+  for(i in 1:nrow(admixture_events.t)){
+    vector_of_adm=c(vector_of_adm, admix_props(admixture_events.t[i,1],admixture_events.t[i,2],
+                                               admixture_events.t[i,3],admixture_events.t[i,4]))
+  }
+  admixtures=admixture_proportions(vector_of_adm)
+  bears_graph <- agraph(leaves, inner_nodes, edges, admixtures)
+}else{
+  bears_graph <- agraph(leaves, inner_nodes, edges)
 }
-admixtures=admixture_proportions(vector_of_adm)
 
-bears_graph <- agraph(leaves, inner_nodes, edges, admixtures)
+
+
+
 png(draw_to_file)
 plot(bears_graph, show_inner_node_labels = TRUE, show_admixture_labels = TRUE)
 dev.off()

@@ -90,6 +90,14 @@ def pretty_print_branches(branches):
 def get_number_of_leaves(tree):
     pass
 
+def illegal_branch_length(tree):
+    for branch in tree:
+        times=branch[2::2]
+        for t in times:
+            if t<0:
+                return True
+    return False
+
 if __name__=='__main__':
     tricky_tree6=[['s1s2', 's1', 0.1], 
               ['s1s2', 's2', 0.1], 

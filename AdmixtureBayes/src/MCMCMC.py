@@ -1,3 +1,6 @@
+import os 
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
 from MCMC import basic_chain, initialize_posterior
 from pathos.multiprocessing import Pool, freeze_support
 import pandas as pd
@@ -128,7 +131,7 @@ if __name__=='__main__':
     from tree_operations import make_flat_list_no_admix
         
     from numpy import diag
-    N=5
+    N=10
     tree_flatter_list=make_flat_list_no_admix(N)
     nodes=["s"+str(i) for i in range(1,N+1)]
     emp_cov=diag([0.5]*N)
@@ -140,7 +143,7 @@ if __name__=='__main__':
     sample_verbose_scheme={'posterior':(1,100),
                            'branch_length':(5,0),
                            'mhr':(1,0)}
-    n=8
+    n=2
     def run():
         ad=MCMCMC(starting_trees=[x for _ in range(n)], 
                posterior_function= posterior_function,
@@ -152,7 +155,7 @@ if __name__=='__main__':
                proposal_scheme= [prop_flat for _ in range(n)], 
                cores=n, 
                no_chains=n)
-    run()
+    #run()
     import cProfile
-    #cProfile.run('run()')
+    cProfile.run('run()')
     
