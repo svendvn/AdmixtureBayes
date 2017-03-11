@@ -1,7 +1,7 @@
 from copy import deepcopy
 from numpy.random import choice, random, exponential
 from Rtree_operations import (get_parents, is_root, get_descendants_and_rest, 
-node_is_non_admixture, node_is_non_admixture, has_child_admixture, insert_children_in_tree,
+node_is_non_admixture, has_child_admixture, insert_children_in_tree,
 remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle)
 from random import getrandbits
 #from os import urandom

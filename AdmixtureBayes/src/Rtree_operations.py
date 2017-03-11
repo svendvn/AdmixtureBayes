@@ -352,6 +352,8 @@ def _update_child(node, old_child, new_child):
 def get_parents(node):
     return node[:2]
 
+def insert_admixture_node_halfly(tree, source):
+
 def get_real_parents(node):
     ps=node[:2]
     return [p for p in ps if p is not None]

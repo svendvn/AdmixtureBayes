@@ -1,7 +1,7 @@
-from numpy.random import random, choice
+from numpy.random import choice, random, exponential
 from copy import deepcopy
 from scipy.special import binom
-from Rtree_operations import get_number_of_admixes, node_is_admixture
+from Rtree_operations import get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly
 from random import getrandbits
 
 
@@ -101,8 +101,16 @@ def addadmix(tree,pks={}):
         
     return cop, 1,1,1#1.0/(binom(len(cop),2)*2), 1.0/float(no_admixs+1),absolut_jacobian 
 
-def insert_admix(tree, source_key, source_branch, sink_key, sink_branch):
-
+def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None):
+    if source_key=='r':
+        u1=exponential()
+    else:
+        u1=random()
+    u2=random()
+    if new_node is None:
+        new_node=str(getrandbits(8)).strip()
+    tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2)
+    tree=graft(tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
 
 def deladmix(tree,pks={}):
     '''
