@@ -48,7 +48,7 @@ if __name__=='__main__':
     #plot_graph(t3)
     
     #plot_graph({'a': ['n9992', 'r', 0.5, 0.09742527412081677, 2.3912090960430885, 's2', None], 'c': ['n9994', 'n9998', 0.5, 0.4867177654038102, 0.26803992416226596, 's3', None], 's3': ['c', None, None, 0.6407767373547782, None, None, None], 's2': ['a', None, None, 5.348010468605365, None, None, None], 's1': ['n9994', None, None, 0.06786584757783283, None, None, None], 'n10000': ['n9992', None, None, 0.02201354801127401, None, 's4', 'n9998'], 's4': ['n10000', None, None, 0.29534447309823564, None, None, None], 'n9998': ['n10000', None, None, 0.5446949533490856, None, 'c', 'n9994'], 'n9994': ['n9998', None, None, 0.29712943731271024, None, 'c', 's1'], 'n9992': ['r', None, None, 1.7634886207118632, None, 'a', 'n10000']})
-    tree=create_trivial_tree(40)
+    tree=create_trivial_tree(4)
     print tree
     plot_graph(tree)
     

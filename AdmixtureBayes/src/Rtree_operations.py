@@ -262,13 +262,13 @@ def insert_children_in_tree(tree):
         tree[key]=_update_parents(tree[key], children[key])
     return tree
 
-def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_branch):
+def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_branch, remove_branch=0):
     #if we are at the root, things are different.
     if add_to_branch=='r':
-        return graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root=new_node_code)
+        return graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root=new_node_code, remove_branch=remove_branch)
     
     #updating the grafted_branch. Easy.
-    tree[remove_key][0]=new_node_code
+    tree[remove_key][remove_branch]=new_node_code
     
     #dealing with the other child of the new node
     index_of_pop_name_to_change=which_branch
@@ -289,14 +289,14 @@ def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_
         
     return tree
     
-def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):    
+def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root, remove_branch=0):    
     root_keys=_find_rooted_nodes(tree)
 
     if len(root_keys)==1:#this is the special case where an admixture leads to the new root
-        return graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_keys[0])
+        return graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_keys[0], remove_branch=remove_branch)
     
     #updating the grafted_branch. Easy.
-    tree[remove_key][0]='r'
+    tree[remove_key][remove_branch]='r'
     
     #dealing with the other child of the new node, but since the new node is the root, the old root is the new node. If that makes sense.
     #print 'root_keys', root_keys
@@ -308,9 +308,9 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root):
     
     return tree
 
-def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key):
+def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key, remove_branch=0):
     print 'undoing a closed branch', insertion_spot, remove_key, root_key
-    tree[remove_key][0]='r'
+    tree[remove_key][remove_branch]='r'
     tree[root_key[0]],_=get_branch_length_and_reset(tree[root_key[0]], 'r', insertion_spot)
     return tree
 
@@ -352,7 +352,15 @@ def _update_child(node, old_child, new_child):
 def get_parents(node):
     return node[:2]
 
-def insert_admixture_node_halfly(tree, source):
+def insert_admixture_node_halfly(tree, source_key, source_branch, insertion_spot, admix_b_length, new_node_name):
+    node=tree[source_key]
+    old_parent=node[source_branch]
+    old_branch_length=node[source_branch+3]
+    node[source_branch]=new_node_name
+    node[source_branch+3]=old_branch_length*insertion_spot
+    tree[new_node_name]=[old_parent, None, None, old_branch_length*(1-insertion_spot), admix_b_length, source_key, None]
+    tree[old_parent]=_update_child(tree[old_parent], old_child=source_key, new_child=new_node_name)
+    return tree
 
 def get_real_parents(node):
     ps=node[:2]

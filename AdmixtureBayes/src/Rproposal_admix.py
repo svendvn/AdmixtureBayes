@@ -1,36 +1,9 @@
 from numpy.random import choice, random, exponential
 from copy import deepcopy
 from scipy.special import binom
-from Rtree_operations import get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly
+from Rtree_operations import get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly, get_descendants_and_rest, graft
 from random import getrandbits
 
-
-def _update_branch(b,other,direction,prop,identifier):
-    '''
-    This function takes a branch, B, of the form [root, destination, branch length 1, admixture event 1, branch length 2, admixture event 2, ..., branch length n]
-    and induces an extra admixture event at the relative position, pos_de_new, which are generated in this function. 
-    The direction is in DIRECTION and the source/sink is encoded in OTHER. PROP is the admixture proportion.
-    '''
-    #the times of events on the branch
-    times=b[2::2]
-    b_length=sum(times)
-    u=random()
-    pos_de_new=u*b_length
-    cumtime=0
-    #print pos_de_new,b_length
-    for n,time in enumerate(times):
-        old_cumtime=cumtime
-        cumtime+=time
-        if cumtime>(pos_de_new-1e-7):
-            insertion=[pos_de_new-old_cumtime, [direction, other, prop, identifier], cumtime-pos_de_new]
-            break
-    return b[:(2+n*2)] + insertion + b[(2+n*2+1):], b_length, u
-
-def _jacobian(c1,c2,u1,u2,w):
-    '''
-    This function returns the jacobian of h(c1,c2,u1,u2,w)=(c1*u1, c1*(1-u1), c2*u2, c2*(1-u2), 0.5*w)
-    '''
-    return -0.5*c1*c2
 
 def _get_possible_starters(tree):
     res=[]
@@ -79,27 +52,18 @@ def addadmix(tree,pks={}):
     candidates=_get_possible_sources(new_tree, children, other)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     source_key, source_branch=candidates[ch]
-    print 'sink', sink
+    print 'sink', sink_key
     print 'source', (source_key,source_branch)
     print 'new_tree',new_tree
     new_tree, forward_backward= insert_admix(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
     _, new_other =  get_descendants_and_rest(new_tree, regrafter)
     
-    no_admixs=get_number_of_admixes(tree)
+def get_admixture_branch_length(x=None):
+    if x is None:
+        return 0,1
+    else:
+        return 1
     
-    i1,i2=choice(tree.keys()+['r'], 2, replace=False) #taking two random nodes (which correspond to two branches).
-    
-    cop=deepcopy(tree)     
-    
-    identifier=getrandbits(128)
-    
-    cop[i1],c1,u1=_update_branch(cop[i1], cop[i2][1],">",None,identifier)
-    w=random() #admixture proportion.
-    cop[i2],c2,u2=_update_branch(cop[i2], cop[i1][1],"<", w,identifier)
-    
-    absolut_jacobian=1#abs(_jacobian(c1,c2,u1,u2,w))
-        
-    return cop, 1,1,1#1.0/(binom(len(cop),2)*2), 1.0/float(no_admixs+1),absolut_jacobian 
 
 def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None):
     if source_key=='r':
@@ -107,9 +71,10 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     else:
         u1=random()
     u2=random()
-    if new_node is None:
-        new_node=str(getrandbits(8)).strip()
-    tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2)
+    t1,q1=get_admixture_branch_length()
+    if sink_name is None:
+        sink_name=str(getrandbits(8)).strip()
+    tree=insert_admixture_node_halfly(tree, source_key, source_branch, u2, admix_b_length=t1, new_node=sink_name)
     tree=graft(tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
 
 def deladmix(tree,pks={}):
