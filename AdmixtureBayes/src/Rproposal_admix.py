@@ -1,8 +1,11 @@
 from numpy.random import choice, random, exponential
 from copy import deepcopy
 from scipy.special import binom
-from Rtree_operations import get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly, get_descendants_and_rest, graft
+from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly, 
+                              get_descendants_and_rest, graft, remove_admix, node_is_non_admixture,
+                              make_consistency_checks)
 from random import getrandbits
+
 
 
 def _get_possible_starters(tree):
@@ -12,8 +15,9 @@ def _get_possible_starters(tree):
             res.extend([(key, 0),(key,1)])
         else:
             res.append((key,0))
+    return res
 
-def _get_possible_sources(tree, children, other):
+def _get_possible_sources(tree, children, other, sink_key, sink_branch):
     '''
     returns the keys of all non-rooted nodes, that can be grafted into.
     '''
@@ -25,18 +29,18 @@ def _get_possible_sources(tree, children, other):
                 res.append((oth,1))
     for child in children:
         if child in tree:
-            if tree[child][0] in other:
+            if tree[child][0] in other and (child!=sink_key or 0!=sink_branch):
                 res.append((child,0))
-            elif tree[child][1] is not None and tree[child][1] in other:
+            elif tree[child][1] is not None and tree[child][1] in other and (child!=sink_key or 1!=sink_branch):
                 res.append((child,1))
     return res
 
 
-def addadmix(tree,pks={}):
+def addadmix(tree,pks={}, new_node_names=None):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
-        c2: the branch legnth of the population genes are migrating into. 
+        c2: the branch length of the population genes are migrating into. 
         u1: the position of the admixture source on the source population branch
         u2: the position of the admixture destination on the sink population branch
         w: the admixture proportion.
@@ -47,21 +51,33 @@ def addadmix(tree,pks={}):
     possible_nodes=_get_possible_starters(tree)
         
     new_tree= deepcopy(tree)
-    sink_key, sink_branch=choice(possible_nodes, 1)[0]
+    print possible_nodes
+    sink_key, sink_branch=possible_nodes[choice(len(possible_nodes), 1)[0]]
     children, other= get_descendants_and_rest(tree, sink_key)
-    candidates=_get_possible_sources(new_tree, children, other)+[('r',0)]
+    candidates=_get_possible_sources(new_tree, children, other, sink_key,sink_branch)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     source_key, source_branch=candidates[ch]
-    print 'sink', sink_key
+    print 'children', children
+    print 'candidates', candidates
+    print 'sink', (sink_key, sink_branch)
     print 'source', (source_key,source_branch)
     print 'new_tree',new_tree
-    new_tree, forward_backward= insert_admix(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
-    _, new_other =  get_descendants_and_rest(new_tree, regrafter)
+    if new_node_names is None:
+        new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
+    else:
+        new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
+    return new_tree
     
 def get_admixture_branch_length(x=None):
     if x is None:
         return 0,1
     else:
+        return 1
+    
+def get_admixture_proportion(x=None):
+    if x is None:
+        return 0.48,1
+    else: 
         return 1
     
 
@@ -72,10 +88,17 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
         u1=random()
     u2=random()
     t1,q1=get_admixture_branch_length()
+    u3,q3=get_admixture_proportion()
     if sink_name is None:
         sink_name=str(getrandbits(8)).strip()
-    tree=insert_admixture_node_halfly(tree, source_key, source_branch, u2, admix_b_length=t1, new_node=sink_name)
-    tree=graft(tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
+    if source_name is None:
+        source_name=str(getrandbits(8)).strip()
+    tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2, admix_b_length=t1, new_node_name=sink_name, admixture_proportion= u3)
+    print 'tree after inserting admixture', tree
+    tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
+    print 'tree after grafting', tree
+    return tree,None
+
 
 def deladmix(tree,pks={}):
     '''
@@ -92,96 +115,67 @@ def deladmix(tree,pks={}):
     #making copy that we can erase branches from. 
     cop=deepcopy(tree)
     
-    #get a random admixture event
-    i=choice(no_admixs*2, 1)[0]
-    for n,branch in enumerate(cop):
-        no_admixes_in_branch=(len(branch)-3)/2
-        if no_admixes_in_branch>i:
-            source=branch[1]
-            admixture_partner_branch_key=branch[3+i*2][1]
-            admixture_partner_identifier=branch[3+i*2][3]
-            c1=branch[(3+i*2-1)]+branch[(3+i*2+1)]
-            cop[n]=branch[:(3+i*2-1)]+[c1]+branch[(3+i*2+2):] #removing the branch
-            break
-        else:
-            i-=no_admixes_in_branch
-    for n,branch in enumerate(cop):
-        if admixture_partner_branch_key==branch[1]:
-            no_admixes_in_branch=(len(branch)-3)/2
-            for j in range(0,no_admixes_in_branch):
-                if branch[3+j*2][1]==source and branch[3+2*j][3]==admixture_partner_identifier:
-                    c2=branch[(3+j*2-1)]+branch[(3+j*2+1)]
-                    cop[n]=branch[:(3+j*2-1)]+[c2]+branch[(3+j*2+2):] #removing the receiver branch
-                    absolute_jacobian=1.0#/abs(_jacobian(c1,c2,0,0,0)) #u1,u2 and w are not extracted. 
-                    return cop,1,1,1#1.0/float(no_admixs), 1.0/(binom(len(cop),2)*2), absolute_jacobian
+    candidates=_get_removable_admixture_branches(cop)
+    remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
+    
+    return remove_admix(tree, remove_key, remove_branch)[0]
+        
+def _get_removable_admixture_branches(tree):
+    res=[]
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            if node[0]=='r' or node_is_non_admixture(tree[node[0]]):
+                res.append((key,0))
+            if node[1]=='r' or node_is_non_admixture(tree[node[1]]):
+                res.append((key, 1))
+    return res
 
 
 class Tester():
     
-    def __init__(self, tree=None):
-        if tree is None:
-            tree=[["r","s1",0.3,[">","s3",None,32123], 0.1], 
-                   ["s2s3","s2",0.2],
-                   ["s2s3","s3",0.15, ["<","s1",0.44,32123],0.05],
-                   ["r","s2s3",0.2]]
+    def __init__(self, tree):
         self.tree=tree
-        
-    def test_proposals(self):
-        a=addadmix(self.tree)[0]
-        if get_number_of_admixes(a)==2:
-            print "ADDED ADMIXTURE: TRUE"
-        else:
-            print "ADDED ADMIXTURE: FALSE"
-        b=deladmix(a)[0]
-        c=deladmix(b)[0]
-        if get_number_of_admixes(b)==1 and get_number_of_admixes(c)==0:
-            print "DELETED ADMIXTURE: TRUE"
-        else:
-            print "DELETED ADMIXTURE: FALSE"
-        d=deladmix(c)[0]
-        if get_number_of_admixes(d)==0:
-            print "HANDLED DELETION OF TRIVIAL ADMIXTURE: TRUE"
-        else:
-            print "HANDLED DELETION OF TRIVIAL ADMIXTURE: FALSE"
-
-    def test_maintenance_of_branch_length(self):
-        before=get_all_branch_lengths(self.tree)
-        a=addadmix(self.tree)[0]
-        after=get_all_branch_lengths(a)
-        
-        
-        
-        if set(before.keys()) == set(after.keys()):
-            print "ADD ADMIXTURE MAINTAINS BRANCH TOPOLOGY: TRUE"
-        else:
-            print "ADD ADMIXTURE MAINTAINS BRANCH TOPOLOGY: FALSE"
-            return
-        
-        for branch,length in before.items():
-            if abs(length-after[branch])>1e-7:
-                print "ADD ADMIXTURE MAINTAINS BRANCH LENGTHS: FALSE"
-                return
-        print "ADD ADMIXTURE MAINTAINS BRANCH LENGTHS: TRUE"
-        
-        before=after
-        b=deladmix(a)[0]
-        after=get_all_branch_lengths(b)
-        
-        if set(before.keys()) == set(after.keys()):
-            print "DELETE ADMIXTURE MAINTAINS BRANCH TOPOLOGY: TRUE"
-        else:
-            print "DELETE ADMIXTURE MAINTAINS BRANCH TOPOLOGY: FALSE"
-            return
-        
-        for branch,length in before.items():
-            if abs(length-after[branch])>1e-9:
-                print "DELETE ADMIXTURE MAINTAINS BRANCH LENGTHS: FALSE"
-                return
-        print "DELETE ADMIXTURE MAINTAINS BRANCH LENGTHS: TRUE"
-               
+        self.no_admixes=get_number_of_admixes(self.tree)
+    
+    def many_admixes(self, n=100):
+        for _ in xrange(n):
+            self.tree=addadmix(self.tree)
+            #plot_graph(self.tree)
+            if self.no_admixes+1==get_number_of_admixes(self.tree):
+                print 'INCREASED NUMBER OF ADMIXTURES BY ONE= '+'TRUE'
+            else:
+                print 'INCREASED NUMBER OF ADMIXTURES BY ONE= '+'FALSE'
+            self.no_admixes=get_number_of_admixes(self.tree)
+        plot_graph(self.tree)
+            
+    def alternate_admixes(self, n=1000):
+        for i in xrange(n):
+            self.tree=addadmix(self.tree, new_node_names=['n'+str(i)+a for a in ['o','n']])
+            if self.no_admixes+1==get_number_of_admixes(self.tree):
+                print 'INCREASED NUMBER OF ADMIXTURES BY ONE= '+'TRUE'
+            else:
+                print 'INCREASED NUMBER OF ADMIXTURES BY ONE= '+'FALSE'
+            ad=make_consistency_checks(self.tree, ['s1','s2','s3','s4'])
+            if not ad[0]:
+                print ad
+                break
+            #plot_graph(self.tree)
+            self.tree=deladmix(self.tree)
+            if self.no_admixes==get_number_of_admixes(self.tree):
+                print 'DECREASED NUMBER OF ADMIXTURES BY ONE= '+'TRUE'
+            else:
+                print 'DECREASED NUMBER OF ADMIXTURES BY ONE= '+'FALSE'
+            #plot_graph(self.tree)
+            print self.tree
+            ad=make_consistency_checks(self.tree, ['s1','s2','s3','s4'])
+            if not ad[0]:
+                print ad
+                break
+    
 
 if __name__=="__main__":
-    t=Tester()
-    t.test_proposals()
-    t.test_maintenance_of_branch_length()
+    from tree_plotting import plot_graph
+    import Rtree_operations
+    t=Tester(Rtree_operations.tree_on_the_border2_with_children)
+    t.alternate_admixes(150)
     

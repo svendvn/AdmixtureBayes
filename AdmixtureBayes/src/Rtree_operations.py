@@ -83,6 +83,9 @@ tree_admix_to_child={
     }
 
 def create_trivial_tree(size, total_height=1.0):
+    '''
+    constructs tree of the form 
+    '''
     step_size=total_height/size
     tree={'s1':['n1',None,None,step_size,None, None,None],
           's2':['n1',None,None,step_size,None, None,None],
@@ -152,14 +155,20 @@ def remove_root_attachment(tree, orphanota_key):
             tree[orphanota_key][0]=None
     return tree,'r', r
     
-def get_branch_length_and_reset(node, parent_key, new_length):
+def get_branch_length_and_reset(node, parent_key, new_length,add=False):
     if node[0]==parent_key:
         old_length=node[3]
-        node[3]=new_length
+        if add:
+            node[3]+=new_length
+        else:
+            node[3]=new_length
         return node, old_length
     elif node[1]==parent_key:
         old_length=node[4]
-        node[4]=new_length
+        if add:
+            node[4]+=new_length
+        else:
+            node[4]=new_length
         return node, old_length
     else:
         assert False, 'could not give new length because the parent was unknown'
@@ -317,7 +326,56 @@ def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key, remo
 def get_number_of_admixes(tree):
     return sum((1 for node in tree.values() if node_is_admixture(node)))
             
+def remove_admix(tree, rkey, rbranch):
+    '''
+    removes an admixture. besides the smaller tree, also the disappeared branch lengths are returned.
+    parent_key          sparent_key
+        |                |
+        |t_1             | t_4
+        |   __---- source_key
+      rkey/   t_5       \
+        |                \t_3
+        |t_2          sorphanota_key  
+    orphanota_key   
+    and alpha=admixture proportion. The function returns new_tree, (t1,t2,t3,t4,t5), alpha 
 
+    Note that t_4 could be None if source key is root. The source_key node is not an admixture node by assumption.
+    '''
+    rnode= tree[rkey]
+    orphanota_key= get_children(rnode)[0]
+    parent_key= rnode[_other_branch(rbranch)]
+    source_key= rnode[rbranch]
+    t1= rnode[3+_other_branch(rbranch)]
+    t5= rnode[3+rbranch]
+    alpha=rnode[2]
+    tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
+    tree[orphanota_key]=_update_parent(tree[orphanota_key], rkey, parent_key)
+    if parent_key!='r':
+        tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
+    if source_key=='r':
+        tree,_,t3=remove_root_attachment(tree, rkey) #now sorphanota_key is new root
+        del tree[rkey]
+        return tree, (t1,t2,t3,None,t5),alpha
+    del tree[rkey]
+    source_node=tree[source_key]
+    sorphanota_key=get_other_children(source_node, child_key=rkey)[0]
+    sparent_key=source_node[0]
+    t4=source_node[3]
+    if sparent_key!='r':
+        tree[sparent_key]=_update_child(tree[sparent_key], source_key, sorphanota_key)
+    tree[sorphanota_key],t3=get_branch_length_and_reset(tree[sorphanota_key], source_key, t4, add=True)
+    tree[sorphanota_key]=_update_parent(tree[sorphanota_key], source_key, sparent_key)
+    del tree[source_key]
+    return tree, (t1,t2,t3,t4,t5), alpha
+    
+def _other_branch(branch):
+    if branch==0:
+        return 1
+    elif branch==1:
+        return 0
+    else:
+        assert False, 'illegal branch'
+    
 
 def _update_parents(node, new_parents):
     if len(new_parents)==1:
@@ -352,14 +410,15 @@ def _update_child(node, old_child, new_child):
 def get_parents(node):
     return node[:2]
 
-def insert_admixture_node_halfly(tree, source_key, source_branch, insertion_spot, admix_b_length, new_node_name):
+def insert_admixture_node_halfly(tree, source_key, source_branch, insertion_spot, admix_b_length, new_node_name, admixture_proportion=0.51):
     node=tree[source_key]
     old_parent=node[source_branch]
     old_branch_length=node[source_branch+3]
     node[source_branch]=new_node_name
     node[source_branch+3]=old_branch_length*insertion_spot
-    tree[new_node_name]=[old_parent, None, None, old_branch_length*(1-insertion_spot), admix_b_length, source_key, None]
-    tree[old_parent]=_update_child(tree[old_parent], old_child=source_key, new_child=new_node_name)
+    tree[new_node_name]=[old_parent, None, admixture_proportion, old_branch_length*(1-insertion_spot), admix_b_length, source_key, None]
+    if old_parent != 'r':
+        tree[old_parent]=_update_child(tree[old_parent], old_child=source_key, new_child=new_node_name)
     return tree
 
 def get_real_parents(node):
@@ -409,6 +468,119 @@ def to_aarhus_admixture_graph(tree):
             edges.append([key,p])
     return leaves, inner_nodes, edges, admixture_proportions
 
+def make_consistency_checks(tree, leaf_nodes=None):
+    key_to_parents_by_def={key:[] for key in tree.keys()}
+    key_to_children_by_def={key:[] for key in tree.keys()}
+    key_to_children_by_family={key:[] for key in tree.keys()}
+    key_to_parents_by_family={key:[] for key in tree.keys()}
+    rooted_nodes=[]
+    doppel_bands=[]
+    pseudo_nodes=[]
+    child_is_parent=[]
+    recorded_leaf_nodes=[]
+    for key,node in tree.items():
+        parents=[r for r in get_parents(node) if r is not None]
+        children=[r for r in get_children(node) if r is not None]
+        key_to_parents_by_def[key]+=[r for r in parents if r!='r']
+        key_to_children_by_def[key]+=children
+        if len(children)==2 and children[0]==children[1]:
+            doppel_bands.append((key, ('children', children[0],children[1])))
+        if len(parents)==2 and parents[0]==parents[1]:
+            doppel_bands.append((key, ('parents', parents[0],parents[1])))
+        if len(children)==1 and len(parents)==1:
+            pseudo_nodes.append((key, ('child', children[0]), ('parent', parents[0])))
+        if len(children)==0 and len(parents)==1:
+            recorded_leaf_nodes.append(key)
+        for r in children:
+            key_to_parents_by_family[r]+=[key]
+        for r in parents:
+            if r!='r':
+                key_to_children_by_family[r]+=[key]
+            else:
+                rooted_nodes.append(key)   
+        if list(set(parents).intersection(children)):
+            child_is_parent.append((key, ('parents', str(parents)), ('children', str(children))))
+                  
+    
+    def _transform_dic(dic):
+        for key in dic.keys():
+            dic[key]=set(dic[key])
+        return dic
+    key_to_children_by_def=_transform_dic(key_to_children_by_def)
+    key_to_parents_by_def=_transform_dic(key_to_parents_by_def)
+    key_to_children_by_family=_transform_dic(key_to_children_by_family)
+    key_to_parents_by_family=_transform_dic(key_to_parents_by_family)
+    def _print_inconsistencies(dic1,dic2):
+        res=''
+        for key in dic1.keys():
+            if dic1[key]!=dic2[key]:
+                res+=key+': '+str(dic1[key])+'><'+str(dic2[key])+'  '
+        return res
+    
+    family1=_print_inconsistencies(key_to_children_by_def, key_to_children_by_family)
+    family2=_print_inconsistencies(key_to_parents_by_def, key_to_parents_by_family)
+    
+    bools=[]
+    names=[]
+    messages=[]
+    
+    
+    consensus_bool=(key_to_children_by_def == key_to_children_by_family and key_to_parents_by_def == key_to_parents_by_family)
+    consensus_message=family1+family2
+    bools.append(consensus_bool)
+    names.append('consensus')
+    messages.append(consensus_message)
+    
+    roots_bool=(len(rooted_nodes)==2)
+    roots_message=str(rooted_nodes)
+    bools.append(roots_bool)
+    names.append('roots')
+    messages.append(roots_message)
+    
+    doppel_bands_bool=(len(doppel_bands)==0)
+    doppel_bands_message=str(doppel_bands)
+    bools.append(doppel_bands_bool)
+    names.append('doppel_bands')
+    messages.append(doppel_bands_message)
+    
+    pseudo_nodes_bool=(len(pseudo_nodes)==0)
+    pseudo_nodes_message=str(pseudo_nodes)
+    bools.append(pseudo_nodes_bool)
+    names.append('pseudo_nodes')
+    messages.append(pseudo_nodes_message)
+    
+    child_is_parent_bool=(len(child_is_parent)==0)
+    child_is_parent_message=str(child_is_parent)
+    bools.append(child_is_parent_bool)
+    names.append('child_is_parent')
+    messages.append(child_is_parent_message)
+    
+    if leaf_nodes is not None:
+        leaf_nodes_bool=(set(leaf_nodes)==set(recorded_leaf_nodes))
+    else:
+        leaf_nodes_bool=True
+    if leaf_nodes_bool:
+        leaf_nodes_message=str(recorded_leaf_nodes)
+    else:
+        sl=set(leaf_nodes)
+        srl=set(recorded_leaf_nodes)
+        leaf_nodes_message=str(set(sl)-set(srl))+'><'+str(set(srl)-set(sl))
+    bools.append(leaf_nodes_bool)
+    names.append('leaf_nodes')
+    messages.append(leaf_nodes_message)
+    
+    
+    
+    
+    res_bool=all(bools)
+    res_dic={name:(bool, message) for name,bool,message in zip(names,bools, messages)}
+    
+    return res_bool, res_dic
+
+                
+        
+    
+
 
     
 if __name__=='__main__':
@@ -445,7 +617,69 @@ if __name__=='__main__':
         adm=graft(removed, 'n54', 'c', 0.3, 'n68', 0) #FIXME: the function is being called like this via make_regraft
         print adm
         
+        print tree_on_the_border2_with_children
+        print remove_admix(tree_on_the_border2_with_children, 'a', 0)
+        
+        trouble_tree={'157': ['e', '95', 0.48, 0.053593995338132035, 0, '209', None], '156': ['r', None, None, 0.03852924467461515, None, '177', '184'], '196': ['209', '184', 0.48, 0.0005592709077173309, 0, 'c', None], '177': ['156', '87', 0.48, 0.04409469700439552, 0, '226', None], '138': ['54', '184', 0.48, 0.0923842952243634, 0, 's3', None], '87': ['95', None, None, 0.021717663805443786, None, 'b', '177'], '251': ['c', 'r', 0.48, 0.048451187058856385, 0, 'a', None], 's3': ['138', None, None, 0.003662331553773855, None, None, None], 's2': ['149', None, None, 0.031232370021655256, None, None, None], 's1': ['d', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '184': ['156', None, None, 0.014531521069126824, None, 'f', '196'], '209': ['157', '164', 0.48, 0.04266174601860901, 0, '196', None], '149': ['a', None, None, 0.018767629978344746, None, 's2', '54'], '164': ['f', None, None, 0.00649759823036904, None, '95', '209'], '226': ['177', None, 0.48, 0.004168053034161371, 0, 'd', None], '95': ['164', None, None, 0.02046617829442733, None, '87', '157'], 'a': ['b', '251', 0.5, 0.2, 0.05154881294114362, '149', None], 'c': ['196', 'd', 0.5, 0.003184987735541627, 0.1, '251', None], 'b': ['87', None, None, 0.001318559669759849, None, 's4', 'a'], 'e': ['f', None, None, 0.05, None, '157', '184'], 'd': ['226', None, None, 0.0017372499614431128, None, 's1', 'c'], 'f': ['184', None, None, 0.005468478930873175, None, '164', 'e'], '54': ['184', '149', 0.48, 0.17449964855898192, 0, '138', None]}
 
+        tree_good={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['e',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,0.2,0.1,'s2',None],
+              'c':['e','d',0.5,0.1,0.1,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','s3'],
+              'd':['r',None,None,0.05,None,'s1','c']}
+
+        tree_without_consensus={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['e',None,None, 0.3,None,None,None],
+              's4':['a',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,0.2,0.1,'s2',None],
+              'c':['e','d',0.5,0.1,0.1,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','s3'],
+              'd':['r',None,None,0.05,None,'s1','c']}
+        
+        tree_with_self_connection={'s1':['r',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['f',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,0.2,0.1,'s2',None],
+              'c':['c',None, 0.5,0.1,0.1,'a','c'],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','s3']}
+        
+        tree_with_pseudo_node={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['e',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,0.2,0.1,'s2',None],
+              'c':['e',None,None,0.1,None,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','s3'],
+              'd':['r',None,None,0.05,None,'s1',None]}
+        
+        tree_with_doppel_band={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['d',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,0.2,0.1,'s2',None],
+              'c':['e','e',0.5,0.1,0.1,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','c'],
+              'd':['r',None,None,0.05,None,'s1','s3']}
+        
+        print make_consistency_checks(tree_good)
+        print make_consistency_checks(tree_without_consensus)
+        print make_consistency_checks(tree_with_self_connection)
+        print make_consistency_checks(tree_with_pseudo_node)
+        print make_consistency_checks(tree_with_doppel_band)
 
         
         
