@@ -343,9 +343,9 @@ def remove_admix(tree, rkey, rbranch):
     '''
     rnode= tree[rkey]
     orphanota_key= get_children(rnode)[0]
-    parent_key= rnode[_other_branch(rbranch)]
+    parent_key= rnode[other_branch(rbranch)]
     source_key= rnode[rbranch]
-    t1= rnode[3+_other_branch(rbranch)]
+    t1= rnode[3+other_branch(rbranch)]
     t5= rnode[3+rbranch]
     alpha=rnode[2]
     tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
@@ -368,7 +368,7 @@ def remove_admix(tree, rkey, rbranch):
     del tree[source_key]
     return tree, (t1,t2,t3,t4,t5), alpha
     
-def _other_branch(branch):
+def other_branch(branch):
     if branch==0:
         return 1
     elif branch==1:
@@ -425,6 +425,10 @@ def get_real_parents(node):
     ps=node[:2]
     return [p for p in ps if p is not None]
 
+def get_real_children(node):
+    cs=node[5:7]
+    return [c for c in cs if c is not None]
+
 def get_other_parent(node, parent_key):
     if parent_key==node[0]:
         return node[1]
@@ -433,18 +437,40 @@ def get_other_parent(node, parent_key):
     else:
         assert False, 'the shared parent was not a parent of the sibling.'
         
-def halfbrother_is_uncle(tree, key):
+def halfbrother_is_uncle(tree, key, parent_key):
     '''
-    key is a non coalescence node. This function checks if a sibling is an admixture that goes to the parent and the grandparent at the same time.
+    parent_key is a non admixture node. This function checks if a sibling is an admixture that goes to the parent and the grandparent at the same time.
     If removed, there would be a loop where one person has two of the same parent.
     '''
-    parent_key=tree[key][0]
     sibling_key=get_other_children(tree[parent_key], key)[0]
     if node_is_non_admixture(tree[sibling_key]):
         return False
     bonus_parent=get_other_parent(tree[sibling_key], parent_key)
     grand_parent_key=tree[parent_key][0]
     return bonus_parent==grand_parent_key
+
+def parent_is_spouse(tree, key, direction):
+    '''
+    key is an admixture node. This function checks if the parent in the direction of 'direction' also has a child with the admixture node.
+    '''
+    parent_key=tree[key][direction]
+    offspring_key=get_real_children(tree[key])[0] #there is only one because key is an admixture node
+    if node_is_non_admixture(tree[offspring_key]):
+        return False
+    spouse_key=get_other_parent(tree[offspring_key], key)
+    return spouse_key == parent_key
+
+def parent_is_sibling(tree, key, direction):
+    '''
+    key is an admixture node. This function checks if the parent in the direction of 'direction' is also the child of the parent in the direction of 
+    'other_branch(direction)'. 
+    '''
+    parent_key=tree[key][direction]
+    other_parent_key=tree[key][other_branch(direction)] #there is only one because key is an admixture node
+    return (parent_key=='r' or other_parent_key in get_real_parents(tree[parent_key]))
+
+    
+    
         
 
 def is_root(*keys):
@@ -467,6 +493,26 @@ def to_aarhus_admixture_graph(tree):
         for p in ps:
             edges.append([key,p])
     return leaves, inner_nodes, edges, admixture_proportions
+
+def to_networkx_format(tree):
+    edges=[]
+    admixture_nodes=[]
+    leaves=[]
+    root=['r']
+    coalescence_nodes=[]
+    for key,node in tree.items():
+        if node_is_leaf_node(node):
+            leaves.append(key)
+        else:
+            if node_is_coalescence(node):
+                coalescence_nodes.append(key)
+            if node_is_admixture(node):
+                admixture_nodes.append(key)
+        ps=get_real_parents(node)
+        for p in ps:
+            edges.append((key,p))
+    return leaves, admixture_nodes, coalescence_nodes, root, edges
+    
 
 def make_consistency_checks(tree, leaf_nodes=None):
     key_to_parents_by_def={key:[] for key in tree.keys()}
@@ -510,15 +556,15 @@ def make_consistency_checks(tree, leaf_nodes=None):
     key_to_parents_by_def=_transform_dic(key_to_parents_by_def)
     key_to_children_by_family=_transform_dic(key_to_children_by_family)
     key_to_parents_by_family=_transform_dic(key_to_parents_by_family)
-    def _print_inconsistencies(dic1,dic2):
+    def _print_inconsistencies(dic_def,dic_fam, pref=''):
         res=''
-        for key in dic1.keys():
-            if dic1[key]!=dic2[key]:
-                res+=key+': '+str(dic1[key])+'><'+str(dic2[key])+'  '
+        for key in dic_def.keys():
+            if dic_def[key]!=dic_fam[key]:
+                res+=key+' '+pref +': '+str(dic_def[key])+'><'+str(dic_fam[key])+'  '
         return res
     
-    family1=_print_inconsistencies(key_to_children_by_def, key_to_children_by_family)
-    family2=_print_inconsistencies(key_to_parents_by_def, key_to_parents_by_family)
+    family1=_print_inconsistencies(key_to_children_by_def, key_to_children_by_family, 'ch')
+    family2=_print_inconsistencies(key_to_parents_by_def, key_to_parents_by_family, 'pa')
     
     bools=[]
     names=[]
