@@ -102,8 +102,21 @@ def create_trivial_tree(size, total_height=1.0):
     del tree[new_inner_node]
     return _rename_root(tree, new_inner_node)
 
+def get_trivial_nodes(size):
+    return ['s'+str(n+1) for n in xrange(size)]
+
+def update_all_branches(tree, updater):
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            node[2]+=updater()
+            node[3]+=updater()
+            node[4]+=updater()
+        else:
+            node[3]+=updater()
+    return tree
+
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
-    #print node, pkey, grand_parent_key, p_to_gp
+    print node, pkey, grand_parent_key, p_to_gp
     if node[0]==pkey:
         node[0]=grand_parent_key
         u=node[3]/(node[3]+p_to_gp)
@@ -510,7 +523,7 @@ def to_networkx_format(tree):
                 admixture_nodes.append(key)
         ps=get_real_parents(node)
         for p in ps:
-            edges.append((key,p))
+            edges.append((p,key))
     return leaves, admixture_nodes, coalescence_nodes, root, edges
     
 
@@ -726,6 +739,8 @@ if __name__=='__main__':
         print make_consistency_checks(tree_with_self_connection)
         print make_consistency_checks(tree_with_pseudo_node)
         print make_consistency_checks(tree_with_doppel_band)
+        
+        print update_all_branches(tree_good, )
 
         
         

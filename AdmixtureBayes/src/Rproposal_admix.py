@@ -38,7 +38,7 @@ def _get_possible_sources(tree, children, other, sink_key, sink_branch):
     return res
 
 
-def addadmix(tree,pks={}, new_node_names=None):
+def addadmix(tree,new_node_names=None,pks={}):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -72,7 +72,7 @@ def addadmix(tree,pks={}, new_node_names=None):
     
 def get_admixture_branch_length(x=None):
     if x is None:
-        return 0,1
+        return 0.1,1
     else:
         return 1
     
@@ -110,14 +110,12 @@ def deladmix(tree,pks={}):
     #necessary for calculation of transition probabilities.
     no_admixs=get_number_of_admixes(tree)
     
-    #if there are no admixture events there is nothing to erase and we should just move on
-    if no_admixs==0:
-        return tree,1,1,1
-    
     #making copy that we can erase branches from. 
     cop=deepcopy(tree)
     
     candidates=_get_removable_admixture_branches(cop)
+    if len(candidates)==0:
+        return tree
     remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
     print 'remove', (remove_key, remove_branch)
     
@@ -161,6 +159,7 @@ class Tester():
                 print ad
                 plot_graph(self.tree, drawing_name='bad.png')
                 break
+        plot_as_directed_graph(self.tree)
             
     def alternate_admixes(self, n=1000):
         for i in xrange(n):
@@ -195,8 +194,9 @@ class Tester():
     
 
 if __name__=="__main__":
-    from tree_plotting import plot_graph
+    from tree_plotting import plot_as_directed_graph, plot_graph
     import Rtree_operations
+    #plot_graph(Rtree_operations.tree_on_the_border2_with_children)
     t=Tester(Rtree_operations.tree_on_the_border2_with_children)
-    t.many_admixes(150)
+    t.many_admixes(10)
     

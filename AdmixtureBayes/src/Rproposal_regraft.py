@@ -42,7 +42,7 @@ def _get_possible_branches(tree, children, other):
     
     return res
 
-def make_regraft(tree, new_node=None):
+def make_regraft(tree, new_node=None, pks={}):
     
     possible_nodes=_get_possible_regrafters(tree)
     
@@ -50,15 +50,15 @@ def make_regraft(tree, new_node=None):
     
     new_tree= deepcopy(tree)
     regrafter=choice(possible_nodes, 1)[0]
-    print 'regrafter', regrafter
+    #print 'regrafter', regrafter
     new_tree, remove_distrub, remove_val=remove_parent_attachment(new_tree, regrafter)
     children, other= get_descendants_and_rest(tree, regrafter)
     candidates=_get_possible_branches(new_tree, children, other)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     recipient_key, recipient_branch=candidates[ch]
-    print 'regrafter', regrafter
-    print 'into_tree', candidates[ch]
-    print 'new_tree',new_tree
+    #print 'regrafter', regrafter
+    #print 'into_tree', candidates[ch]
+    #print 'new_tree',new_tree
     new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
     _, new_other =  get_descendants_and_rest(new_tree, regrafter)
     #print len(other), len(new_other)

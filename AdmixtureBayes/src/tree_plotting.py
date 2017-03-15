@@ -1,12 +1,16 @@
 from csv import writer
-from Rtree_operations import to_aarhus_admixture_graph
+from Rtree_operations import to_aarhus_admixture_graph, to_networkx_format
 from subprocess import call
 from PIL import Image
+from graphviz import Digraph
 import os
 
 file_suffix=[s+'.csv' for s in ['leaves', 'inner_nodes','edges','adm_props']]
 
-def plot_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True):
+def plot_graph(*args):
+    plot_as_admixture_tree(*args)
+
+def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=True):
     aarhus_tree = to_aarhus_admixture_graph(tree)
     file_names=[file_prefix+s for s in file_suffix]
     write_aarhus_tree_to_files(aarhus_tree, file_names)
@@ -14,6 +18,37 @@ def plot_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True):
     if popup:
         img=Image.open(drawing_name)
         img.show()
+        
+def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.BMP', popup=True):
+
+    leaves, admixture_nodes, coalescence_nodes, root, edges= to_networkx_format(tree)
+    filename, format= drawing_name.split('.')
+    G=Digraph('G', filename=filename)
+    
+    leaves_graph=Digraph('l')
+    leaves_graph.node_attr.update(style='filled', color='cadetblue1')
+    for leaf in leaves:
+        leaves_graph.node(leaf)
+        
+    admixture_graph=Digraph()
+    admixture_graph.node_attr.update(style='filled', fillcolor='coral1', shape='box')
+    for adm_n in admixture_nodes:
+        admixture_graph.node(adm_n)
+        
+    coalescence_graph=Digraph()
+    coalescence_graph.node_attr.update(style='filled', fillcolor='greenyellow')
+    for cn in coalescence_nodes:
+        coalescence_graph.node(cn)
+        
+    G.subgraph(leaves_graph)
+    G.subgraph(admixture_graph)
+    G.subgraph(coalescence_graph)
+    G.node('r', shape='egg', color='black', style='filled', fontcolor='white')
+    G.edges(edges)
+    G.format = format
+    G.render(view=popup)
+    
+    
     
 def write_aarhus_tree_to_files(aarhus_tree, file_names):
     for object, name in zip(aarhus_tree, file_names):
@@ -50,6 +85,10 @@ if __name__=='__main__':
     #plot_graph({'a': ['n9992', 'r', 0.5, 0.09742527412081677, 2.3912090960430885, 's2', None], 'c': ['n9994', 'n9998', 0.5, 0.4867177654038102, 0.26803992416226596, 's3', None], 's3': ['c', None, None, 0.6407767373547782, None, None, None], 's2': ['a', None, None, 5.348010468605365, None, None, None], 's1': ['n9994', None, None, 0.06786584757783283, None, None, None], 'n10000': ['n9992', None, None, 0.02201354801127401, None, 's4', 'n9998'], 's4': ['n10000', None, None, 0.29534447309823564, None, None, None], 'n9998': ['n10000', None, None, 0.5446949533490856, None, 'c', 'n9994'], 'n9994': ['n9998', None, None, 0.29712943731271024, None, 'c', 's1'], 'n9992': ['r', None, None, 1.7634886207118632, None, 'a', 'n10000']})
     tree=create_trivial_tree(4)
     print tree
-    plot_graph({'194': ['f', '161', 0.48, 0.007335556078880096, 0, '103', None], '192': ['r', None, None, 0.018592777089441126, None, '78', '26'], '171': ['e', None, None, 0.012370908944150306, None, 'c', '85'], '85': ['79', '171', 0.48, 0.0, 0, '105', None], '26': ['78', '192', 0.48, 0.0, 0, '33', None], '49': ['c', '105', 0.48, 0.09058019205029608, 0.0, 'a', None], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['123', None, None, 0.02054534688858894, None, None, None], 's1': ['d', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '84': ['33', None, None, 0.0, None, '26', '103'], '185': ['a', '33', 0.48, 0.018800625398452054, 0.0, '123', None], '105': ['85', None, None, 0.0, None, '49', '123'], '123': ['185', '105', 0.48, 0.01065402771295901, 0, 's2', None], '103': ['194', '84', 0.48, 0.032224348293368565, 0, 'b', None], '161': ['26', None, None, 0.0017513317463428728, None, '79', '194'], '79': ['161', None, None, 0.0017685639101902865, None, 'e', '85'], '78': ['192', None, None, 0.00838603156987866, None, 'd', '26'], 'a': ['b', '49', 0.5, 0.2, 0.009419807949703929, '185', None], 'c': ['171', 'd', 0.5, 0.0876290910558497, 0.1, '49', None], 'b': ['103', None, None, 0.010440095627751342, None, 's4', 'a'], 'e': ['79', None, None, 0.04583502935516467, None, '171', 's3'], 'd': ['78', None, None, 0.023021191340680217, None, 's1', 'c'], 'f': ['r', None, None, 0.02, None, '194', '26'], '33': ['26', None, None, 0.0, None, '185', '84']})
-    
+    import sys
+    print sys.path
+    import os
+    print os.environ['PATH']
+    plot_as_directed_graph({'n14986o': ['n14997o', None, None, 0.037596221005122325, None, 'n14994o', 'n14998n'], 'n14994o': ['n14986o', None, None, 0.5995922448996258, None, 's2', 'n14993n'], 's3': ['n14993n', None, None, 0.017991107981101026, None, None, None], 's2': ['n14994o', None, None, 0.997708485557472, None, None, None], 's1': ['n14999o', None, None, 0.5171959047036405, None, None, None], 's4': ['n14998o', None, None, 0.0011134401638378648, None, None, None], 'n14999o': ['r', None, None, 0.10861780971705044, None, 's1', 'n14999n'], 'n14999n': ['n14999o', 'r', 0.48, 0.015628043045867235, 0, 'n14997o', None], 'n14998n': ['n14986o', 'n14998o', 0.48, 0.0006314720717206017, 0, 'n14993n', None], 'n14998o': ['n14997o', None, None, 4.837436272350898e-05, None, 's4', 'n14998n'], 'n14997o': ['n14999n', None, None, 0.00379039252495712, None, 'n14986o', 'n14998o'], 'n14993n': ['n14998n', 'n14994o', 0.48, 0.00033004884190202276, 0.0, 's3', None]})
+    #plot_graph(t1)
     
