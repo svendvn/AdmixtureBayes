@@ -13,7 +13,10 @@ class updater(object):
 def rescale(tree, sigma=0.01, pks={}):
     new_tree=deepcopy(tree)
     updat=updater(sigma)
-    return update_all_branches(new_tree, updat)
+    new_tree=update_all_branches(new_tree, updat)
+    if new_tree is None:
+        return tree
+    return new_tree 
 
 
 if __name__=='__main__':

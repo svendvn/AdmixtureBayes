@@ -111,8 +111,13 @@ def update_all_branches(tree, updater):
             node[2]+=updater()
             node[3]+=updater()
             node[4]+=updater()
+            if node[2]<0 or node[2]>1 or node[3]<0 or node[4]<0:
+                return None
         else:
             node[3]+=updater()
+            if node[3]<0:
+                return None
+        
     return tree
 
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
@@ -283,6 +288,22 @@ def insert_children_in_tree(tree):
     for key in tree:
         tree[key]=_update_parents(tree[key], children[key])
     return tree
+
+def get_all_branch_lengths(tree):
+    res=[]
+    for key, node in tree.items():
+        if node_is_non_admixture(node):
+            res.append(node[3])
+        else:
+            res.extend(node[3:5])
+    return res
+    
+def get_all_admixture_proportions(tree):
+    res=[]
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            res.append(node[2])
+    return res
 
 def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_branch, remove_branch=0):
     #if we are at the root, things are different.
@@ -537,6 +558,8 @@ def make_consistency_checks(tree, leaf_nodes=None):
     pseudo_nodes=[]
     child_is_parent=[]
     recorded_leaf_nodes=[]
+    illegal_admixture_props=[]
+    illegal_branch_lengths=[]
     for key,node in tree.items():
         parents=[r for r in get_parents(node) if r is not None]
         children=[r for r in get_children(node) if r is not None]
@@ -559,6 +582,16 @@ def make_consistency_checks(tree, leaf_nodes=None):
                 rooted_nodes.append(key)   
         if list(set(parents).intersection(children)):
             child_is_parent.append((key, ('parents', str(parents)), ('children', str(children))))
+        if node_is_non_admixture(node):
+            if node[3]<0:
+                illegal_branch_lengths.append((key, (node[0], node[3])))
+        else:
+            if node[3]<0:
+                illegal_branch_lengths.append((key, (node[0], node[3])))
+            if node[4]<0:
+                illegal_branch_lengths.append((key, (node[1], node[4])))
+            if node[2]<0 or node[2]>1:
+                illegal_admixture_props.append((key, node[2]))
                   
     
     def _transform_dic(dic):
@@ -613,7 +646,7 @@ def make_consistency_checks(tree, leaf_nodes=None):
     bools.append(child_is_parent_bool)
     names.append('child_is_parent')
     messages.append(child_is_parent_message)
-    
+ 
     if leaf_nodes is not None:
         leaf_nodes_bool=(set(leaf_nodes)==set(recorded_leaf_nodes))
     else:
@@ -626,10 +659,20 @@ def make_consistency_checks(tree, leaf_nodes=None):
         leaf_nodes_message=str(set(sl)-set(srl))+'><'+str(set(srl)-set(sl))
     bools.append(leaf_nodes_bool)
     names.append('leaf_nodes')
-    messages.append(leaf_nodes_message)
+    messages.append(leaf_nodes_message) 
     
+    illegal_branch_lengths_bool=(len(illegal_branch_lengths)==0)
+    illegal_branch_lengths_message=str(illegal_branch_lengths)
+    bools.append(illegal_branch_lengths_bool)
+    names.append('illegal_branch_lengths')
+    messages.append(illegal_branch_lengths_message)
     
-    
+    illegal_admixture_props_bool=(len(illegal_admixture_props)==0)
+    illegal_admixture_props_message=str(illegal_admixture_props)
+    bools.append(illegal_admixture_props_bool)
+    names.append('illegal_admixture_props')
+    messages.append(illegal_admixture_props_message)
+
     
     res_bool=all(bools)
     res_dic={name:(bool, message) for name,bool,message in zip(names,bools, messages)}
@@ -734,13 +777,37 @@ if __name__=='__main__':
               'e':['f',None,None,0.05,None,'c','c'],
               'd':['r',None,None,0.05,None,'s1','s3']}
         
+        tree_with_negative_bl={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['e',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 0.5,-0.2,0.1,'s2',None],
+              'c':['e','d',0.5,0.1,0.1,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','s3'],
+              'd':['r',None,None,0.05,None,'s1','c']}
+                
+        tree_with_illegal_alpha={'s1':['d',None, None, 0.1,None,None,None],
+              's2':['a',None, None,0.05,None,None,None],
+              's3':['e',None,None, 0.3,None,None,None],
+              's4':['b',None,None, 0.3,None,None,None],
+              'a':['b','c', 1.5,0.2,0.1,'s2',None],
+              'c':['e','d',0.5,0.1,0.1,'a',None],
+              'b':['f',None,None,0.05,None,'s4','a'],
+              'f':['r',None,None,0.02,None,'b','e'],
+              'e':['f',None,None,0.05,None,'c','s3'],
+              'd':['r',None,None,0.05,None,'s1','c']}
+        
         print make_consistency_checks(tree_good)
         print make_consistency_checks(tree_without_consensus)
         print make_consistency_checks(tree_with_self_connection)
         print make_consistency_checks(tree_with_pseudo_node)
         print make_consistency_checks(tree_with_doppel_band)
+        print make_consistency_checks(tree_with_negative_bl)
+        print make_consistency_checks(tree_with_illegal_alpha)
         
-        print update_all_branches(tree_good, )
+        #print update_all_branches(tree_good, )
 
         
         

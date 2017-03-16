@@ -1,5 +1,6 @@
 from copy import deepcopy
 from numpy.random import choice, random, exponential
+from scipy.stats import expon, uniform
 from Rtree_operations import (get_parents, is_root, get_descendants_and_rest, 
 node_is_non_admixture, has_child_admixture, insert_children_in_tree,
 remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle)
@@ -52,6 +53,7 @@ def make_regraft(tree, new_node=None, pks={}):
     regrafter=choice(possible_nodes, 1)[0]
     #print 'regrafter', regrafter
     new_tree, remove_distrub, remove_val=remove_parent_attachment(new_tree, regrafter)
+    q_backward=back_density(remove_distrub, remove_val)
     children, other= get_descendants_and_rest(tree, regrafter)
     candidates=_get_possible_branches(new_tree, children, other)+[('r',0)]
     ch= choice(len(candidates),1)[0]
@@ -59,25 +61,39 @@ def make_regraft(tree, new_node=None, pks={}):
     #print 'regrafter', regrafter
     #print 'into_tree', candidates[ch]
     #print 'new_tree',new_tree
-    new_tree, forward_backward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
+    new_tree, q_forward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
     _, new_other =  get_descendants_and_rest(new_tree, regrafter)
     #print len(other), len(new_other)
+
+    return new_tree, q_forward, q_backward
+
+def back_density(distrub, val):
+    if distrub=='r':
+        return expon.pdf(val)
+    if distrub=='u':#this looks kind of contraintuitive
+        return uniform.pdf(val/2.0, scale=val)
     
-    
-    
-    return new_tree
+def simulate_and_forward_density(distrub, par=None):
+    if distrub == 'r':
+        insertion_spot=expon.rvs()
+        q=expon.pdf(insertion_spot)
+    else:
+        insertion_spot=uniform.rvs()
+        branch_length=par
+        q=uniform.pdf(insertion_spot,scale=branch_length)
+    return insertion_spot, q
 
 def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
     
     if add_to_branch=='r':
-        insertion_spot=exponential()
+        insertion_spot, q=simulate_and_forward_density('r')
     else:
-        insertion_spot=random()
+        branch_length=tree[add_to_branch][which_branch+3]
+        insertion_spot, q=simulate_and_forward_density('u', branch_length)
     if new_node is None:
         new_node=str(getrandbits(8)).strip()
     tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch)
-    return tree,1
-    
+    return tree,q
 
 if __name__=='__main__':
     
