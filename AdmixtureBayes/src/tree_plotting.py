@@ -22,7 +22,7 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
 def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.BMP', popup=True):
 
     leaves, admixture_nodes, coalescence_nodes, root, edges= to_networkx_format(tree)
-    filename, format= drawing_name.split('.')
+    filename, image_format= drawing_name.split('.')
     G=Digraph('G', filename=filename)
     
     leaves_graph=Digraph('l')
@@ -45,16 +45,16 @@ def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.BMP', popup=T
     G.subgraph(coalescence_graph)
     G.node('r', shape='egg', color='black', style='filled', fontcolor='white')
     G.edges(edges)
-    G.format = format
+    G.format = image_format
     G.render(view=popup)
     
     
     
 def write_aarhus_tree_to_files(aarhus_tree, file_names):
-    for object, name in zip(aarhus_tree, file_names):
+    for rows, name in zip(aarhus_tree, file_names):
         with open(name, "wb") as f:
             writer2 = writer(f)
-            writer2.writerows(object)
+            writer2.writerows(rows)
     
     
 def make_R_draw_from_files(drawing_name, file_names):

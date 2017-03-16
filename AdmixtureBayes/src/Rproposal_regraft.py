@@ -62,7 +62,7 @@ def make_regraft(tree, new_node=None, pks={}):
     #print 'into_tree', candidates[ch]
     #print 'new_tree',new_tree
     new_tree, q_forward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
-    _, new_other =  get_descendants_and_rest(new_tree, regrafter)
+    #_, new_other =  get_descendants_and_rest(new_tree, regrafter)
     #print len(other), len(new_other)
 
     return new_tree, q_forward, q_backward

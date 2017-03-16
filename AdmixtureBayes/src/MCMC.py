@@ -6,21 +6,19 @@ from math import exp
 from tree_operations import get_number_of_admixes, illegal_branch_length
 from summary import *
 from multiprocessing import Queue, Process
+from prior import prior
 
 
 def initialize_posterior(emp_cov):
     def posterior(x,pks={}):
-        no_admixes=get_number_of_admixes(x)
-#         tot_branch_length=0
-        if illegal_branch_length(x):
-            return -float('inf')
-        
-#         #print tot_branch_length
-        prior=poisson.logpmf(no_admixes,0.1)
+        #print tot_branch_length
+        prior_val=prior(x)
+        if prior_val==-float('inf'):
+            return prior_val
         likelihood_value=likelihood(x, emp_cov)
-        pks['prior']=prior
+        pks['prior']=prior_val
         pks['likelihood']=likelihood_value
-        return prior+likelihood_value
+        return prior_val+likelihood_value
     return posterior
      
 
