@@ -55,7 +55,7 @@ def proposal_support(start_tree, n=10000, nodes=None):
             new_tree=deladmix(tree)
             score-=1
         elif prop_index==1:
-            new_tree=make_regraft(tree, _get_new_nodes(i, prop_index))
+            new_tree=make_regraft(tree, _get_new_nodes(i, prop_index))[0]
         elif prop_index==2:
             new_tree=addadmix(tree, _get_new_nodes(i, prop_index))
             score+=1

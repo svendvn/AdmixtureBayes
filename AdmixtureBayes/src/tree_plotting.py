@@ -89,6 +89,9 @@ if __name__=='__main__':
     print sys.path
     import os
     print os.environ['PATH']
+    
+        
+    ##IN WINDOWS YOU SHOULD PUT THE FAILED SUBPROCESS.CALL to shell=True
     plot_as_directed_graph({'n14986o': ['n14997o', None, None, 0.037596221005122325, None, 'n14994o', 'n14998n'], 'n14994o': ['n14986o', None, None, 0.5995922448996258, None, 's2', 'n14993n'], 's3': ['n14993n', None, None, 0.017991107981101026, None, None, None], 's2': ['n14994o', None, None, 0.997708485557472, None, None, None], 's1': ['n14999o', None, None, 0.5171959047036405, None, None, None], 's4': ['n14998o', None, None, 0.0011134401638378648, None, None, None], 'n14999o': ['r', None, None, 0.10861780971705044, None, 's1', 'n14999n'], 'n14999n': ['n14999o', 'r', 0.48, 0.015628043045867235, 0, 'n14997o', None], 'n14998n': ['n14986o', 'n14998o', 0.48, 0.0006314720717206017, 0, 'n14993n', None], 'n14998o': ['n14997o', None, None, 4.837436272350898e-05, None, 's4', 'n14998n'], 'n14997o': ['n14999n', None, None, 0.00379039252495712, None, 'n14986o', 'n14998o'], 'n14993n': ['n14998n', 'n14994o', 0.48, 0.00033004884190202276, 0.0, 's3', None]})
     #plot_graph(t1)
     
