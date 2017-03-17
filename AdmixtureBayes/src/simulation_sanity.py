@@ -55,15 +55,15 @@ def proposal_support(start_tree, n=10000, nodes=None):
     for i in range(n):
         prop_index=choice(4,1)
         if prop_index==0 and get_number_of_admixes(tree)>0:
-            new_tree=deladmix(tree)
+            new_tree=deladmix(tree)[0]
             score-=1
         elif prop_index==1:
             new_tree=make_regraft(tree, _get_new_nodes(i, prop_index))[0]
         elif prop_index==2:
-            new_tree=addadmix(tree, _get_new_nodes(i, prop_index))
+            new_tree=addadmix(tree, _get_new_nodes(i, prop_index))[0]
             score+=1
         elif prop_index==3:
-            new_tree=rescale(tree)
+            new_tree=rescale(tree)[0]
         else:
             new_tree=tree
         consistent, information = make_consistency_checks(new_tree,nodes)
@@ -95,12 +95,17 @@ def test_prior_model(start_tree, sim_length=100000):
                            'branch_length':(10,1),
                            'mhr':(1,1),
                            'no_admixes':(1,1)}
-    basic_chain(start_tree, summaries, posterior, proposal, post=None, N=sim_length, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None)
+    basic_chain(start_tree, summaries, posterior, 
+                proposal, post=None, N=sim_length, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=1, i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=True)
     
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(15)
-    plot_as_directed_graph(s_tree)
-    wait(1)
-    print proposal_support(s_tree, nodes=get_trivial_nodes(15))
+    #plot_as_directed_graph(s_tree)
+    #wait(1)
+    print test_prior_model(s_tree, sim_length=1000)
     

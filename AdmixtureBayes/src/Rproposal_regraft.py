@@ -6,6 +6,7 @@ node_is_non_admixture, has_child_admixture, insert_children_in_tree,
 remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle)
 from random import getrandbits
 #from os import urandom
+#from tree_warner import check
 
 def _get_possible_regrafters(tree):
     res=[]
@@ -51,7 +52,6 @@ class regraft_class(object):
         return make_regraft(*args, **kwargs)
 
 def make_regraft(tree, new_node=None, pks={}):
-    
     possible_nodes=_get_possible_regrafters(tree)
     
     assert len(possible_nodes)>0, 'There were no regraft locations possible, which is strange because the root is regraftable and always look the same.'

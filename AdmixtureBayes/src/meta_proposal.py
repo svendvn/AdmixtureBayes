@@ -22,15 +22,18 @@ class basic_meta_proposal(object):
     
     def __init__(self):
         self.props=[addadmix_class(),deladmix_class(), regraft_class(), rescale_class()]
-        self.params=[None, None, None, 0.01]
+        self.params=[None, None, None, [0.01]]
         self.node_naming=new_node_naming_policy()
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
+        names=self.node_naming.next_nodes(self.props[index].new_nodes)
+        args=[]
+        if names:
+            args.append(names)
         if self.params[index] is not None:
-            new_tree, forward, backward =self.props[index](tree, self.params[index], pks=pks)
-        else:
-            new_tree, forward, backward =self.props[index](tree, pks=pks)
+            args.extend(self.params[index])
+        new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
         return new_tree,forward,backward,1,0.25,0.25
     
     

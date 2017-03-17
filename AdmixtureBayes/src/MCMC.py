@@ -7,6 +7,7 @@ from tree_operations import get_number_of_admixes, illegal_branch_length
 from summary import *
 from multiprocessing import Queue, Process
 from prior import prior
+from tree_warner import check
 
 
 def initialize_posterior(emp_cov):
@@ -58,11 +59,13 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     return x,post
 
 
-def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None):
+def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=False):
     if proposal_update is not None:
         proposal.update(proposal_update)
     
     tree=start_tree
+    if check_trees:
+        check(tree)
     if post is None:
         post=posterior_function(tree)
     
@@ -82,6 +85,9 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
                                                                iteration_number=i,**proposal_knowledge_scraper))
         tree=new_tree
         post=new_post
+        if check_trees:
+            print tree
+            check(tree)
     
     return tree, post, zip(*iteration_summary), None#,proposal.get_update()
         

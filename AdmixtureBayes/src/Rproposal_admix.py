@@ -78,10 +78,11 @@ def addadmix(tree,new_node_names=None,pks={}):
     #print 'source', (source_key,source_branch)
     #print 'new_tree',new_tree
     if new_node_names is None:
-        new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
+        new_tree, forward, backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
     else:
-        new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
-    return new_tree,1,1
+        new_tree, forward ,backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
+    
+    return new_tree,forward, backward
     
 def get_admixture_branch_length(x=None):
     if x is None:
@@ -112,7 +113,7 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
     #print 'tree after grafting', tree
-    return tree,None
+    return tree,1,1
 
 
 def deladmix(tree,pks={}):
@@ -128,7 +129,7 @@ def deladmix(tree,pks={}):
     
     candidates=_get_removable_admixture_branches(cop)
     if len(candidates)==0:
-        return tree
+        return tree,1,1
     remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
     print 'remove', (remove_key, remove_branch)
     
