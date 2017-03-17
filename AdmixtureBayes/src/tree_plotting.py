@@ -7,8 +7,8 @@ import os
 
 file_suffix=[s+'.csv' for s in ['leaves', 'inner_nodes','edges','adm_props']]
 
-def plot_graph(*args):
-    plot_as_admixture_tree(*args)
+def plot_graph(*args, **kwargs):
+    plot_as_admixture_tree(*args, **kwargs)
 
 def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=True):
     aarhus_tree = to_aarhus_admixture_graph(tree)

@@ -43,6 +43,13 @@ def _get_possible_branches(tree, children, other):
     
     return res
 
+class regraft_class(object):
+    
+    new_nodes=1
+    
+    def __call__(self,*args, **kwargs):
+        return make_regraft(*args, **kwargs)
+
 def make_regraft(tree, new_node=None, pks={}):
     
     possible_nodes=_get_possible_regrafters(tree)
@@ -97,7 +104,7 @@ def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
 
 if __name__=='__main__':
     
-    import Rtree_operations
+    import Rcatalogue_of_trees
     from tree_plotting import plot_graph
     
     
@@ -112,12 +119,12 @@ if __name__=='__main__':
     
     print _get_possible_regrafters(tree2)
     
-    tr=insert_children_in_tree(Rtree_operations.tree_on_the_border2)
+    tr=insert_children_in_tree(Rcatalogue_of_trees.tree_on_the_border2)
     tr1=deepcopy(tr)
     for i in range(10000):
         print 'before', tr
         #try:
-        tr=make_regraft(tr, new_node='n'+str(i+1))
+        tr=make_regraft(tr, new_node='n'+str(i+1))[0]
         #except Exception as e:
         #    print e
         #    plot_graph(tr, drawing_name=str(i)+'.png')

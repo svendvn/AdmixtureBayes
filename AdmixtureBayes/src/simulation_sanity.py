@@ -5,6 +5,9 @@ from Rproposal_rescale import rescale
 from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes
 from numpy.random import choice
 from time import sleep as wait
+from MCMC import initialize_prior_as_posterior, basic_chain
+from summary import s_no_admixes, s_branch_length, s_variable
+from meta_proposal import basic_meta_proposal
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -83,6 +86,17 @@ def proposal_support(start_tree, n=10000, nodes=None):
     plot_as_directed_graph(tree, drawing_name='final_tree.png')
     wait(1)
     return score
+
+def test_prior_model(start_tree, sim_length=100000):
+    posterior=initialize_prior_as_posterior()
+    summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    proposal=basic_meta_proposal()
+    sample_verbose_scheme={'posterior':(1,1),
+                           'branch_length':(10,1),
+                           'mhr':(1,1),
+                           'no_admixes':(1,1)}
+    basic_chain(start_tree, summaries, posterior, proposal, post=None, N=sim_length, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None)
+    
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(15)

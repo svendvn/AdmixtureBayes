@@ -3,7 +3,7 @@
 #def summary(old_tree,new_tree,old_pos,new_pos,iteration_number, proposal_object):, but all the arguments are encoded as **kwargs to reduce maintenance
 #return something
 
-from tree_operations import get_number_of_admixes, get_all_branch_lengths
+from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 
 class Summary(object):
        
@@ -33,7 +33,7 @@ class s_branch_length(Summary):
 
     def __call__(self, **kwargs):
         old_tree=kwargs['old_tree']
-        return sum(get_all_branch_lengths(old_tree).values())
+        return sum(get_all_branch_lengths(old_tree))
     
 class s_variable(Summary):
     

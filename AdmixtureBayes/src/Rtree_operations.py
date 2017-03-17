@@ -1,90 +1,6 @@
-
-tree_clean={'s1':['s1s2',None, None, 0.1,None],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3':['r',None, None, 0.2, None]}
-
-tree_one_admixture={'s1':['s1b',None, None, 0.1,None],
-      's1b':['s1s2','s3b',0.2, 0.1,0.2],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3b':['r',None, None, 0.2, None],
-      's3':['s3b',None,None,0.2,None]}
-
-tree_two_admixture={'s1':['s1b',None, None, 0.1,None],
-      's1c':['s1s2','s3b', 0.4,0.05,0.1],
-      's1b':['s1c','s3a',0.2, 0.05,0.2],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3b':['r',None, None, 0.2, None],
-      's3':['s3a',None,None,0.1,None],
-      's3a':['s3b', None,None,0.1,None]
-      }
-
-tree_two_admixture_cross={'s1':['s1b',None, None, 0.1,None],
-      's1c':['s1s2','s3a', 0.4,0.05,0.1],
-      's1b':['s1c',None,None, 0.05,None],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3b':['r','s1b', 0.4, 0.2, 0.2],
-      's3':['s3a',None,None,0.1,None],
-      's3a':['s3b', None,None,0.1,None]
-      }
-
-tree_illegal={'s1':['s1b',None, None, 0.1,None],
-      's1c':['s1s2','s3a', 0.4,0.05,0.1],
-      's1b':['s1c','s3b',0.2, 0.05,0.2],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3b':['r',None, None, 0.2, None],
-      's3':['s3a',None,None,0.1,None],
-      's3a':['s3b', None,None,0.1,None]
-      }
-
-tree_on_the_border={'s1':['c',None, None, 0.1,None],
-      's2':['a',None, None,0.05,None],
-      's3':['b',None,None, 0.3,None],
-      'a':['b','d', 0.5,0.2,0.1],
-      'c':['r','d',0.5,0.1,0.1],
-      'd':['e',None,None,0.05,None],
-      'b':['e',None,None,0.02,None],
-      'e':['r',None,None,0.05,None]}
-
-tree_on_the_border2={'s1':['d',None, None, 0.1,None],
-      's2':['a',None, None,0.05,None],
-      's3':['e',None,None, 0.3,None],
-      's4':['b',None,None, 0.3,None],
-      'a':['b','c', 0.5,0.2,0.1],
-      'c':['e','d',0.5,0.1,0.1],
-      'b':['f',None,None,0.05,None],
-      'f':['r',None,None,0.02,None],
-      'e':['f',None,None,0.05,None],
-      'd':['r',None,None,0.05,None]}
-
-tree_on_the_border2_with_children={'s1':['d',None, None, 0.1,None,None,None],
-      's2':['a',None, None,0.05,None,None,None],
-      's3':['e',None,None, 0.3,None,None,None],
-      's4':['b',None,None, 0.3,None,None,None],
-      'a':['b','c', 0.5,0.2,0.1,'s2',None],
-      'c':['e','d',0.5,0.1,0.1,'a',None],
-      'b':['f',None,None,0.05,None,'s4','a'],
-      'f':['r',None,None,0.02,None,'b','e'],
-      'e':['f',None,None,0.05,None,'c','s3'],
-      'd':['r',None,None,0.05,None,'s1','c']}
-
-
-tree_admix_to_child={
-    's1':['r',None,None, 0.1,None],
-    's2':['s2a',None,None,0.1,None],
-    's3':['s3s2',None,None,0.1,None],
-    's2a':['s3s2','s3s2a', 0.5,0.1,0.13],
-    's3s2':['s3s2a',None,None,0.1,None],
-    's3s2a':['r',None,None,0.01]
-    }
-
 def create_trivial_tree(size, total_height=1.0):
     '''
-    constructs tree of the form 
+    constructs tree of the form (..((s1,s2),s3),s4)...)
     '''
     step_size=total_height/size
     tree={'s1':['n1',None,None,step_size,None, None,None],
@@ -116,8 +32,7 @@ def update_all_branches(tree, updater):
         else:
             node[3]+=updater()
             if node[3]<0:
-                return None
-        
+                return None        
     return tree
 
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
@@ -692,6 +607,7 @@ if __name__=='__main__':
           's3':['r',None, None, 0.4, None]}
         
         from copy import deepcopy
+        from Rcatalogue_of_trees import *
         
         tree2=insert_children_in_tree(tree_on_the_border2)
         print tree2
@@ -724,80 +640,7 @@ if __name__=='__main__':
         
         trouble_tree={'157': ['e', '95', 0.48, 0.053593995338132035, 0, '209', None], '156': ['r', None, None, 0.03852924467461515, None, '177', '184'], '196': ['209', '184', 0.48, 0.0005592709077173309, 0, 'c', None], '177': ['156', '87', 0.48, 0.04409469700439552, 0, '226', None], '138': ['54', '184', 0.48, 0.0923842952243634, 0, 's3', None], '87': ['95', None, None, 0.021717663805443786, None, 'b', '177'], '251': ['c', 'r', 0.48, 0.048451187058856385, 0, 'a', None], 's3': ['138', None, None, 0.003662331553773855, None, None, None], 's2': ['149', None, None, 0.031232370021655256, None, None, None], 's1': ['d', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '184': ['156', None, None, 0.014531521069126824, None, 'f', '196'], '209': ['157', '164', 0.48, 0.04266174601860901, 0, '196', None], '149': ['a', None, None, 0.018767629978344746, None, 's2', '54'], '164': ['f', None, None, 0.00649759823036904, None, '95', '209'], '226': ['177', None, 0.48, 0.004168053034161371, 0, 'd', None], '95': ['164', None, None, 0.02046617829442733, None, '87', '157'], 'a': ['b', '251', 0.5, 0.2, 0.05154881294114362, '149', None], 'c': ['196', 'd', 0.5, 0.003184987735541627, 0.1, '251', None], 'b': ['87', None, None, 0.001318559669759849, None, 's4', 'a'], 'e': ['f', None, None, 0.05, None, '157', '184'], 'd': ['226', None, None, 0.0017372499614431128, None, 's1', 'c'], 'f': ['184', None, None, 0.005468478930873175, None, '164', 'e'], '54': ['184', '149', 0.48, 0.17449964855898192, 0, '138', None]}
 
-        tree_good={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['e',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,0.2,0.1,'s2',None],
-              'c':['e','d',0.5,0.1,0.1,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','s3'],
-              'd':['r',None,None,0.05,None,'s1','c']}
-
-        tree_without_consensus={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['e',None,None, 0.3,None,None,None],
-              's4':['a',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,0.2,0.1,'s2',None],
-              'c':['e','d',0.5,0.1,0.1,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','s3'],
-              'd':['r',None,None,0.05,None,'s1','c']}
         
-        tree_with_self_connection={'s1':['r',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['f',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,0.2,0.1,'s2',None],
-              'c':['c',None, 0.5,0.1,0.1,'a','c'],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','s3']}
-        
-        tree_with_pseudo_node={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['e',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,0.2,0.1,'s2',None],
-              'c':['e',None,None,0.1,None,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','s3'],
-              'd':['r',None,None,0.05,None,'s1',None]}
-        
-        tree_with_doppel_band={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['d',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,0.2,0.1,'s2',None],
-              'c':['e','e',0.5,0.1,0.1,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','c'],
-              'd':['r',None,None,0.05,None,'s1','s3']}
-        
-        tree_with_negative_bl={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['e',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 0.5,-0.2,0.1,'s2',None],
-              'c':['e','d',0.5,0.1,0.1,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','s3'],
-              'd':['r',None,None,0.05,None,'s1','c']}
-                
-        tree_with_illegal_alpha={'s1':['d',None, None, 0.1,None,None,None],
-              's2':['a',None, None,0.05,None,None,None],
-              's3':['e',None,None, 0.3,None,None,None],
-              's4':['b',None,None, 0.3,None,None,None],
-              'a':['b','c', 1.5,0.2,0.1,'s2',None],
-              'c':['e','d',0.5,0.1,0.1,'a',None],
-              'b':['f',None,None,0.05,None,'s4','a'],
-              'f':['r',None,None,0.02,None,'b','e'],
-              'e':['f',None,None,0.05,None,'c','s3'],
-              'd':['r',None,None,0.05,None,'s1','c']}
         
         print make_consistency_checks(tree_good)
         print make_consistency_checks(tree_without_consensus)

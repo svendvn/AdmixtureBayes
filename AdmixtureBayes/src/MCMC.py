@@ -12,13 +12,24 @@ from prior import prior
 def initialize_posterior(emp_cov):
     def posterior(x,pks={}):
         #print tot_branch_length
-        prior_val=prior(x)
-        if prior_val==-float('inf'):
-            return prior_val
+        prior_value=prior(x)
+        if prior_value==-float('inf'):
+            return prior_value
         likelihood_value=likelihood(x, emp_cov)
-        pks['prior']=prior_val
+        pks['prior']=prior_value
         pks['likelihood']=likelihood_value
-        return prior_val+likelihood_value
+        return prior_value+likelihood_value
+    return posterior
+
+def initialize_prior_as_posterior():
+    def posterior(x,pks={}):
+        #print tot_branch_length
+        prior_value=prior(x)
+        if prior_value==-float('inf'):
+            return prior_value
+        pks['prior']=prior_value
+        pks['likelihood']=''
+        return prior_value
     return posterior
      
 

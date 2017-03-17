@@ -37,6 +37,19 @@ def _get_possible_sources(tree, children, other, sink_key, sink_branch):
                 res.append((child,1))
     return res
 
+class addadmix_class(object):
+    
+    new_nodes=2
+    
+    def __call__(self,*args, **kwargs):
+        return addadmix(*args, **kwargs)
+    
+class deladmix_class(object):
+    
+    new_nodes=0
+    
+    def __call__(self,*args, **kwargs):
+        return deladmix(*args, **kwargs)
 
 def addadmix(tree,new_node_names=None,pks={}):
     '''
@@ -68,7 +81,7 @@ def addadmix(tree,new_node_names=None,pks={}):
         new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
     else:
         new_tree, forward_backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
-    return new_tree
+    return new_tree,1,1
     
 def get_admixture_branch_length(x=None):
     if x is None:
@@ -119,7 +132,7 @@ def deladmix(tree,pks={}):
     remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
     print 'remove', (remove_key, remove_branch)
     
-    return remove_admix(tree, remove_key, remove_branch)[0]
+    return remove_admix(tree, remove_key, remove_branch)[0],1,1
 
 def _check_node(tree,key,direction):
     parent_key=tree[key][direction]
