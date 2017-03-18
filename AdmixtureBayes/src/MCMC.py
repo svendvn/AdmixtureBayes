@@ -87,7 +87,7 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
         post=new_post
         if check_trees:
             print tree
-            check(tree)
+            check(tree, proposal_knowledge_scraper)
     
     return tree, post, zip(*iteration_summary), None#,proposal.get_update()
         

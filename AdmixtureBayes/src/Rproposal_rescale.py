@@ -20,6 +20,7 @@ def rescale(tree, sigma=0.01, pks={}):
 
 class rescale_class(object):
     new_nodes=0
+    proposal_name='rescale'
     
     def __call__(self,*args, **kwargs):
         return rescale(*args, **kwargs)

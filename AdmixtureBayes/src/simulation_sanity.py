@@ -21,12 +21,12 @@ def topological_support(start_tree, n=10000, nodes=None):
     for i in range(n):
         prop_index=choice(3,1)
         if prop_index==0 and get_number_of_admixes(tree)>0:
-            new_tree=deladmix(tree)
+            new_tree=deladmix(tree)[0]
             score-=1
         elif prop_index==1:
-            new_tree=make_regraft(tree, _get_new_nodes(i, prop_index))
+            new_tree=make_regraft(tree, _get_new_nodes(i, prop_index))[0]
         elif prop_index==2:
-            new_tree=addadmix(tree, _get_new_nodes(i, prop_index))
+            new_tree=addadmix(tree, _get_new_nodes(i, prop_index))[0]
             score+=1
         else:
             new_tree=tree
@@ -105,6 +105,7 @@ def test_prior_model(start_tree, sim_length=100000):
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(15)
+    print proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
     print test_prior_model(s_tree, sim_length=1000)

@@ -47,6 +47,7 @@ def _get_possible_branches(tree, children, other):
 class regraft_class(object):
     
     new_nodes=1
+    proposal_name='regraft'
     
     def __call__(self,*args, **kwargs):
         return make_regraft(*args, **kwargs)

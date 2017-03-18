@@ -28,6 +28,7 @@ class basic_meta_proposal(object):
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
         names=self.node_naming.next_nodes(self.props[index].new_nodes)
+        pks['proposal_type']= self.props[index].proposal_name
         args=[]
         if names:
             args.append(names)

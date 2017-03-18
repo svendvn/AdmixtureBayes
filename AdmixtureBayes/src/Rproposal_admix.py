@@ -40,6 +40,7 @@ def _get_possible_sources(tree, children, other, sink_key, sink_branch):
 class addadmix_class(object):
     
     new_nodes=2
+    proposal_name='addadmix'
     
     def __call__(self,*args, **kwargs):
         return addadmix(*args, **kwargs)
@@ -47,6 +48,7 @@ class addadmix_class(object):
 class deladmix_class(object):
     
     new_nodes=0
+    proposal_name='deladmix'
     
     def __call__(self,*args, **kwargs):
         return deladmix(*args, **kwargs)
