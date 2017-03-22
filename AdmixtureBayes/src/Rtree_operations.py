@@ -192,6 +192,56 @@ def _get_descendants(tree, key):
             return ans
         return ans+_get_descendants(tree, tree[key][6])
     
+def get_leaf_keys(tree):
+    res=[]
+    for key, node in tree.items():
+        if node_is_leaf_node(node):
+            res.append(key)
+    return res
+
+def get_categories(tree):
+    leaves=[]
+    admixture_nodes=[]
+    coalescence_nodes=[]
+    for key, node in tree.items():
+        if node_is_leaf_node(node):
+            leaves.append(key)
+        if node_is_coalescence(node):
+            coalescence_nodes.append(key)
+        if node_is_admixture(node):
+            admixture_nodes.append(key)
+    return leaves, coalescence_nodes, admixture_nodes
+
+def get_destination_of_lineages(tree, ready_lineages):
+    single_coalescences={} #list of tuples ((key,branch),(sister_key,sister_branch))
+    double_coalescences=[]
+    admixtures=[]
+    for key, branch in ready_lineages:
+        if (key,branch) in single_coalescences:
+            double_coalescences.append(((key,branch),single_coalescences[key,branch]))
+            continue
+        parent_key=tree[key][branch]
+        if parent_key=='r':
+            assert False, 'non implemented'
+        parent=tree[parent_key]
+        if node_is_coalescence(parent):
+            sister_key=get_other_children(parent,key)[0]
+            sister_branch=mother_or_father(tree,sister_key,parent_key)
+            single_coalescences[(sister_key,sister_branch)]=(key,branch)
+        elif node_is_admixture(parent):
+            admixtures.append((key,branch))
+        else:
+            assert False, 'the parent of a node was neither admixture nor coalescence'
+    return double_coalescences, single_coalescences, admixtures
+    
+        
+def mother_or_father(tree, child_key, parent_key):
+    if tree[child_key][0]==parent_key:
+        return 0
+    elif tree[child_key][1]==parent_key:
+        return 1
+    assert False, 'The child did not match its parent'
+    
 def insert_children_in_tree(tree):
     children={key:[] for key in tree}
     for key in tree:
@@ -274,6 +324,9 @@ def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key, remo
 
 def get_number_of_admixes(tree):
     return sum((1 for node in tree.values() if node_is_admixture(node)))
+
+def get_number_of_leaves(tree):
+    return sum((1 for node in tree.values() if node_is_leaf_node(node)))
             
 def remove_admix(tree, rkey, rbranch):
     '''
