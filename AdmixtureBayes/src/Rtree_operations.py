@@ -133,7 +133,16 @@ def _find_rooted_nodes(tree):
             else:
                 res.append((key,node[4]))
     return res
-    
+
+def _get_root_sibling(tree, child_key):
+    root_keys=_find_rooted_nodes(tree)
+    if len(root_keys)==1:
+        return child_key
+    else:
+        if root_keys[0][0]==child_key:
+            return root_keys[1][0]
+        else:
+            return root_keys[0][0]
 
 def node_is_non_admixture(node):
     return (node[1] is None)
@@ -212,17 +221,24 @@ def get_categories(tree):
             admixture_nodes.append(key)
     return leaves, coalescence_nodes, admixture_nodes
 
+def get_parent_of_branch(tree, key, branch):
+    return tree[key][branch]
+
 def get_destination_of_lineages(tree, ready_lineages):
     single_coalescences={} #list of tuples ((key,branch),(sister_key,sister_branch))
     double_coalescences=[]
     admixtures=[]
     for key, branch in ready_lineages:
         if (key,branch) in single_coalescences:
-            double_coalescences.append(((key,branch),single_coalescences[key,branch]))
+            double_coalescences.append(((key,branch),single_coalescences[(key,branch)]))
+            del single_coalescences[(key,branch)]
             continue
         parent_key=tree[key][branch]
         if parent_key=='r':
-            assert False, 'non implemented'
+            sister_key=_get_root_sibling(tree, key)
+            sister_branch=mother_or_father(tree,sister_key,parent_key)
+            single_coalescences[(sister_key,sister_branch)]=(key,branch)
+            continue
         parent=tree[parent_key]
         if node_is_coalescence(parent):
             sister_key=get_other_children(parent,key)[0]
@@ -233,6 +249,21 @@ def get_destination_of_lineages(tree, ready_lineages):
         else:
             assert False, 'the parent of a node was neither admixture nor coalescence'
     return double_coalescences, single_coalescences, admixtures
+
+def propagate_married(tree, list_of_pairs):
+    res=[]
+    for (key1,branch1),(_,_) in list_of_pairs:
+        parent_key=get_parent_of_branch(tree, key1, branch1)
+        res.append((parent_key,0))
+    return res
+
+def propagate_admixtures(tree, list_of_admixtures):
+    res=[]
+    for key,branch in list_of_admixtures:
+        parent_key=get_parent_of_branch(tree, key, branch)
+        res.append((parent_key,0))
+        res.append((parent_key,1))
+    return res
     
         
 def mother_or_father(tree, child_key, parent_key):
