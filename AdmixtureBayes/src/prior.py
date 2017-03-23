@@ -45,11 +45,14 @@ def get_admixture_extra_tops(n,k):
 def _events_selection(sampled_unoccupied, sampled_occupied, sampled_admixtures, total_unoccupied, total_occupied, total_admixtures):
     print total_admixtures, total_occupied, total_unoccupied
     print sampled_admixtures, sampled_occupied, sampled_unoccupied
-    return (log(binom(total_unoccupied,sampled_unoccupied))+
+    
+    logmhypergeom= (log(binom(total_unoccupied,sampled_unoccupied))+
             log(binom(total_occupied,sampled_occupied))+
             log(binom(total_admixtures, sampled_admixtures))-
             log(binom(total_unoccupied+total_occupied+total_admixtures,
                       sampled_unoccupied+sampled_occupied+sampled_admixtures)))
+    
+    return logmhypergeom
     
 def _totally_free_selection(total_pairs,sampled_pairs, sampled_ones):
     denom=log(binom(total_pairs*2,sampled_pairs*2+sampled_ones))
@@ -133,6 +136,16 @@ def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_c
                             total_occupied=no_coalescences_on_hold,
                             total_admixtures=no_free_admixtures)
     p2=_totally_free_selection(no_totally_free_coalescences,no_sames,no_waiting_coalescences)
+    total_chosen=2*no_sames+no_waiting_coalescences+no_awaited_coalescences+no_admixtures
+    if no_totally_free_coalescences>=total_chosen:
+        p1b=_events_selection(sampled_unoccupied=total_chosen, 
+                            sampled_occupied=0, 
+                            sampled_admixtures=0,
+                            total_unoccupied=2*no_totally_free_coalescences,
+                            total_occupied=no_coalescences_on_hold,
+                            total_admixtures=no_free_admixtures)
+        p2b=_totally_free_selection(no_totally_free_coalescences, 0, total_chosen)
+        p1-=log(1-exp(p1b+p2b))
     p3=_awaited_selection(no_coalescences_on_hold,no_awaited_coalescences)
     p4=_assigned_selection(no_ready_lineages, no_sames, no_waiting_coalescences, no_awaited_coalescences, no_admixtures)
     return p1+p2+p3+p4
@@ -147,8 +160,9 @@ def _matchmake(single_coalescences, coalescences_on_hold):
         else:
             continuing_singles.append((key,branch))
     return single_coalescences, happy_couples, continuing_singles
-    
-    
+
+def test_prior_on_three_leaved_topologies():
+    pass
 
 if __name__=='__main__':
     from math import exp
@@ -156,10 +170,14 @@ if __name__=='__main__':
     from Rcatalogue_of_trees import tree_good, tree_clean, tree_one_admixture, tree_two_admixture
     from Rtree_operations import insert_children_in_tree
     print prior(tree_good)
-    print prior(insert_children_in_tree(tree_clean))
+    
     print prior(insert_children_in_tree(tree_one_admixture))
     print prior(insert_children_in_tree(tree_two_admixture))
     
+    res=tree_prior(insert_children_in_tree(tree_clean))
+    print res, exp(res)
+    import sys
+    sys.exit()
     res=tree_prior(tree_good)
     
     print res
