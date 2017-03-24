@@ -1,9 +1,11 @@
 from csv import writer
-from Rtree_operations import to_aarhus_admixture_graph, to_networkx_format
+from Rtree_operations import to_aarhus_admixture_graph, to_networkx_format, node_is_admixture, node_is_coalescence, node_is_leaf_node
 from subprocess import call
 from PIL import Image
 from graphviz import Digraph
 import os
+
+
 
 file_suffix=[s+'.csv' for s in ['leaves', 'inner_nodes','edges','adm_props']]
 
@@ -55,6 +57,23 @@ def write_aarhus_tree_to_files(aarhus_tree, file_names):
         with open(name, "wb") as f:
             writer2 = writer(f)
             writer2.writerows(rows)
+            
+def pretty_print(tree):
+    keys,vals=tree.keys(),tree.values()
+    chosen_indexes=[]
+    print '{ '
+    for key,val in zip(keys,vals):
+        if node_is_leaf_node(val):
+            print '  '+key+': '+str(val)
+    print '  ,'
+    for key,val in zip(keys,vals):
+        if node_is_admixture(val):
+            print '  '+key+': '+str(val)
+    print '  ,'
+    for key,val in zip(keys,vals):
+        if node_is_coalescence(val):
+            print '  '+key+': '+str(val)
+    print '}'
     
     
 def make_R_draw_from_files(drawing_name, file_names):
