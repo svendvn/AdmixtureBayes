@@ -83,7 +83,8 @@ def make_R_draw_from_files(drawing_name, file_names):
     call(cmd)
     
 if __name__=='__main__':
-    from Rtree_operations import tree_on_the_border2, insert_children_in_tree, create_trivial_tree
+    from Rtree_operations import insert_children_in_tree, create_trivial_tree
+    from Rcatalogue_of_trees import tree_on_the_border2
     tree2=insert_children_in_tree(tree_on_the_border2)
     trouble2={'a': ['n17', 'n18', 0.5, 0.0006670327290825764, 0.04000000000000001, 's2', None], 'c': ['n15', 'r', 0.5, 0.02087163982263861, 0.4814480657456043, 'n18', None], 'n16': ['n17', None, None, 0.005272434567465561, None, 's4', 's3'], 'n17': ['n18', None, None, 0.013899593800954894, None, 'a', 'n16'], 'n15': ['r', None, None, 0.05969046586907494, None, 'c', 's1'], 's3': ['n16', None, None, 0.07815645814883887, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n15', None, None, 0.5947563021746359, None, None, None], 'n18': ['c', None, None, 0.06, None, 'a', 'n17'], 's4': ['n16', None, None, 0.00017898147838901196, None, None, None]}
     trouble3_loop={'a': ['n6', 'c', 0.5, 0.20982713110997345, 0.1, 's2', None], 'c': ['n3', 'r', 0.5, 0.00729894237428298, 0.1, 'a', None], 'f': ['n6', None, None, 0.02, None, 'n6', 's3'], 's3': ['f', None, None, 0.35, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n5', None, None, 0.09888248818230921, None, None, None], 's4': ['n3', None, None, 0.3, None, None, None], 'n3': ['n5', None, None, 0.05748492641498982, None, 'c', 's4'], 'n5': ['r', None, None, 0.036333643028417996, None, 'n3', 's1'], 'n6': ['f', None, None, 0.04017286889002655, None, 'a', 'f']}
@@ -112,5 +113,5 @@ if __name__=='__main__':
         
     ##IN WINDOWS YOU SHOULD PUT THE FAILED SUBPROCESS.CALL to shell=True
     plot_as_directed_graph({'n14986o': ['n14997o', None, None, 0.037596221005122325, None, 'n14994o', 'n14998n'], 'n14994o': ['n14986o', None, None, 0.5995922448996258, None, 's2', 'n14993n'], 's3': ['n14993n', None, None, 0.017991107981101026, None, None, None], 's2': ['n14994o', None, None, 0.997708485557472, None, None, None], 's1': ['n14999o', None, None, 0.5171959047036405, None, None, None], 's4': ['n14998o', None, None, 0.0011134401638378648, None, None, None], 'n14999o': ['r', None, None, 0.10861780971705044, None, 's1', 'n14999n'], 'n14999n': ['n14999o', 'r', 0.48, 0.015628043045867235, 0, 'n14997o', None], 'n14998n': ['n14986o', 'n14998o', 0.48, 0.0006314720717206017, 0, 'n14993n', None], 'n14998o': ['n14997o', None, None, 4.837436272350898e-05, None, 's4', 'n14998n'], 'n14997o': ['n14999n', None, None, 0.00379039252495712, None, 'n14986o', 'n14998o'], 'n14993n': ['n14998n', 'n14994o', 0.48, 0.00033004884190202276, 0.0, 's3', None]})
-    #plot_graph(t1)
+    plot_graph(t1)
     
