@@ -16,10 +16,10 @@ def prior(tree, p=0.5):
     admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
-    print 'branch_prior', branch_prior
-    print 'no_admix_prior',no_admix_prior
-    print 'admix_prop_prior',admix_prop_prior
-    print 'top_prior', top_prior
+    #print 'branch_prior', branch_prior
+    #print 'no_admix_prior',no_admix_prior
+    #print 'admix_prop_prior',admix_prop_prior
+    #print 'top_prior', top_prior
     return logsum
 
 def topological_prior(tree):
@@ -43,8 +43,8 @@ def get_admixture_extra_tops(n,k):
         return sum(2*log(2*n-2+j*3)-log(2) for j in range(k))
     
 def _events_selection(sampled_unoccupied, sampled_occupied, sampled_admixtures, total_unoccupied, total_occupied, total_admixtures):
-    print total_admixtures, total_occupied, total_unoccupied
-    print sampled_admixtures, sampled_occupied, sampled_unoccupied
+    #print total_admixtures, total_occupied, total_unoccupied
+    #print sampled_admixtures, sampled_occupied, sampled_unoccupied
     
     logmhypergeom= (log(binom(total_unoccupied,sampled_unoccupied))+
             log(binom(total_occupied,sampled_occupied))+
@@ -86,8 +86,8 @@ def tree_prior(tree):
     res=0
     while True:
         sames, single_coalescences, admixtures=get_destination_of_lineages(tree, ready_lineages)
-        waiting_coalescences, awaited_coalescences, still_on_hold = _matchmake(single_coalescences, coalescences_on_hold)
-        print sames, waiting_coalescences, admixtures
+        waiting_coalescences, awaited_coalescences, still_on_hold = matchmake(single_coalescences, coalescences_on_hold)
+        #print sames, waiting_coalescences, admixtures
         res+=_get_selection_probabilities(no_sames=len(sames), 
                                           no_waiting_coalescences=len(waiting_coalescences), 
                                           no_awaited_coalescences=len(awaited_coalescences), 
@@ -100,12 +100,12 @@ def tree_prior(tree):
         #updating lineages
         coalescences_on_hold=still_on_hold+waiting_coalescences.values()
         totally_free_coalescences, free_admixtures=_thin_out_frees(tree, totally_free_coalescences,free_admixtures, ready_lineages)
-        print 'free_admixture', free_admixtures
-        print 'totally_free_coalescences', totally_free_coalescences
+        #print 'free_admixture', free_admixtures
+        #print 'totally_free_coalescences', totally_free_coalescences
         ready_lineages=propagate_married(tree, awaited_coalescences)
         ready_lineages.extend(propagate_married(tree, sames))
         ready_lineages.extend(propagate_admixtures(tree, admixtures))
-        print 'ready_lineages', ready_lineages
+        #print 'ready_lineages', ready_lineages
 
         #stop criteria
         if len(ready_lineages)==1 and ready_lineages[0][0]=='r':
@@ -145,12 +145,13 @@ def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_c
                             total_occupied=no_coalescences_on_hold,
                             total_admixtures=no_free_admixtures)
         p2b=_totally_free_selection(no_totally_free_coalescences, 0, total_chosen)
-        p1-=log(1-exp(p1b+p2b))
+        if p1b+p2b<0:
+            p1-=log(1-exp(p1b+p2b))
     p3=_awaited_selection(no_coalescences_on_hold,no_awaited_coalescences)
     p4=_assigned_selection(no_ready_lineages, no_sames, no_waiting_coalescences, no_awaited_coalescences, no_admixtures)
     return p1+p2+p3+p4
 
-def _matchmake(single_coalescences, coalescences_on_hold):
+def matchmake(single_coalescences, coalescences_on_hold):
     happy_couples=[]
     continuing_singles=[]
     for key,branch in coalescences_on_hold:
@@ -169,18 +170,29 @@ if __name__=='__main__':
     print exp(get_admixture_extra_tops(3, 2))
     from Rcatalogue_of_trees import tree_good, tree_clean, tree_one_admixture, tree_two_admixture
     from Rtree_operations import insert_children_in_tree
-    print prior(tree_good)
+    #print prior(tree_good)
     
-    print prior(insert_children_in_tree(tree_one_admixture))
-    print prior(insert_children_in_tree(tree_two_admixture))
+    #print prior(insert_children_in_tree(tree_one_admixture))
+    #print prior(insert_children_in_tree(tree_two_admixture))
     
-    res=tree_prior(insert_children_in_tree(tree_clean))
-    print res, exp(res)
-    import sys
-    sys.exit()
-    res=tree_prior(tree_good)
+    #res=tree_prior(insert_children_in_tree(tree_clean))
+    #print res, exp(res)
+
     
-    print res
+    from generate_prior_trees import generate
+    from tree_plotting import pretty_print
+    
+    tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None], 's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None], 'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
+    print tree_prior(tree_trouble)
+    
+    for i in range(200):
+        tree=generate(2,1)
+        print tree
+        pretty_print(tree)
+        print exp(tree_prior(tree)),
+        
+    
+    
     import sys
     sys.exit()
     

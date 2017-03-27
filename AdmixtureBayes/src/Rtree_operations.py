@@ -36,7 +36,7 @@ def update_all_branches(tree, updater):
     return tree
 
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
-    print node, pkey, grand_parent_key, p_to_gp
+    #print node, pkey, grand_parent_key, p_to_gp
     if node[0]==pkey:
         node[0]=grand_parent_key
         u=node[3]/(node[3]+p_to_gp)
@@ -134,15 +134,24 @@ def _find_rooted_nodes(tree):
                 res.append((key,node[4]))
     return res
 
-def _get_root_sibling(tree, child_key):
-    root_keys=_find_rooted_nodes(tree)
+def _find_rooted_branches(tree):
+    res=[]
+    for key,node in tree.items():
+        if node[0]=='r':
+            res.append((key,0))
+        if node[1] is not None and node[1]=='r':
+            res.append((key,1))
+    return res
+
+def _get_root_sibling(tree, child_key, child_branch):
+    root_keys=_find_rooted_branches(tree)
     if len(root_keys)==1:
-        return child_key
+        return child_key, child_branch
     else:
-        if root_keys[0][0]==child_key:
-            return root_keys[1][0]
+        if root_keys[0][0]==child_key and root_keys[0][1]==child_branch:
+            return root_keys[1]
         else:
-            return root_keys[0][0]
+            return root_keys[0]
 
 def node_is_non_admixture(node):
     return (node[1] is None)
@@ -235,20 +244,31 @@ def get_destination_of_lineages(tree, ready_lineages):
             continue
         parent_key=tree[key][branch]
         if parent_key=='r':
-            sister_key=_get_root_sibling(tree, key)
-            sister_branch=mother_or_father(tree,sister_key,parent_key)
+            sister_key, sister_branch=_get_root_sibling(tree, key, branch)
             single_coalescences[(sister_key,sister_branch)]=(key,branch)
             continue
         parent=tree[parent_key]
         if node_is_coalescence(parent):
-            sister_key=get_other_children(parent,key)[0]
-            sister_branch=mother_or_father(tree,sister_key,parent_key)
+            sister_key, sister_branch=get_sister_branch(tree, parent,key, branch)
             single_coalescences[(sister_key,sister_branch)]=(key,branch)
         elif node_is_admixture(parent):
             admixtures.append((key,branch))
         else:
             assert False, 'the parent of a node was neither admixture nor coalescence'
     return double_coalescences, single_coalescences, admixtures
+
+def get_sister_branch(tree, parent, key, branch):
+    if parent[5]==parent[6]:
+        return key, other_branch(branch)
+    else:
+        if parent[5]==key:
+            return parent[6], mother_or_father(tree, parent[6], tree[key][branch])
+        elif parent[6]==key:
+            return parent[5], mother_or_father(tree, parent[5], tree[key][branch])
+        else:
+            assert False, "the parent was not really a parent"
+        
+        
 
 def propagate_married(tree, list_of_pairs):
     res=[]

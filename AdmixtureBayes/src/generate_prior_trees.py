@@ -57,7 +57,7 @@ def generate(size, admixes, leaf_nodes=None):
 
 
 def _allowed_generation(chosen_indexes, no_totally_free):
-    print 'deciding allowance of:', chosen_indexes, no_totally_free
+    #print 'deciding allowance of:', chosen_indexes, no_totally_free
     all_choosing_frees=all(chosen_index<no_totally_free for chosen_index in chosen_indexes)
     if not all_choosing_frees:
         return True
@@ -114,17 +114,17 @@ def _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixe
 def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tree, node_name):
     no_halfly_frees=len(halfly_frees)
     new_lineages=[]
-    print 'lineages', lineages
-    pretty_print(tree)
-    print 'no_totally_free', no_totally_free
-    print 'no_halfly_frees',no_halfly_frees
-    print 'no_admixes', no_admixes
+    #print 'lineages', lineages
+    #pretty_print(tree)
+    #print 'no_totally_free', no_totally_free
+    #print 'no_halfly_frees',no_halfly_frees
+    #print 'no_admixes', no_admixes
     indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False )
     while not _allowed_generation(sorted(indexes), no_totally_free*2):
         indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False)
     #indexes=[1, 4, 6, 8, 9, 11]
     parent_keys, types= _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixes, node_name)
-    print zip(parent_keys, types)
+    #print zip(parent_keys, types)
     new_lineages=[]
     for (key,branch), parent_key, typ in zip(lineages, parent_keys, types):
         if typ=='first_coalescence':
@@ -146,7 +146,7 @@ def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tre
     return new_lineages, tree, no_totally_free, halfly_frees, no_admixes
                     
 def _classify_type(index, n_frees, n_halfs, n_admixs):
-    print index,n_frees,n_halfs,n_admixs
+    #print index,n_frees,n_halfs,n_admixs
     if index<n_frees:
         return 'free'
     elif index<n_halfs+n_frees:
@@ -154,7 +154,7 @@ def _classify_type(index, n_frees, n_halfs, n_admixs):
     return 'admix'
 
 def _has_partner(index, indexes):
-    print index,indexes
+    #print index,indexes
     if len(indexes)>0:
         print indexes[-1]
     if len(indexes)>0 and indexes[-1]==index-1 and indexes[-1]%2==0:
