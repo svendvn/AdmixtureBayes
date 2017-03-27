@@ -13,6 +13,7 @@ from prior import tree_prior
 from tree_statistics import unique_identifier
 from math import exp
 from collections import Counter
+from scipy.optimize import brentq
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -116,7 +117,23 @@ def test_topological_prior_density(n,k,sim_length):
         list_of_simulated_trees.append(unique_id)
         if unique_id not in dictionary_of_probabilities:
             dictionary_of_probabilities[unique_id]=exp(tree_prior(tree))
-    return dictionary_of_probabilities, Counter(list_of_simulated_trees)
+    ad,ad2=dictionary_of_probabilities, Counter(list_of_simulated_trees)
+    for key, val in ad.items():
+        print val, 'vs', float(ad2[key])/sim_length,': ', key
+    print 'Total number of simulations', sim_length
+    print 'Unique sampled trees', len(ad2)
+    print 'Simulated total probability', sum(ad.values())
+    n=float(sim_length)
+    c=float(len(ad2))
+    def f(m):
+        return m*(1-((m-1)/m)**n)-c
+    maxval=c
+    while f(maxval)<0:
+        maxval*=2
+    ex=brentq(f, c, maxval)
+    print 'Expected number of unique', ex
+    print 'Expected total probability', c/ex
+    
     
 
 if __name__=='__main__':
@@ -124,12 +141,7 @@ if __name__=='__main__':
     print #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    print #test_prior_model(s_tree, sim_length=1000)
-    N=10000
-    ad,ad2=test_topological_prior_density(3,1, N)
-    for key, val in ad.items():
-        print val, 'vs', float(ad2[key])/N,': ', key
-    print sum(ad.values()) 
+    test_topological_prior_density(8,3, 10000)
 
     
     

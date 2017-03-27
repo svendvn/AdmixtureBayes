@@ -3,6 +3,7 @@ from Rtree_operations import _rename_root
 from tree_plotting import pretty_print
 from copy import deepcopy
 from numpy import argsort
+from collections import Counter
 
 def set_outgoing_branch(node, parent_name, branch, length):
     node[branch]=parent_name
@@ -56,8 +57,14 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
     return tree
 
 
-def _allowed_generation(chosen_indexes, no_totally_free):
+def _allowed_generation(chosen_indexes, no_totally_free, no_halfly_frees, no_admixes, illegal_indexes):
     #print 'deciding allowance of:', chosen_indexes, no_totally_free
+    for i1,i2 in illegal_indexes:
+        c1,c2=chosen_indexes[i1], chosen_indexes[i2]
+        if c2==c1+1 and c1%2==0 and c2<no_totally_free:
+            return False
+        if c1==c2+1 and c2%2==0 and c1<no_totally_free:
+            return False
     all_choosing_frees=all(chosen_index<no_totally_free for chosen_index in chosen_indexes)
     if not all_choosing_frees:
         return True
@@ -109,6 +116,15 @@ def _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixe
             parents.append(halfly_frees[which_suitor])
             types.append('second_coalescence')
     return parents, types
+
+def _get_illegal_indexes(lineages):
+    keys, _ =zip(*lineages)
+    dic= Counter(keys)
+    res=[]
+    for n,key in keys:
+        if dic[key]==2:
+           res.append((lineages.index((key,0)), lineages.index((key,1))))
+    return res 
             
 
 def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tree, node_name):
@@ -120,7 +136,8 @@ def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tre
     #print 'no_halfly_frees',no_halfly_frees
     #print 'no_admixes', no_admixes
     indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False )
-    while not _allowed_generation(sorted(indexes), no_totally_free*2):
+    illegal_indexes=_get_illegal_indexes(lineages)
+    while not _allowed_generation(indexes, no_totally_free*2, no_halfly_frees, no_admixes, illegal_indexes):
         indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False)
     #indexes=[1, 4, 6, 8, 9, 11]
     parent_keys, types= _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixes, node_name)
