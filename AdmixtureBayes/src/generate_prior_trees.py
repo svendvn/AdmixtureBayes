@@ -25,7 +25,7 @@ def update_node(node, **kwargs):
         node[factor_to_index_number[factor]]=value
     return node
 
-def generate(size, admixes, leaf_nodes=None):
+def generate_admix_topology(size, admixes, leaf_nodes=None):
     if leaf_nodes is None:
         leaf_nodes = [ 's'+str(i+1) for i in range(size)]
     free_admixes=admixes

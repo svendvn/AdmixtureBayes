@@ -8,6 +8,11 @@ from time import sleep as wait
 from MCMC import initialize_prior_as_posterior, basic_chain
 from summary import s_no_admixes, s_branch_length, s_variable
 from meta_proposal import basic_meta_proposal
+from generate_prior_trees import generate_admix_topology
+from prior import tree_prior
+from tree_statistics import unique_identifier
+from math import exp
+from collections import Counter
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -102,11 +107,29 @@ def test_prior_model(start_tree, sim_length=100000):
                 temperature=1.0, proposal_update=None,
                 check_trees=True)
     
+def test_topological_prior_density(n,k,sim_length):
+    dictionary_of_probabilities={}
+    list_of_simulated_trees=[]
+    for _ in xrange(sim_length):
+        tree=generate_admix_topology(n,k)
+        unique_id=unique_identifier(tree)
+        list_of_simulated_trees.append(unique_id)
+        if unique_id not in dictionary_of_probabilities:
+            dictionary_of_probabilities[unique_id]=exp(tree_prior(tree))
+    return dictionary_of_probabilities, Counter(list_of_simulated_trees)
+    
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(15)
-    print proposal_support(s_tree, nodes= get_trivial_nodes(15))
+    print #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    print test_prior_model(s_tree, sim_length=1000)
+    print #test_prior_model(s_tree, sim_length=1000)
+    N=10000
+    ad,ad2=test_topological_prior_density(3,1, N)
+    for key, val in ad.items():
+        print val, 'vs', float(ad2[key])/N,': ', key
+    print sum(ad.values()) 
+
+    
     

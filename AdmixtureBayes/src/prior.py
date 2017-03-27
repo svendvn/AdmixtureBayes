@@ -1,7 +1,7 @@
 from scipy.stats import expon, geom
 from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proportions, get_number_of_admixes, get_number_of_leaves, 
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
-from math import log, factorial
+from math import log, factorial,exp
 from scipy.special import binom 
 
 def prior(tree, p=0.5):
