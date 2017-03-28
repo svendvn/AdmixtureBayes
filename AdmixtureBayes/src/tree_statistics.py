@@ -122,6 +122,9 @@ def unique_identifier(tree):
 def _list_identifier_to_string(list_of_gens):
     return '-'.join(['.'.join(map(str,[c for c in l if c!='_'])) for l in list_of_gens])
 
+def identifier_to_tree(identifier, leaves=None, inner_nodes=None):
+    pass
+
 def update_lineages(lists, new, gone, lineages, tree):
     for n,element in enumerate(new):
         if element=='a':

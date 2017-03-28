@@ -88,7 +88,27 @@ def _assigned_selection(total, pairs, unlabeleld_singles, labelled_singles, admi
     
 def _get_number_of_admixture_branches(lineages):
     return sum(1 for key, branch in lineages if branch==1)
+
+def _double_band_selection(no_danger_pairs, N,M):
+    '''
+    calculated that none of the pairs no_danger_pairs makes a double band when there are a total of N destinations and M of these are totally free coalescence nodes
+    '''
+    if no_danger_pairs==0:
+        return 1
+    if M<2:
+        return 1
+    p1=float(M*(M-2))/N/(N-1)
+    next_step=_double_band_selection(no_danger_pairs-1, N-2, M-2)
+    next_step2=1
+    p2=p3=p4=0
+    if N>2:
+        p2=float(M*(N-M))/N/(N-1)
+        p3=float((N-M)*M)/N/(N-1)
+        if N>3:
+            p4=float((N-M)*(N-M-1))/N/(N-1)
+            next_step2=_double_band_selection(no_danger_pairs-1, N-2, M)
     
+    return (p1+p2+p3)*next_step+p4*next_step2
 
 def tree_prior(tree):
     total_prob=0
@@ -131,7 +151,7 @@ def tree_prior(tree):
     return res
     
     
-    return sames, single_coalescences, admixtures, waiting_coalescences,awaited_coalescences,still_on_hold,p1,p2,p3,p4, exp(p1+p2+p3+p4)
+    #return sames, single_coalescences, admixtures, waiting_coalescences,awaited_coalescences,still_on_hold,p1,p2,p3,p4, exp(p1+p2+p3+p4)
     #waiting,awaited=thin_out_coalescences(single_coalescences, coalescences_on_hold)
 
 def _thin_out_frees(tree, totally_free_coalescences,free_admixtures, lineages):
@@ -183,10 +203,15 @@ def matchmake(single_coalescences, coalescences_on_hold):
     return single_coalescences, happy_couples, continuing_singles
 
 if __name__=='__main__':
-    from math import exp
     print exp(get_admixture_extra_tops(3, 2))
     from Rcatalogue_of_trees import tree_good, tree_clean, tree_one_admixture, tree_two_admixture
     from Rtree_operations import insert_children_in_tree
+    
+    print _double_band_selection(5,12,16)
+    
+    import sys
+    sys.exit()
+    
     #print prior(tree_good)
     
     #print prior(insert_children_in_tree(tree_one_admixture))
@@ -196,14 +221,14 @@ if __name__=='__main__':
     #print res, exp(res)
 
     
-    from generate_prior_trees import generate
+    from generate_prior_trees import generate_admix_topology
     from tree_plotting import pretty_print
     
     tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None], 's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None], 'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
     print tree_prior(tree_trouble)
     
     for i in range(200):
-        tree=generate(2,1)
+        tree=generate_admix_topology(2,1)
         print tree
         pretty_print(tree)
         print exp(tree_prior(tree)),
