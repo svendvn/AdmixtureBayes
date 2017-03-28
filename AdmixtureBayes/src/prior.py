@@ -43,6 +43,9 @@ def get_admixture_extra_tops(n,k):
         return sum(2*log(2*n-2+j*3)-log(2) for j in range(k))
     
 def _events_selection(sampled_unoccupied, sampled_occupied, sampled_admixtures, total_unoccupied, total_occupied, total_admixtures):
+    '''
+    calculates the probability of the selection of the number of totally free, halfly free and admixture events given the availabe number of each type.
+    '''
     #print total_admixtures, total_occupied, total_unoccupied
     #print sampled_admixtures, sampled_occupied, sampled_unoccupied
     
@@ -55,6 +58,10 @@ def _events_selection(sampled_unoccupied, sampled_occupied, sampled_admixtures, 
     return logmhypergeom
     
 def _totally_free_selection(total_pairs,sampled_pairs, sampled_ones):
+    '''
+    calculates the probability that the distribution of 1's and 2's, and 0's are as specified in sampled_pairs, sampled_ones. 
+    A 1 means that one of the completely free coalescence only one coalescence holster has been taken
+    '''
     denom=log(binom(total_pairs*2,sampled_pairs*2+sampled_ones))
     num=log(2)*sampled_ones
     num+=log(factorial(total_pairs))
@@ -64,9 +71,15 @@ def _totally_free_selection(total_pairs,sampled_pairs, sampled_ones):
     return num-denom
 
 def _awaited_selection(positions, taken):
+    '''
+    Calculates the probability that exactly the of the number of available waiting coalescence nodes (=positions), the exact subset of size 'taken' is taken out from them. 
+    '''
     return -log(binom(positions,taken))
 
 def _assigned_selection(total, pairs, unlabeleld_singles, labelled_singles, admixtures):
+    '''
+    Given the number of each type of parent key, this function calculates the probability of the way it has been laid out.
+    '''
     return -(log(factorial(total))-
              log(factorial(pairs))-
              log(factorial(unlabeleld_singles))-
@@ -152,6 +165,8 @@ def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_c
         p2b=_totally_free_selection(no_totally_free_coalescences, 0, total_chosen)
         if p1b+p2b<0:
             p1-=log(1-exp(p1b+p2b))
+    #if no_admixture_pairs>0:
+        
     p3=_awaited_selection(no_coalescences_on_hold,no_awaited_coalescences)
     p4=_assigned_selection(no_ready_lineages, no_sames, no_waiting_coalescences, no_awaited_coalescences, no_admixtures)
     return p1+p2+p3+p4
