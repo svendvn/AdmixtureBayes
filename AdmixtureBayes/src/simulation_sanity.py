@@ -141,7 +141,7 @@ if __name__=='__main__':
     print #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    test_topological_prior_density(8,3, 10000)
+    test_topological_prior_density(4,2, 10000)
 
     
     

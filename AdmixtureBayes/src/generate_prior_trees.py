@@ -4,6 +4,7 @@ from tree_plotting import pretty_print
 from copy import deepcopy
 from numpy import argsort
 from collections import Counter
+from sympy.unify.usympy import illegal
 
 def set_outgoing_branch(node, parent_name, branch, length):
     node[branch]=parent_name
@@ -59,23 +60,30 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
 
 def _allowed_generation(chosen_indexes, no_totally_free, no_halfly_frees, no_admixes, illegal_indexes):
     #print 'deciding allowance of:', chosen_indexes, no_totally_free
+    
+    #checking if there are double bands
     for i1,i2 in illegal_indexes:
         c1,c2=chosen_indexes[i1], chosen_indexes[i2]
         if c2==c1+1 and c1%2==0 and c2<no_totally_free:
             return False
         if c1==c2+1 and c2%2==0 and c1<no_totally_free:
             return False
-    all_choosing_frees=all(chosen_index<no_totally_free for chosen_index in chosen_indexes)
-    if not all_choosing_frees:
-        return True
-    if len(chosen_indexes)==1:
-        return False
+    
     no_doubles=0
-    tmp=sorted(chosen_indexes)
-    for c1,c2 in zip(tmp[:-1],tmp[1:]):
-        if (c2==c1+1 and c1%2==0):
-            no_doubles+=1
-    return (no_doubles>0)
+    tmp=sorted([c for c in chosen_indexes if c<no_totally_free])
+    if len(tmp)>=2:
+        for c1,c2 in zip(tmp[:-1],tmp[1:]):
+            if (c2==c1+1 and c1%2==0):
+                no_doubles+=1
+    no_admixtures=sum(chosen_index>=no_totally_free+no_halfly_frees for chosen_index in chosen_indexes)
+    no_singles=sum(chosen_index>=no_totally_free for chosen_index in chosen_indexes)-no_admixtures
+    if no_admixtures+no_singles+no_doubles==0:
+        return False
+    if no_admixes==1 and no_admixtures==0 and no_halfly_frees-no_singles==0 and no_singles+no_doubles==1:
+        return False
+    
+    #all_choosing_frees=all(chosen_index<no_totally_free for chosen_index in chosen_indexes)
+    return True
 
 class _get_node_name(object):
     
@@ -120,8 +128,9 @@ def _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixe
 def _get_illegal_indexes(lineages):
     keys, _ =zip(*lineages)
     dic= Counter(keys)
+    #print dic
     res=[]
-    for n,key in keys:
+    for key in keys:
         if dic[key]==2:
            res.append((lineages.index((key,0)), lineages.index((key,1))))
     return res 
@@ -138,7 +147,12 @@ def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tre
     indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False )
     illegal_indexes=_get_illegal_indexes(lineages)
     while not _allowed_generation(indexes, no_totally_free*2, no_halfly_frees, no_admixes, illegal_indexes):
+        #print 'denied', indexes
         indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False)
+        #print 'trying', indexes
+    #print 'tot','hlf','adm',no_totally_free*2, no_halfly_frees, no_admixes
+    #print 'illegal_indexes', illegal_indexes
+    #print 'indexes', indexes
     #indexes=[1, 4, 6, 8, 9, 11]
     parent_keys, types= _pair_everyhting_up_nicely(indexes, no_totally_free, halfly_frees, no_admixes, node_name)
     #print zip(parent_keys, types)
@@ -181,15 +195,15 @@ def _has_partner(index, indexes):
     
 if __name__=='__main__':
     print _classify_type(12, 12, 0, 1)
-    print _allowed_generation([1, 4, 6, 8, 9, 11],12)
-    print _allowed_generation([2,3], 5)
-    print _allowed_generation([1,2], 5)
-    print _allowed_generation([2,3,5], 5)
+    #print _allowed_generation([1, 4, 6, 8, 9, 11],12)
+    #print _allowed_generation([2,3], 5)
+    #print _allowed_generation([1,2], 5)
+    #print _allowed_generation([2,3,5], 5)
     
     from tree_plotting import plot_graph, pretty_print
-    ak=generate(6, 1)
+    ak=generate_admix_topology(2, 1)
     pretty_print(ak)
-    plot_graph(ak)
+    #plot_graph(ak)
     
     
     

@@ -73,6 +73,9 @@ def _assigned_selection(total, pairs, unlabeleld_singles, labelled_singles, admi
              log(factorial(admixtures))-
              log(2)*pairs)
     
+def _get_number_of_admixture_branches(lineages):
+    return sum(1 for key, branch in lineages if branch==1)
+    
 
 def tree_prior(tree):
     total_prob=0
@@ -95,7 +98,8 @@ def tree_prior(tree):
                                           no_totally_free_coalescences=len(totally_free_coalescences), 
                                           no_free_admixtures=len(free_admixtures), 
                                           no_ready_lineages=len(ready_lineages), 
-                                          no_coalescences_on_hold=len(coalescences_on_hold))
+                                          no_coalescences_on_hold=len(coalescences_on_hold),
+                                          no_admixture_pairs=_get_number_of_admixture_branches(ready_lineages))
     
         #updating lineages
         coalescences_on_hold=still_on_hold+waiting_coalescences.values()
@@ -128,7 +132,8 @@ def _thin_out_frees(tree, totally_free_coalescences,free_admixtures, lineages):
 
 def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_coalescences,
                                  no_admixtures, no_totally_free_coalescences,
-                                 no_free_admixtures, no_ready_lineages, no_coalescences_on_hold):
+                                 no_free_admixtures, no_ready_lineages, no_coalescences_on_hold,
+                                 no_admixture_pairs):
     p1=_events_selection(sampled_unoccupied=2*no_sames+no_waiting_coalescences, 
                             sampled_occupied=no_awaited_coalescences, 
                             sampled_admixtures=no_admixtures,
@@ -161,9 +166,6 @@ def matchmake(single_coalescences, coalescences_on_hold):
         else:
             continuing_singles.append((key,branch))
     return single_coalescences, happy_couples, continuing_singles
-
-def test_prior_on_three_leaved_topologies():
-    pass
 
 if __name__=='__main__':
     from math import exp
