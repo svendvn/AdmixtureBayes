@@ -25,12 +25,12 @@ def generation_counts(tree):
     while True:
         sames, single_coalescences, admixtures=get_destination_of_lineages(tree, ready_lineages)
         waiting_coalescences, awaited_coalescences, still_on_hold = matchmake(single_coalescences, coalescences_on_hold)
-        print 'sames', sames
-        print 'single_coalescences', single_coalescences
-        print 'admixtures', admixtures
-        print 'waiting_coalescences', waiting_coalescences
-        print 'awaited_coalescences', awaited_coalescences
-        print 'still_on_hold', still_on_hold
+        #print 'sames', sames
+        #print 'single_coalescences', single_coalescences
+        #print 'admixtures', admixtures
+        #print 'waiting_coalescences', waiting_coalescences
+        #print 'awaited_coalescences', awaited_coalescences
+        #print 'still_on_hold', still_on_hold
         res.append((len(sames), len(waiting_coalescences), len(awaited_coalescences), len(admixtures)))
     
         #updating lineages
@@ -80,9 +80,9 @@ def unique_identifier(tree):
         awaited_dic, first_awaited, second_awaited = make_dics_first_and_second(awaited_coalescences)
         waiting=waiting_coalescences.keys()
         gen=[]
-        print 'lineages',lineages
-        print 'sames', sames, sames_dic, first_sames, second_sames
-        print 'awaited', awaited_coalescences, awaited_dic, first_awaited, second_awaited
+        #print 'lineages',lineages
+        #print 'sames', sames, sames_dic, first_sames, second_sames
+        #print 'awaited', awaited_coalescences, awaited_dic, first_awaited, second_awaited
         for n,element in enumerate(lineages):
             if element in gone:
                 gen.append('_')
@@ -102,8 +102,8 @@ def unique_identifier(tree):
                 gen.append('a')
             else:
                 gen.append('w')
-        print 'gen',gen
-        print 'gone', gone
+        #print 'gen',gen
+        #print 'gone', gone
         list_of_gens,gone, lineages =update_lineages(list_of_gens,gen,gone, lineages, tree)
                 
                 

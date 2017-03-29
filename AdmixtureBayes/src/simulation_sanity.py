@@ -9,7 +9,7 @@ from MCMC import initialize_prior_as_posterior, basic_chain
 from summary import s_no_admixes, s_branch_length, s_variable
 from meta_proposal import basic_meta_proposal
 from generate_prior_trees import generate_admix_topology
-from prior import tree_prior
+from prior import prior
 from tree_statistics import unique_identifier
 from math import exp
 from collections import Counter
@@ -101,7 +101,7 @@ def test_prior_model(start_tree, sim_length=100000):
                            'branch_length':(10,1),
                            'mhr':(1,1),
                            'no_admixes':(1,1)}
-    basic_chain(start_tree, summaries, posterior, 
+    return basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
                 overall_thinning=1, i_start_from=0, 
@@ -137,11 +137,12 @@ def test_topological_prior_density(n,k,sim_length):
     
 
 if __name__=='__main__':
-    s_tree=create_trivial_tree(15)
-    print #proposal_support(s_tree, nodes= get_trivial_nodes(15))
+    s_tree=create_trivial_tree(4)
+    print test_prior_model(s_tree, 100)
+     #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    test_topological_prior_density(8,3, 1000)
+    #test_topological_prior_density(8,3, 1000)
 
     
     

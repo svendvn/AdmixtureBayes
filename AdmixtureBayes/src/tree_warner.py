@@ -1,6 +1,6 @@
 from Rtree_operations import make_consistency_checks
 
-def check(tree):
+def check(tree, pks={}):
     result, fails = make_consistency_checks(tree)
     if not result:
         stringed_message=''

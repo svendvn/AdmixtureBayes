@@ -8,6 +8,7 @@ from summary import *
 from multiprocessing import Queue, Process
 from prior import prior
 from tree_warner import check
+from tree_plotting import pretty_string
 
 
 def initialize_posterior(emp_cov):
@@ -86,7 +87,7 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
         tree=new_tree
         post=new_post
         if check_trees:
-            print tree
+            #print pretty_string(tree)
             check(tree, proposal_knowledge_scraper)
     
     return tree, post, zip(*iteration_summary), None#,proposal.get_update()

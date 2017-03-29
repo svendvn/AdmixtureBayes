@@ -16,16 +16,12 @@ def prior(tree, p=0.5):
     admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
-    #print 'branch_prior', branch_prior
-    #print 'no_admix_prior',no_admix_prior
-    #print 'admix_prop_prior',admix_prop_prior
-    #print 'top_prior', top_prior
+    print 'branch_prior', branch_prior
+    print 'no_admix_prior',no_admix_prior
+    print 'admix_prop_prior',admix_prop_prior
+    print 'top_prior', top_prior
     return logsum
 
-def topological_prior(tree):
-    no_adms=get_number_of_admixes(tree)
-    no_leaves=get_number_of_leaves(tree)
-    return -get_admixture_extra_tops(no_leaves,no_adms)
     
 def trees_without_admixture(no_leaves):
     '''
@@ -115,7 +111,7 @@ def _double_band_selection(no_danger_pairs, M,N):
     
     return res
 
-def tree_prior(tree):
+def topological_prior(tree):
     total_prob=0
     no_admix=get_number_of_admixes(tree)
     leaves, coalescences_nodes, admixture_nodes=get_categories(tree)
@@ -200,8 +196,8 @@ def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_c
         p_admix_minus=log(1.0-exp(logp_free_coalescences)-(1.0-p_no_double_bands))
     else:
         p_admix_minus=log(p_no_double_bands)
-    print exp(logp_free_coalescences), p_no_double_bands
-    print total_chosen, no_totally_free_coalescences, no_free_admixtures, no_coalescences_on_hold
+    #print exp(logp_free_coalescences), p_no_double_bands
+    #print total_chosen, no_totally_free_coalescences, no_free_admixtures, no_coalescences_on_hold
     
     #if no_admixture_pairs>0:
     #val=_double_band_selection(no_admixture_pairs, 
@@ -234,8 +230,7 @@ if __name__=='__main__':
     
     print _double_band_selection(2,4,4)
     
-    import sys
-    sys.exit()
+
     
     #print prior(tree_good)
     
@@ -250,13 +245,16 @@ if __name__=='__main__':
     from tree_plotting import pretty_print
     
     tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None], 's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None], 'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
-    print tree_prior(tree_trouble)
+    #print tree_prior(tree_trouble)
     
     for i in range(200):
-        tree=generate_admix_topology(2,1)
+        tree=generate_admix_topology(3,1)
         print tree
         pretty_print(tree)
-        print exp(tree_prior(tree)),
+        print exp(prior(tree)),
+        
+    import sys
+    sys.exit()
         
     
     

@@ -75,6 +75,24 @@ def pretty_print(tree):
             print '  '+key+': '+str(val)
     print '}'
     
+def pretty_string(tree):
+    keys,vals=tree.keys(),tree.values()
+    res=''
+    res+='{ '+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_leaf_node(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='  ,'+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_admixture(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='  ,'+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_coalescence(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='}'
+    return res
+    
     
 def make_R_draw_from_files(drawing_name, file_names):
     dir_path = os.path.dirname(os.path.realpath(__file__))

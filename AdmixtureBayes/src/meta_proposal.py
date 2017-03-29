@@ -10,11 +10,12 @@ class new_node_naming_policy(object):
         
     def next_nodes(self, no_nodes):
         if no_nodes==2:
+            self.n+=1 
             return ['x'+str(self.n)+a for a in ['a','b']]
-            self.n+=1    
         elif no_nodes==1:
+            self.n+=1  
             return 'x'+str(self.n)
-            self.n+=1    
+              
         else:
             return ''
 
@@ -44,4 +45,8 @@ class basic_meta_proposal(object):
 if __name__=='__main__':
     bmp=basic_meta_proposal()
     from Rcatalogue_of_trees import *
-    print bmp(tree_good)
+    from tree_plotting import pretty_string
+    tree=tree_good
+    for _ in xrange(50):
+        tree=bmp(tree_good)[0]
+    print pretty_string(tree)

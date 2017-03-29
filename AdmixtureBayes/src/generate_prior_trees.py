@@ -194,6 +194,13 @@ def _has_partner(index, indexes):
     if len(indexes)>0 and indexes[-1]==index-1 and indexes[-1]%2==0:
         return True
     return False
+
+
+def get_distribution_under_topological_prior(leaves,admixes,sim_length=1000, list_of_summaries=[]):
+    res=[[] for _ in list_of_summaries]
+    for _ in xrange(sim_length):
+        tree=generate_admix_topology(size, admixes, leaf_nodes)
+        pass #unifinished, because why do we need it?
     
     
 if __name__=='__main__':

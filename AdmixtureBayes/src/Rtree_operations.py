@@ -257,7 +257,27 @@ def get_destination_of_lineages(tree, ready_lineages):
             assert False, 'the parent of a node was neither admixture nor coalescence'
     return double_coalescences, single_coalescences, admixtures
 
+def pretty_string(tree):
+    keys,vals=tree.keys(),tree.values()
+    res=''
+    res+='{ '+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_leaf_node(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='  ,'+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_admixture(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='  ,'+'\n'
+    for key,val in zip(keys,vals):
+        if node_is_coalescence(val):
+            res+='  '+key+': '+str(val)+'\n'
+    res+='}'
+    return res
+
 def get_sister_branch(tree, parent, key, branch):
+    #print parent,key
+    #print pretty_string(tree)
     if parent[5]==parent[6]:
         return key, other_branch(branch)
     else:
