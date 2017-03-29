@@ -14,6 +14,7 @@ from tree_statistics import unique_identifier
 from math import exp
 from collections import Counter
 from scipy.optimize import brentq
+from analyse_results import save_to_csv
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -101,12 +102,14 @@ def test_prior_model(start_tree, sim_length=100000):
                            'branch_length':(10,1),
                            'mhr':(1,1),
                            'no_admixes':(1,1)}
-    return basic_chain(start_tree, summaries, posterior, 
+    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
                 overall_thinning=1, i_start_from=0, 
                 temperature=1.0, proposal_update=None,
                 check_trees=True)
+    save_to_csv(results, summaries)
+    return results
     
 def test_topological_prior_density(n,k,sim_length):
     dictionary_of_probabilities={}

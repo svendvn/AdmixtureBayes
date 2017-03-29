@@ -41,12 +41,12 @@ def extend_branch(node, pkey, grand_parent_key, p_to_gp):
         node[0]=grand_parent_key
         u=node[3]/(node[3]+p_to_gp)
         node[3]+=p_to_gp
-        return node,u
+        return node,u,node[3]
     elif node[1]==pkey:
         node[1]=grand_parent_key
         u=node[4]/(node[4]+p_to_gp)
         node[4]+=p_to_gp
-        return node,u
+        return node,u,node[4]
     else:
         assert False, 'extension of branch was not possible'
 
@@ -63,17 +63,23 @@ def remove_parent_attachment(tree, orphanota_key):
     grand_pkey=get_parents(tree[pkey])[0]
     child_of_parent=get_other_children(tree[pkey], orphanota_key)[0]
     sib_node=tree[child_of_parent]
-    tree[child_of_parent],u=extend_branch(sib_node, pkey, grand_pkey, tree[pkey][3])
+    tree[child_of_parent],u,extended_branch_length=extend_branch(sib_node, pkey, grand_pkey, tree[pkey][3])
     del tree[pkey]
     if grand_pkey!='r':
         tree[grand_pkey]=_rename_child(tree[grand_pkey], pkey, child_of_parent)
     tree[orphanota_key][0]=None
-    return tree,"u",u
+    return tree,"u",u*extended_branch_length,extended_branch_length
 
 def remove_root_attachment(tree, orphanota_key):
     '''
     The situation is different when the root is removed because of the special naming strategy.
+    
+                r
+               / \
+             /    \
+      orphanota   new_root 
     Here a new root is born.
+    
     '''
     rooted_keys=_find_rooted_nodes(tree)
     for key,len_to_root in rooted_keys:
@@ -86,7 +92,7 @@ def remove_root_attachment(tree, orphanota_key):
                 tree[key],r=get_branch_length_and_reset(tree[key], 'r', 'closed_branch')
                 print 'closed_branch!'
             tree[orphanota_key][0]=None
-    return tree,'r', r
+    return tree,'r', r,None
     
 def get_branch_length_and_reset(node, parent_key, new_length,add=False):
     if node[0]==parent_key:
@@ -231,7 +237,12 @@ def get_categories(tree):
     return leaves, coalescence_nodes, admixture_nodes
 
 def get_parent_of_branch(tree, key, branch):
+    assert key!='r', 'Tried to access the parent of the root branch'
     return tree[key][branch]
+
+def get_branch_length(tree,key,branch):
+    assert key!='r', 'Tried to access the length of the root branch'
+    return tree[key][branch+3]
 
 def get_destination_of_lineages(tree, ready_lineages):
     single_coalescences={} #list of tuples ((key,branch),(sister_key,sister_branch))
@@ -324,6 +335,8 @@ def insert_children_in_tree(tree):
     for key in tree:
         tree[key]=_update_parents(tree[key], children[key])
     return tree
+
+
 
 def get_all_branch_lengths(tree):
     res=[]
@@ -423,12 +436,13 @@ def remove_admix(tree, rkey, rbranch):
     alpha=rnode[2]
     tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
     tree[orphanota_key]=_update_parent(tree[orphanota_key], rkey, parent_key)
+    orphanota_branch=_get_index_of_parent(tree[orphanota_key], parent_key)
     if parent_key!='r':
         tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
     if source_key=='r':
-        tree,_,t3=remove_root_attachment(tree, rkey) #now sorphanota_key is new root
+        tree,_,t3,_=remove_root_attachment(tree, rkey) #now sorphanota_key is new root
         del tree[rkey]
-        return tree, (t1,t2,t3,None,t5),alpha
+        return tree, (t1,t2,t3,None,t5),alpha,(orphanota_key,orphanota_branch)
     del tree[rkey]
     source_node=tree[source_key]
     sorphanota_key=get_other_children(source_node, child_key=rkey)[0]
@@ -439,7 +453,7 @@ def remove_admix(tree, rkey, rbranch):
     tree[sorphanota_key],t3=get_branch_length_and_reset(tree[sorphanota_key], source_key, t4, add=True)
     tree[sorphanota_key]=_update_parent(tree[sorphanota_key], source_key, sparent_key)
     del tree[source_key]
-    return tree, (t1,t2,t3,t4,t5), alpha
+    return tree, (t1,t2,t3,t4,t5), alpha, (orphanota_key,orphanota_branch)
     
 def other_branch(branch):
     if branch==0:

@@ -4,8 +4,9 @@ from scipy.special import binom
 from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly, 
                               get_descendants_and_rest, graft, remove_admix, node_is_non_admixture,
                               make_consistency_checks, parent_is_spouse, halfbrother_is_uncle,
-                              parent_is_sibling, other_branch)
+                              parent_is_sibling, other_branch, get_branch_length)
 from random import getrandbits
+from scipy.stats import expon
 
 
 
@@ -67,6 +68,7 @@ def addadmix(tree,new_node_names=None,pks={}):
     
     possible_nodes=_get_possible_starters(tree)
         
+    no_admixtures=get_number_of_admixes(tree)
     new_tree= deepcopy(tree)
     #print possible_nodes
     sink_key, sink_branch=possible_nodes[choice(len(possible_nodes), 1)[0]]
@@ -74,6 +76,10 @@ def addadmix(tree,new_node_names=None,pks={}):
     candidates=_get_possible_sources(new_tree, children, other, sink_key,sink_branch)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     source_key, source_branch=candidates[ch]
+    pks['sink_key']=sink_key
+    pks['source_key']=source_key
+    pks['source_branch']=source_branch
+    pks['sink_branch']=sink_branch
     #print 'children', children
     #print 'candidates', candidates
     #print 'sink', (sink_key, sink_branch)
@@ -84,38 +90,53 @@ def addadmix(tree,new_node_names=None,pks={}):
     else:
         new_tree, forward ,backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
     
-    return new_tree,forward, backward
+    choices_forward=float(len(possible_nodes)*len(candidates))
+    choices_backward=float((no_admixtures+1)*2)
+    pks['forward_choices']=choices_forward
+    pks['backward_choices']=choices_backward
+
+    return new_tree,forward/choices_forward, backward/choices_backward
     
 def get_admixture_branch_length(x=None):
     if x is None:
-        return 0.1,1
+        x=expon.rvs()
+        return x, expon.pdf(x)
     else:
-        return 1
+        return expon.pdf(x)
+    
+def get_root_branch_length(x=None):
+    return get_admixture_branch_length(x)
     
 def get_admixture_proportion(x=None):
     if x is None:
-        return 0.48,1
+        return random(),1
     else: 
         return 1
+    
+def get_insertion_spot(x=None, length=1.0):
+    if x is None:
+        return random(), 1.0/length
+    else:
+        return 1.0/length
     
 
 def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None):
     if source_key=='r':
-        u1=exponential()
+        u1,q1=get_root_branch_length()
     else:
-        u1=random()
-    u2=random()
-    t1,q1=get_admixture_branch_length()
+        u1,q1=get_insertion_spot(length=get_branch_length(tree,source_key,source_branch))
+    u2,q2=get_insertion_spot(length=get_branch_length(tree,sink_key,sink_branch))
+    t4,q4=get_admixture_branch_length()
     u3,q3=get_admixture_proportion()
     if sink_name is None:
         sink_name=str(getrandbits(8)).strip()
     if source_name is None:
         source_name=str(getrandbits(8)).strip()
-    tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2, admix_b_length=t1, new_node_name=sink_name, admixture_proportion= u3)
+    tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2, admix_b_length=t4, new_node_name=sink_name, admixture_proportion= u3)
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
     #print 'tree after grafting', tree
-    return tree,1,1
+    return tree,q1*q2*q3*q4,1
 
 
 def deladmix(tree,pks={}):
@@ -133,9 +154,61 @@ def deladmix(tree,pks={}):
     if len(candidates)==0:
         return tree,1,1
     remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
-    print 'remove', (remove_key, remove_branch)
+    pks['remove_key']=remove_key
+    pks['remove_branch']=remove_branch
+    #print 'remove', (remove_key, remove_branch)
     
-    return remove_admix(tree, remove_key, remove_branch)[0],1,1
+    new_tree, (t1,t2,t3,t4,t5), alpha, (sink_key,sink_branch) = remove_admix(cop, remove_key, remove_branch)
+    pks['removed_alpha']=alpha
+    pks['t1']=t1
+    pks['t2']=t2
+    pks['t3']=t3
+    pks['t4']=t4
+    pks['t5']=t5
+    backward= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
+    forward= 1.0
+    
+    forward_choices=float(2.0*no_admixs)
+    backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))
+    pks['forward_choices']=forward_choices
+    pks['backward_choices']=backward_choices
+    
+    return new_tree, forward/forward_choices, backward/backward_choices
+
+def get_backward_remove_density(t1,t2,t3,t4,t5, alpha):
+    '''
+    remembering this ugly sketch:
+    
+                parent_key          sparent_key
+                    |                |
+                    |t_1             | t_4
+                    |   __---- source_key
+                  rkey/   t_5       \
+                    |                \t_3
+                    |t_2          sorphanota_key  
+                orphanota_key   
+
+    we want to get the density of all the choices. If 't_4 is None', it is because source_key was the root. So we want to find the density of the insertion spot on the
+    parent_key-orphanota_key branch (=u2) the insertion spot on the sorphanota_key-sparent_key branch (=u1) (which could be exponentially distributed. We also want the density of t5
+    and the admixture proportion, alpha
+    '''
+    if t4 is None:
+        u1=t3
+        q1=get_root_branch_length(u1)
+    else:
+        q1=get_insertion_spot(t3, t3+t4)
+    q2=get_insertion_spot(t2, t1+t2)
+    q3=get_admixture_branch_length(t5)
+    q4=get_admixture_proportion(alpha)
+    
+    return q1*q2*q3*q4
+    
+
+def get_possible_admixture_adds(tree, sink_key,sink_branch):
+    possible_nodes=_get_possible_starters(tree)
+    children, other= get_descendants_and_rest(tree, sink_key)
+    candidates=_get_possible_sources(tree, children, other, sink_key,sink_branch)+[('r',0)]
+    return len(possible_nodes)*len(candidates)
 
 def _check_node(tree,key,direction):
     parent_key=tree[key][direction]
@@ -210,9 +283,20 @@ class Tester():
     
 
 if __name__=="__main__":
-    from tree_plotting import plot_as_directed_graph, plot_graph
+    from tree_plotting import plot_as_directed_graph, plot_graph, pretty_print
     import Rtree_operations
     #plot_graph(Rtree_operations.tree_on_the_border2_with_children)
-    t=Tester(Rtree_operations.tree_on_the_border2_with_children)
-    t.many_admixes(10)
+    #t=Tester(Rtree_operations.tree_on_the_border2_with_children)
+    #t.many_admixes(10)
+    from Rcatalogue_of_trees import tree_good
+    newt,forw,backw=deladmix(tree_good)
+    print 'forw',forw
+    print 'back',backw
+    pretty_print(newt)
+    
+    newt,forw,backw=addadmix(tree_good)
+    print 'forw',forw
+    print 'back',backw
+    pretty_print(newt)
+    
     

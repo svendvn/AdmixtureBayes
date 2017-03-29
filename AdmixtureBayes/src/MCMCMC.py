@@ -100,7 +100,7 @@ def _pack_everything(trees, posteriors, temperature_scheme,printing_schemes,over
              temperature_scheme.get_temp(i),
              None] for i,(tree,posterior,printing_scheme) in enumerate(zip(trees,posteriors,printing_schemes)))
 
-def _unpack_everything(new_state, summaries, total_permutation):
+def unpack_everything(new_state, summaries, total_permutation):
     trees,posteriors, summs,_ = zip(*new_state)
     list_of_smaller_data_frames=[]
     for summ_data, n, i in zip(summs, total_permutation, range(len(total_permutation))):
@@ -109,7 +109,7 @@ def _unpack_everything(new_state, summaries, total_permutation):
         df['layer']=i
         list_of_smaller_data_frames.append(df)
     df=pd.concat(list_of_smaller_data_frames)
-    return trees, posteriors, None #df
+    return trees, posteriors, df
 
 def _handle_flipping_of_proposals(proposal_scheme, permut):
     return proposal_scheme

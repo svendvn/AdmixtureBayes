@@ -3,7 +3,8 @@ from numpy.random import choice, random, exponential
 from scipy.stats import expon, uniform
 from Rtree_operations import (get_parents, is_root, get_descendants_and_rest, 
 node_is_non_admixture, has_child_admixture, insert_children_in_tree,
-remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle)
+remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle,
+get_branch_length)
 from random import getrandbits
 #from os import urandom
 #from tree_warner import check
@@ -59,9 +60,10 @@ def make_regraft(tree, new_node=None, pks={}):
     
     new_tree= deepcopy(tree)
     regrafter=choice(possible_nodes, 1)[0]
+    pks['regrafter']=regrafter
     #print 'regrafter', regrafter
-    new_tree, remove_distrub, remove_val=remove_parent_attachment(new_tree, regrafter)
-    q_backward=back_density(remove_distrub, remove_val)
+    new_tree, remove_distrub, remove_val,remove_par=remove_parent_attachment(new_tree, regrafter)
+    q_backward=back_density(remove_distrub, remove_val, remove_par)
     children, other= get_descendants_and_rest(tree, regrafter)
     candidates=_get_possible_branches(new_tree, children, other)+[('r',0)]
     ch= choice(len(candidates),1)[0]
@@ -75,11 +77,11 @@ def make_regraft(tree, new_node=None, pks={}):
 
     return new_tree, q_forward, q_backward
 
-def back_density(distrub, val):
+def back_density(distrub, val, par):
     if distrub=='r':
         return expon.pdf(val)
     if distrub=='u':#this looks kind of contraintuitive
-        return uniform.pdf(val/2.0, scale=val)
+        return uniform.pdf(val, scale=par)
     
 def simulate_and_forward_density(distrub, par=None):
     if distrub == 'r':
@@ -88,7 +90,7 @@ def simulate_and_forward_density(distrub, par=None):
     else:
         insertion_spot=uniform.rvs()
         branch_length=par
-        q=uniform.pdf(insertion_spot,scale=branch_length)
+        q=uniform.pdf(insertion_spot*branch_length,scale=branch_length)
     return insertion_spot, q
 
 def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
@@ -96,17 +98,17 @@ def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
     if add_to_branch=='r':
         insertion_spot, q=simulate_and_forward_density('r')
     else:
-        branch_length=tree[add_to_branch][which_branch+3]
+        branch_length=get_branch_length(tree, add_to_branch,which_branch)
         insertion_spot, q=simulate_and_forward_density('u', branch_length)
     if new_node is None:
-        new_node=str(getrandbits(8)).strip()
+        new_node=str(getrandbits(68)).strip()
     tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch)
     return tree,q
 
 if __name__=='__main__':
     
     import Rcatalogue_of_trees
-    from tree_plotting import plot_graph
+    from tree_plotting import plot_graph, pretty_print
     
     
 #     before_illegal_tree={'a': ['n1', 'c', 0.5, 0.06604174100033824, 0.1, 's2', None], 'c': ['e', 'n2', 0.5, 0.1, 0.1, 'a', None], 'e': ['f', None, None, 0.05, None, 'c', 's3'], 'f': ['r', None, None, 0.02, None, 'n1', 'e'], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n2', None, None, 0.1, None, None, None], 's4': ['n1', None, None, 0.3, None, None, None], 'n1': ['f', None, None, 0.18395825899966176, None, 'a', 's4'], 'n2': ['r', None, None, 1.9890637488986214, None, 'c', 's1']}
@@ -120,21 +122,23 @@ if __name__=='__main__':
     
     print _get_possible_regrafters(tree2)
     
-    tr=insert_children_in_tree(Rcatalogue_of_trees.tree_on_the_border2)
-    tr1=deepcopy(tr)
-    for i in range(10000):
-        print 'before', tr
+    #tr=insert_children_in_tree(Rcatalogue_of_trees.tree_on_the_border2)
+    #tr1=deepcopy(tr)
+    #for i in range(10000):
+        #print 'before', tr
         #try:
-        tr=make_regraft(tr, new_node='n'+str(i+1))[0]
+        #tr=make_regraft(tr, new_node='n'+str(i+1))[0]
         #except Exception as e:
         #    print e
         #    plot_graph(tr, drawing_name=str(i)+'.png')
         #    tr=make_regraft(tr, new_node='n'+str(i+1))
         #    break
-        print 'after', tr
-    
-
-    
+        #print 'after', tr
+    newt=Rcatalogue_of_trees.tree_good
+    for _ in range(2):
+        newt,forw,backw= make_regraft(newt)
+        print 1*(forw<backw), 'for-bac',forw,backw
+    pretty_print(newt)
     
     #plot_graph(tree_final)
     
