@@ -89,26 +89,31 @@ def _assigned_selection(total, pairs, unlabeleld_singles, labelled_singles, admi
 def _get_number_of_admixture_branches(lineages):
     return sum(1 for key, branch in lineages if branch==1)
 
-def _double_band_selection(no_danger_pairs, N,M):
+def _double_band_selection(no_danger_pairs, M,N):
     '''
     calculated that none of the pairs no_danger_pairs makes a double band when there are a total of N destinations and M of these are totally free coalescence nodes
     '''
+    if N<M:
+        return 0
     if no_danger_pairs==0:
         return 1
     if M<2:
         return 1
+    res=0
     p1=float(M*(M-2))/N/(N-1)
-    next_step=_double_band_selection(no_danger_pairs-1, N-2, M-2)
-    next_step2=1
-    p2=p3=p4=0
+    next_step=_double_band_selection(no_danger_pairs-1, M-4, N-2)
+    res+=p1*next_step
     if N>2:
         p2=float(M*(N-M))/N/(N-1)
         p3=float((N-M)*M)/N/(N-1)
+        next_step2=_double_band_selection(no_danger_pairs-1, M-2, N-2)
+        res+=(p2+p3)*next_step2
         if N>3:
             p4=float((N-M)*(N-M-1))/N/(N-1)
-            next_step2=_double_band_selection(no_danger_pairs-1, N-2, M)
+            next_step3=_double_band_selection(no_danger_pairs-1, M, N-2)
+            res+=next_step3*p4
     
-    return (p1+p2+p3)*next_step+p4*next_step2
+    return res
 
 def tree_prior(tree):
     total_prob=0
@@ -175,21 +180,41 @@ def _get_selection_probabilities(no_sames, no_waiting_coalescences, no_awaited_c
                             total_admixtures=no_free_admixtures)
     p2=_totally_free_selection(no_totally_free_coalescences,no_sames,no_waiting_coalescences)
     total_chosen=2*no_sames+no_waiting_coalescences+no_awaited_coalescences+no_admixtures
+    p_other=0
+    if no_free_admixtures==1 and no_totally_free_coalescences==1 and no_coalescences_on_hold==1 and total_chosen==1:#in this case we have to choose the admixture, and there are no choice left
+        return 0
+    if no_free_admixtures==1 and no_totally_free_coalescences==2 and no_coalescences_on_hold==0 and total_chosen==2:#here the choices are either 1admixture+1coalescence or 1coalescence+1admixture and there are only two options, 
+        return -log(2)
+    p_no_double_bands=_double_band_selection(no_admixture_pairs, 
+                                                 2*no_totally_free_coalescences, 
+                                                 2*no_totally_free_coalescences+no_coalescences_on_hold+no_free_admixtures)
+    logp_free_coalescences=0
     if no_totally_free_coalescences>=total_chosen:
-        p1b=_events_selection(sampled_unoccupied=total_chosen, 
+        logp_free_coalescences+=_events_selection(sampled_unoccupied=total_chosen, 
                             sampled_occupied=0, 
                             sampled_admixtures=0,
                             total_unoccupied=2*no_totally_free_coalescences,
                             total_occupied=no_coalescences_on_hold,
                             total_admixtures=no_free_admixtures)
-        p2b=_totally_free_selection(no_totally_free_coalescences, 0, total_chosen)
-        if p1b+p2b<0:
-            p1-=log(1-exp(p1b+p2b))
+        logp_free_coalescences+=_totally_free_selection(no_totally_free_coalescences, 0, total_chosen)
+        p_admix_minus=log(1.0-exp(logp_free_coalescences)-(1.0-p_no_double_bands))
+    else:
+        p_admix_minus=log(p_no_double_bands)
+    print exp(logp_free_coalescences), p_no_double_bands
+    print total_chosen, no_totally_free_coalescences, no_free_admixtures, no_coalescences_on_hold
+    
     #if no_admixture_pairs>0:
-        
+    #val=_double_band_selection(no_admixture_pairs, 
+    #                                             2*no_totally_free_coalescences, 
+    #                                             2*no_totally_free_coalescences+no_coalescences_on_hold+no_free_admixtures)
+#     if val<=0:
+#         print val
+#         val=float('inf')
+#         print no_admixture_pairs, 2*no_totally_free_coalescences, 2*no_totally_free_coalescences+no_coalescences_on_hold+no_free_admixtures
+
     p3=_awaited_selection(no_coalescences_on_hold,no_awaited_coalescences)
     p4=_assigned_selection(no_ready_lineages, no_sames, no_waiting_coalescences, no_awaited_coalescences, no_admixtures)
-    return p1+p2+p3+p4
+    return p1+p2+p3+p4-p_admix_minus
 
 def matchmake(single_coalescences, coalescences_on_hold):
     happy_couples=[]
@@ -207,7 +232,7 @@ if __name__=='__main__':
     from Rcatalogue_of_trees import tree_good, tree_clean, tree_one_admixture, tree_two_admixture
     from Rtree_operations import insert_children_in_tree
     
-    print _double_band_selection(5,12,16)
+    print _double_band_selection(2,4,4)
     
     import sys
     sys.exit()

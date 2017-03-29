@@ -79,7 +79,8 @@ def _allowed_generation(chosen_indexes, no_totally_free, no_halfly_frees, no_adm
     no_singles=sum(chosen_index>=no_totally_free for chosen_index in chosen_indexes)-no_admixtures
     if no_admixtures+no_singles+no_doubles==0:
         return False
-    if no_admixes==1 and no_admixtures==0 and no_halfly_frees-no_singles==0 and no_singles+no_doubles==1:
+    if no_admixes==1 and no_admixtures==0 and ((no_halfly_frees==0 and no_totally_free==4 and no_doubles==1) or
+                                               (no_halfly_frees==1 and no_totally_free==2 and no_singles==1)):
         return False
     
     #all_choosing_frees=all(chosen_index<no_totally_free for chosen_index in chosen_indexes)
@@ -146,9 +147,11 @@ def simulate_generation(no_totally_free, halfly_frees, no_admixes, lineages, tre
     #print 'no_admixes', no_admixes
     indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False )
     illegal_indexes=_get_illegal_indexes(lineages)
-    while not _allowed_generation(indexes, no_totally_free*2, no_halfly_frees, no_admixes, illegal_indexes):
+    COUNT=0
+    while (not _allowed_generation(indexes, no_totally_free*2, no_halfly_frees, no_admixes, illegal_indexes) and COUNT<100):
         #print 'denied', indexes
         indexes=choice(no_totally_free*2+no_halfly_frees+no_admixes, size = len(lineages), replace=False)
+        #COUNT+=1
         #print 'trying', indexes
     #print 'tot','hlf','adm',no_totally_free*2, no_halfly_frees, no_admixes
     #print 'illegal_indexes', illegal_indexes
@@ -201,8 +204,9 @@ if __name__=='__main__':
     #print _allowed_generation([2,3,5], 5)
     
     from tree_plotting import plot_graph, pretty_print
-    ak=generate_admix_topology(2, 1)
-    pretty_print(ak)
+    for _ in xrange(100):
+        ak=generate_admix_topology(2, 1)
+        pretty_print(ak)
     #plot_graph(ak)
     
     
