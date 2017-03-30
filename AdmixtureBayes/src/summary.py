@@ -1,9 +1,13 @@
+import seaborn as sns
 
-## the recipe of a summary function:
-#def summary(old_tree,new_tree,old_pos,new_pos,iteration_number, proposal_object):, but all the arguments are encoded as **kwargs to reduce maintenance
-#return something
+def base_trajectory(facet_grid, summary_name):
+    return facet_grid.map(sns.tsplot, summary_name)
 
-from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
+
+def base_histogram(facet_grid, summary_name, **kwargs):
+    return facet_grid.map(sns.distplot, summary_name, kde=False, **kwargs)
+
+#from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 
 class Summary(object):
        
@@ -16,6 +20,12 @@ class Summary(object):
     
     def pretty_print(self, output):
         return str(output)
+    
+    def make_trajectory(self, facet_grid):
+        return base_trajectory(facet_grid, self.name)
+    
+    def make_histogram(self, facet_grid, **kwargs):
+        return base_histogram(facet_grid, self.name, **kwargs)
     
 class s_no_admixes(Summary):
     

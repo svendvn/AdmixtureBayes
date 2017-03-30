@@ -95,8 +95,8 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
         
         
 def _calc_and_print_summaries(sample_verbose_scheme,summaries,**kwargs):
-    res=[]
     iteration=kwargs['iteration_number']
+    res=[iteration]
     for s in summaries:
         save_num,print_num=sample_verbose_scheme.get(s.name, (0,0))
         save_bool = (save_num!=0) and (iteration % save_num==0) 
