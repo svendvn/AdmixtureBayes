@@ -3,7 +3,18 @@ title: "MCMC run results"
 output: html_notebook
 ---
 
-# MCMC results
+## Basic convergence analysis
+
+```{r}
+files <- list.files(pattern = "*_trail_layer1.png", path = 'plots')
+for(fil in files){
+  print(fil)
+  print(knitr::include_graphics(paste('plots/',fil,sep='')))
+}
+```
+
+
+## Marginal distributions of summaries
 
 The marginal distributions of collected statistics are
 
@@ -13,9 +24,30 @@ for(fil in files){
   print(fil)
   print(knitr::include_graphics(paste('plots/',fil,sep='')))
 }
-
 ```
 
-Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+## Extended convergence analysis
 
-When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).
+### Per temperature
+
+```{r}
+files <- list.files(pattern = "*.png", path = 'plots')
+for(fil in files){
+  if(grepl('trail_layer', fil, fixed=T)){
+    print(fil)
+    print(knitr::include_graphics(paste('plots/',fil,sep='')))
+  }
+}
+```
+
+### Per chain
+
+```{r}
+files <- list.files(pattern = "*.png", path = 'plots')
+for(fil in files){
+  if(grepl('trail_chain', fil, fixed=T)){
+    print(fil)
+    print(knitr::include_graphics(paste('plots/',fil,sep='')))
+  }
+}
+```

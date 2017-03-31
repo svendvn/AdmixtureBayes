@@ -40,7 +40,7 @@ def full_analysis(summaries,
                     summary.make_trajectory(data)
                     fig.savefig(filename, bbox_inches='tight')
             if not (trajectories_for_all_chains or trajectories_for_all_temperatures):
-                filename=os.path.join(plot_prefix, summary.name+'_trail.png')
+                filename=os.path.join(plot_prefix, summary.name+'_trail_layer1.png')
                 fig= plt.figure()
                 summary.make_trajectory(main_chain)
                 fig.savefig(filename, bbox_inches='tight')
@@ -52,18 +52,19 @@ def full_analysis(summaries,
                 print summary.name
                 summary.add_histogram(a=prior_distribution[summary.name])
             fig.savefig(filename, bbox_inches='tight')
-    call_notebook()
+    #call_notebook()
     
 def call_notebook():
+    ## DOESNT WORK IN THE MAC 
     dir_path = os.path.dirname(os.path.realpath(__file__))
     cmd=['Rscript', dir_path+os.path.sep+'order_report.R']
     print cmd
     call(cmd)
-
-
+    
                 
                 
 if __name__=='__main__':
+
     from summary import *
     summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     from generate_prior_trees import get_distribution_under_prior
