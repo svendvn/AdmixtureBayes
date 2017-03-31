@@ -1,0 +1,21 @@
+---
+title: "MCMC run results"
+output: html_notebook
+---
+
+# MCMC results
+
+The marginal distributions of collected statistics are
+
+```{r}
+files <- list.files(pattern = "*_distrub.png", path = 'plots')
+for(fil in files){
+  print(fil)
+  print(knitr::include_graphics(paste('plots/',fil,sep='')))
+}
+
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file).

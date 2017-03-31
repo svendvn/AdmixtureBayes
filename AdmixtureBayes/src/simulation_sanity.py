@@ -9,7 +9,7 @@ from MCMC import initialize_prior_as_posterior, basic_chain
 from summary import s_no_admixes, s_branch_length, s_variable
 from meta_proposal import basic_meta_proposal
 from generate_prior_trees import generate_admix_topology
-from prior import prior
+from prior import prior, topological_prior
 from tree_statistics import unique_identifier
 from math import exp
 from collections import Counter
@@ -119,7 +119,7 @@ def test_topological_prior_density(n,k,sim_length):
         unique_id=unique_identifier(tree)
         list_of_simulated_trees.append(unique_id)
         if unique_id not in dictionary_of_probabilities:
-            dictionary_of_probabilities[unique_id]=exp(tree_prior(tree))
+            dictionary_of_probabilities[unique_id]=exp(topological_prior(tree))
     ad,ad2=dictionary_of_probabilities, Counter(list_of_simulated_trees)
     for key, val in ad.items():
         print val, 'vs', float(ad2[key])/sim_length,': ', key
@@ -141,11 +141,11 @@ def test_topological_prior_density(n,k,sim_length):
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(4)
-    print test_prior_model(s_tree, 100)
+    print test_prior_model(s_tree, 100000)
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    #test_topological_prior_density(8,3, 1000)
+    #test_topological_prior_density(2,1, 1000)
 
     
     

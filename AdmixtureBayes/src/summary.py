@@ -1,13 +1,6 @@
-import seaborn as sns
+import matplotlib.pyplot as plt
+from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 
-def base_trajectory(facet_grid, summary_name):
-    return facet_grid.map(sns.tsplot, summary_name)
-
-
-def base_histogram(facet_grid, summary_name, **kwargs):
-    return facet_grid.map(sns.distplot, summary_name, kde=False, **kwargs)
-
-#from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 
 class Summary(object):
        
@@ -21,11 +14,14 @@ class Summary(object):
     def pretty_print(self, output):
         return str(output)
     
-    def make_trajectory(self, facet_grid):
-        return base_trajectory(facet_grid, self.name)
+    def make_trajectory(self, data, **kwargs):
+        return plt.plot(data[self.name],**kwargs)
     
-    def make_histogram(self, facet_grid, **kwargs):
-        return base_histogram(facet_grid, self.name, **kwargs)
+    def make_histogram(self, data, **kwargs):
+        return plt.hist(data[self.name], fc=(1, 0, 0, 0.5), normed=True, **kwargs)
+    
+    def add_histogram(self, a, **kwargs):
+        return plt.hist(a,fc=(0, 1, 0, 0.5), normed=True, **kwargs)
     
 class s_no_admixes(Summary):
     
@@ -35,6 +31,15 @@ class s_no_admixes(Summary):
     def __call__(self, **kwargs):
         old_tree=kwargs['old_tree']
         return get_number_of_admixes(old_tree)
+    
+    def summary_of_phylogeny(self, tree):
+        return get_number_of_admixes(tree)
+    
+    def make_histogram(self, data):
+        return Summary.make_histogram(self, data, bins=range(10))
+    
+    def add_histogram(self, a):
+        return Summary.add_histogram(self,  a, bins=range(10))
 
 class s_branch_length(Summary):
 
@@ -44,6 +49,9 @@ class s_branch_length(Summary):
     def __call__(self, **kwargs):
         old_tree=kwargs['old_tree']
         return sum(get_all_branch_lengths(old_tree))
+    
+    def summary_of_phylogeny(self, tree):
+        return sum(get_all_branch_lengths(tree))
     
 class s_variable(Summary):
     

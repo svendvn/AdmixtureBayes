@@ -4,7 +4,8 @@ from tree_plotting import pretty_print
 from copy import deepcopy
 from numpy import argsort
 from collections import Counter
-from sympy.unify.usympy import illegal
+from scipy.stats import uniform, expon, geom
+
 
 def set_outgoing_branch(node, parent_name, branch, length):
     node[branch]=parent_name
@@ -57,6 +58,21 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
             tree=_rename_root(tree,key)
     return tree
 
+def generate_phylogeny(size,admixes, leaf_nodes=None):
+    tree=generate_admix_topology(size, admixes, leaf_nodes)
+    for node in tree.values():
+        node=_resimulate(node)
+    return tree
+
+
+def _resimulate(node):
+    if node[2] is not None:
+        node[2]=uniform.rvs()
+    if node[3] is not None:
+        node[3]=expon.rvs()
+    if node[4] is not None:
+        node[4]=expon.rvs()
+    return node
 
 def _allowed_generation(chosen_indexes, no_totally_free, no_halfly_frees, no_admixes, illegal_indexes):
     #print 'deciding allowance of:', chosen_indexes, no_totally_free
@@ -196,11 +212,19 @@ def _has_partner(index, indexes):
     return False
 
 
-def get_distribution_under_topological_prior(leaves,admixes,sim_length=1000, list_of_summaries=[]):
+def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_summaries=[]):
+    if admixes is None:
+        admix_sim=True
+    else:
+        admix_sim=False
     res=[[] for _ in list_of_summaries]
     for _ in xrange(sim_length):
-        tree=generate_admix_topology(size, admixes, leaf_nodes)
-        pass #unifinished, because why do we need it?
+        if admix_sim:
+            admixes=geom.rvs(p=0.5)-1
+        tree=generate_phylogeny(leaves, admixes)
+        for n, summary in enumerate(list_of_summaries):
+            res[n].append(summary.summary_of_phylogeny(tree))
+    return res
     
     
 if __name__=='__main__':
