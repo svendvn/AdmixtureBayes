@@ -94,14 +94,30 @@ def proposal_support(start_tree, n=10000, nodes=None):
     wait(1)
     return score
 
-def test_prior_model(start_tree, sim_length=100000):
+def test_prior_model(start_tree, sim_length=100000, summaries=None):
     posterior=initialize_prior_as_posterior()
-    summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    if summaries is None:
+        summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
-    sample_verbose_scheme={'posterior':(1,1),
-                           'branch_length':(10,1),
-                           'mhr':(1,1),
-                           'no_admixes':(1,1)}
+    sample_verbose_scheme={summary.name:(1,1) for summary in summaries}
+    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+                proposal, post=None, N=sim_length, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=1, i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=True)
+    print results
+    save_to_csv(results, summaries)
+    return results
+
+def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None):
+    posterior=initialize_prior_as_posterior()
+    if summaries is None:
+        summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    proposal=basic_meta_proposal()
+    proposal.props=proposal.props[2:] #a little hack under the hood
+    proposal.params=proposal.params[2:] #a little hack under the hood.
+    sample_verbose_scheme={summary.name:(1,1) for summary in summaries}
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
@@ -141,11 +157,11 @@ def test_topological_prior_density(n,k,sim_length):
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(4)
-    print test_prior_model(s_tree, 100000)
+    #print test_prior_model(s_tree, 100000)
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    #test_topological_prior_density(2,1, 1000)
+    print test_topological_prior_density(6,0, 10000)
 
     
     

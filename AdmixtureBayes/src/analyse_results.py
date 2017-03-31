@@ -31,26 +31,26 @@ def full_analysis(summaries,
                 for layer,data in df.groupby('layer'):
                     filename=os.path.join(plot_prefix, summary.name+'_trail_layer'+str(layer)+'.png')
                     fig= plt.figure()
-                    summary.make_trajectory(data)
+                    summary.make_trajectory(data[summary.name])
                     fig.savefig(filename, bbox_inches='tight')
             if trajectories_for_all_chains:
                 for chain,data in df.groupby('origin'):
                     filename=os.path.join(plot_prefix, summary.name+'_trail_chain'+str(chain)+'.png')
                     fig= plt.figure()
-                    summary.make_trajectory(data)
+                    summary.make_trajectory(data[summary.name])
                     fig.savefig(filename, bbox_inches='tight')
             if not (trajectories_for_all_chains or trajectories_for_all_temperatures):
                 filename=os.path.join(plot_prefix, summary.name+'_trail_layer1.png')
                 fig= plt.figure()
-                summary.make_trajectory(main_chain)
+                summary.make_trajectory(main_chain[summary.name])
                 fig.savefig(filename, bbox_inches='tight')
         if plot_distribution:
             filename=os.path.join(plot_prefix, summary.name+'_distrub.png')
             fig= plt.figure()
-            summary.make_histogram(main_chain)
             if summary.name in prior_distribution:
-                print summary.name
-                summary.add_histogram(a=prior_distribution[summary.name])
+                summary.make_histogram(main_chain[summary.name], a=prior_distribution[summary.name])
+            else:
+                summary.make_histogram(main_chain[summary.name], a=None)
             fig.savefig(filename, bbox_inches='tight')
     #call_notebook()
     

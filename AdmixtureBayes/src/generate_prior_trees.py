@@ -212,18 +212,19 @@ def _has_partner(index, indexes):
     return False
 
 
-def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_summaries=[]):
+def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_summaries=[], thinning_criteria=None):
     if admixes is None:
         admix_sim=True
     else:
         admix_sim=False
-    res=[[] for _ in list_of_summaries]
+    res={summ.name:[] for summ in list_of_summaries}
     for _ in xrange(sim_length):
         if admix_sim:
             admixes=geom.rvs(p=0.5)-1
         tree=generate_phylogeny(leaves, admixes)
-        for n, summary in enumerate(list_of_summaries):
-            res[n].append(summary.summary_of_phylogeny(tree))
+        if thinning_criteria is None or thinning_criteria(tree):
+            for n, summary in enumerate(list_of_summaries):
+                res[summary.name].append(summary.summary_of_phylogeny(tree))
     return res
     
     
