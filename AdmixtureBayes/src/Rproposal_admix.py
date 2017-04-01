@@ -91,7 +91,7 @@ def addadmix(tree,new_node_names=None,pks={}):
         new_tree, forward ,backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
     
     choices_forward=float(len(possible_nodes)*len(candidates))
-    choices_backward=float((no_admixtures+1)*2)
+    choices_backward=float((no_admixtures+1))
     pks['forward_choices']=choices_forward
     pks['backward_choices']=choices_backward
 
@@ -168,7 +168,7 @@ def deladmix(tree,pks={}):
     backward= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
     forward= 1.0
     
-    forward_choices=float(2.0*no_admixs)
+    forward_choices=float(no_admixs)
     backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))
     pks['forward_choices']=forward_choices
     pks['backward_choices']=backward_choices
@@ -289,12 +289,12 @@ if __name__=="__main__":
     #t=Tester(Rtree_operations.tree_on_the_border2_with_children)
     #t.many_admixes(10)
     from Rcatalogue_of_trees import tree_good
-    newt,forw,backw=deladmix(tree_good)
+    newt,forw,backw=addadmix(tree_good)
     print 'forw',forw
     print 'back',backw
     pretty_print(newt)
     
-    newt,forw,backw=addadmix(tree_good)
+    newt,forw,backw=deladmix(newt)
     print 'forw',forw
     print 'back',backw
     pretty_print(newt)

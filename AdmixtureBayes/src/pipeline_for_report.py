@@ -33,4 +33,4 @@ def run_b():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    run_b()
+    run_a()
