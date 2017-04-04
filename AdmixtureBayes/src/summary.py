@@ -64,17 +64,31 @@ class s_no_admixes(Summary):
         return Summary.make_histogram(self, x, a, bins=range(maxval+1))
     
 
-class s_branch_length(Summary):
+class s_total_branch_length(Summary):
 
     def __init__(self):
-        super(s_branch_length,self).__init__('branch_length')
+        super(s_total_branch_length,self).__init__('total_branch_length')
 
     def __call__(self, **kwargs):
-        old_tree=kwargs['old_tree']
-        return sum(get_all_branch_lengths(old_tree))
+        tree=kwargs['proposed_tree']
+        return sum(get_all_branch_lengths(tree))
     
     def summary_of_phylogeny(self, tree):
         return sum(get_all_branch_lengths(tree))
+    
+class s_average_branch_length(Summary):
+    
+    def __init__(self):
+        super(s_average_branch_length,self).__init__('average_branch_length')
+
+    def __call__(self, **kwargs):
+        tree=kwargs['proposed_tree']
+        all_branch=get_all_branch_lengths(tree)
+        return sum(all_branch)/len(all_branch)
+    
+    def summary_of_phylogeny(self, tree):
+        all_branch=get_all_branch_lengths(tree)
+        return sum(all_branch)/len(all_branch)
     
 class s_variable(Summary):
     

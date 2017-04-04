@@ -6,7 +6,7 @@ from Rtree_operations import create_trivial_tree, make_consistency_checks, get_n
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import initialize_prior_as_posterior, basic_chain
-from summary import s_no_admixes, s_branch_length, s_variable
+from summary import s_no_admixes, s_total_branch_length, s_variable
 from meta_proposal import basic_meta_proposal
 from generate_prior_trees import generate_admix_topology
 from prior import prior, topological_prior
