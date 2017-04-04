@@ -1,0 +1,40 @@
+---
+title: "Testing the prior as posterior code"
+output: html_notebook
+---
+
+Reading in the data
+
+```{r}
+df= read.csv('results.csv', header=T)
+head(df)
+```
+
+We expect that the probability of jumping 'up' (in number of admixture branches) is half of what it takes to jump down.
+
+```{r}
+del_df=subset(df, proposal_type=='deladmix')
+add_df=subset(df, proposal_type=='addadmix')
+del_df$accept=sapply(del_df$mhr, function(x) min(x,1))
+add_df$accept=sapply(add_df$mhr, function(x) min(x,1))
+print(mean(del_df$accept))
+print(mean(add_df$accept))
+```
+
+That obviously shows that the balance is wrong. Next question is which term is wrong here? Why is add admix so big and deladmix so low
+
+```{r}
+summary(lm(accept~forward_choices+forward_density+backward_density+backward_choices+top_prior+no_admix_prior+branch_prior+posterior+total_branch_length+average_branch_length, data = del_df))
+```
+
+As seen the accept probability depends mostly on the size of the branch prior, the one who says what the size of the branches are and the topological prior. However the error could also be in ant of the forward backward densities
+
+```{r}
+summary(lm(accept~forward_choices+forward_density+backward_density+backward_choices+top_prior+no_admix_prior+branch_prior+posterior+total_branch_length+average_branch_length, data = add_df))
+```
+
+```{r}
+df_add2=subset(add_df, no_admixes==0)
+
+```
+
