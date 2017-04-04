@@ -4,7 +4,7 @@ get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch,
 from math import log, factorial,exp
 from scipy.special import binom 
 
-def prior(tree, p=0.5):
+def prior(tree, p=0.5, pks={}):
     admixtures=get_all_admixture_proportions(tree)
     if not all(prop>=0 and prop <=1 for prop in admixtures):
         return -float('inf')
@@ -16,10 +16,10 @@ def prior(tree, p=0.5):
     admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
-    print 'branch_prior', branch_prior
-    print 'no_admix_prior',no_admix_prior
-    print 'admix_prop_prior',admix_prop_prior
-    print 'top_prior', top_prior
+    pks['branch_prior']= branch_prior
+    pks['no_admix_prior']=no_admix_prior
+    pks['admix_prop_prior']=admix_prop_prior
+    pks['top_prior']= top_prior
     return logsum
 
     

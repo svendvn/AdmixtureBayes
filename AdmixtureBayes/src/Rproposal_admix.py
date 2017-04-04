@@ -54,7 +54,7 @@ class deladmix_class(object):
     def __call__(self,*args, **kwargs):
         return deladmix(*args, **kwargs)
 
-def addadmix(tree,new_node_names=None,pks={}):
+def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -76,6 +76,8 @@ def addadmix(tree,new_node_names=None,pks={}):
     candidates=_get_possible_sources(new_tree, children, other, sink_key,sink_branch)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     source_key, source_branch=candidates[ch]
+    if fixed_sink_source is not None:
+        sink_key,sink_branch,source_key,source_branch = fixed_sink_source
     pks['sink_key']=sink_key
     pks['source_key']=source_key
     pks['source_branch']=source_branch
@@ -86,16 +88,18 @@ def addadmix(tree,new_node_names=None,pks={}):
     #print 'source', (source_key,source_branch)
     #print 'new_tree',new_tree
     if new_node_names is None:
-        new_tree, forward, backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
+        new_tree, forward_density, backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
     else:
-        new_tree, forward ,backward= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
+        new_tree, forward_density ,backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
     
     choices_forward=float(len(possible_nodes)*len(candidates))
-    choices_backward=float((no_admixtures+1))
+    choices_backward=float(len(_get_removable_admixture_branches(new_tree)))
+    pks['forward_density']=forward_density
+    pks['backward_density']=backward_density
     pks['forward_choices']=choices_forward
     pks['backward_choices']=choices_backward
 
-    return new_tree,forward/choices_forward, backward/choices_backward
+    return new_tree,forward_density/choices_forward, backward_density/choices_backward
     
 def get_admixture_branch_length(x=None):
     if x is None:
@@ -139,21 +143,22 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     return tree,q1*q2*q3*q4,1
 
 
-def deladmix(tree,pks={}):
+def deladmix(tree,pks={}, fixed_remove=None):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''
-    
-    #necessary for calculation of transition probabilities.
-    no_admixs=get_number_of_admixes(tree)
     
     #making copy that we can erase branches from. 
     cop=deepcopy(tree)
     
     candidates=_get_removable_admixture_branches(cop)
+    print candidates
     if len(candidates)==0:
         return tree,1,1
-    remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
+    if fixed_remove is None:
+        remove_key, remove_branch = candidates[choice(len(candidates),1)[0]]
+    else:
+        remove_key, remove_branch = fixed_remove
     pks['remove_key']=remove_key
     pks['remove_branch']=remove_branch
     #print 'remove', (remove_key, remove_branch)
@@ -165,15 +170,17 @@ def deladmix(tree,pks={}):
     pks['t3']=t3
     pks['t4']=t4
     pks['t5']=t5
-    backward= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
-    forward= 1.0
+    backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
+    forward_density= 1.0
     
-    forward_choices=float(no_admixs)
+    forward_choices=float(len(candidates))
     backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))
     pks['forward_choices']=forward_choices
     pks['backward_choices']=backward_choices
+    pks['forward_density']=forward_density
+    pks['backward_density']=backward_density
     
-    return new_tree, forward/forward_choices, backward/backward_choices
+    return new_tree, forward_density/forward_choices, backward_density/backward_choices
 
 def get_backward_remove_density(t1,t2,t3,t4,t5, alpha):
     '''
@@ -289,14 +296,18 @@ if __name__=="__main__":
     #t=Tester(Rtree_operations.tree_on_the_border2_with_children)
     #t.many_admixes(10)
     from Rcatalogue_of_trees import tree_good
-    newt,forw,backw=addadmix(tree_good)
+    pks={}
+    newt,forw,backw=addadmix(tree_good,pks=pks)
     print 'forw',forw
     print 'back',backw
+    print 'pks',pks
     pretty_print(newt)
     
-    newt,forw,backw=deladmix(newt)
+    pks={}
+    newt,forw,backw=deladmix(newt,pks=pks)
     print 'forw',forw
     print 'back',backw
+    print 'pks',pks
     pretty_print(newt)
     
     

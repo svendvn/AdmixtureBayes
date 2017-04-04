@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 from tree_statistics import unique_identifier
 from data_wrangling_functions import values_to_numbers, count_strings, count_strings2
+from numpy import isnan
 
 
 
@@ -17,13 +18,32 @@ class Summary(object):
     def pretty_print(self, output):
         return str(output)
     
-    def make_trajectory(self, x, **kwargs):
-        return plt.plot(x,**kwargs)
+    def summary_of_phylogeny(self, tree):
+        return None
     
+    def make_trajectory(self, x, **kwargs):
+        if isinstance(x[0], float):
+            plt.plot(x[~isnan(x)],**kwargs)
+        else:
+            numbers=values_to_numbers(x)
+            plt.plot(numbers, **kwargs)
+            
+            
     def make_histogram(self, x,a=None, **kwargs):
-        plt.hist(x, fc=(1, 0, 0, 0.5), normed=True, **kwargs)
-        if a is not None:
-            plt.hist(a,fc=(0, 1, 0, 0.5), normed=True, **kwargs)
+        if isinstance(x[0], float):
+            plt.hist(x[~isnan(x)], fc=(1, 0, 0, 0.5), normed=True, **kwargs)
+            if a is not None:
+                plt.hist(a[~isnan(a)],fc=(0, 1, 0, 0.5), normed=True, **kwargs)
+        else:
+            if a is None:
+                labels, counts1 = count_strings(x)
+                counts2=None
+            else:
+                labels, counts1, counts2 = count_strings2(x,a)
+            print 'labels', labels
+            plt.bar(range(len(labels)), counts1, width=1.0, alpha=0.5, color='r', label='MCMC')
+            if counts2 is not None:
+                plt.bar(range(len(labels)), counts2, width=1.0, alpha=0.5, color='g', label='MCMC')
     
 class s_no_admixes(Summary):
     
@@ -62,7 +82,10 @@ class s_variable(Summary):
         super(s_variable, self).__init__(variable, pandable)
 
     def __call__(self, **kwargs):
+        if self.name not in kwargs:
+            return None
         return kwargs[self.name]
+    
     
 class s_tree_identifier(Summary):
     
@@ -92,4 +115,14 @@ class s_tree_identifier(Summary):
         if counts2 is not None:
             plt.bar(range(len(labels)), counts2, width=1.0, alpha=0.5, color='g', label='MCMC')
 
+class s_tree_identifier_new_tree(s_tree_identifier):
+    
+    def __init__(self):
+        super(s_tree_identifier,self).__init__('tree_identifier_new_tree')
+        
+    def __call__(self, **kwargs):
+        tree=kwargs['proposed_tree']
+        return unique_identifier(tree)
+        
+        
  

@@ -14,7 +14,7 @@ from tree_plotting import pretty_string
 def initialize_posterior(emp_cov):
     def posterior(x,pks={}):
         #print tot_branch_length
-        prior_value=prior(x)
+        prior_value=prior(x,pks=pks)
         if prior_value==-float('inf'):
             return prior_value
         likelihood_value=likelihood(x, emp_cov)
@@ -26,7 +26,7 @@ def initialize_posterior(emp_cov):
 def initialize_prior_as_posterior():
     def posterior(x,pks={}):
         #print tot_branch_length
-        prior_value=prior(x)
+        prior_value=prior(x,pks=pks)
         if prior_value==-float('inf'):
             return prior_value
         pks['prior']=prior_value
@@ -72,9 +72,9 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
     
     iteration_summary=[]
     
-    proposal_knowledge_scraper={}
         
     for i in range(i_start_from,i_start_from+N):
+        proposal_knowledge_scraper={}
         new_tree,new_post=one_jump(tree, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
         if overall_thinning!=0 and i%overall_thinning==0:
             iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,

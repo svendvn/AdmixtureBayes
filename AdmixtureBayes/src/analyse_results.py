@@ -26,6 +26,7 @@ def full_analysis(summaries,
     if plot_distribution and prior_distribution:
         df_priors=pd.DataFrame.from_dict(prior_distribution)
     for summary in summaries: #the last two are origin and layer which is not what we want to plot of course. 
+        print summary.name
         if trajectories:
             if trajectories_for_all_temperatures:
                 for layer,data in df.groupby('layer'):

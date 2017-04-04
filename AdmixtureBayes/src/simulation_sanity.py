@@ -1,8 +1,8 @@
-from tree_plotting import plot_as_directed_graph, plot_graph
+from tree_plotting import plot_as_directed_graph, plot_graph, pretty_print, pretty_string
 from Rproposal_admix import addadmix, deladmix
 from Rproposal_regraft import make_regraft
 from Rproposal_rescale import rescale
-from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes
+from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import initialize_prior_as_posterior, basic_chain
@@ -15,6 +15,7 @@ from math import exp
 from collections import Counter
 from scipy.optimize import brentq
 from analyse_results import save_to_csv
+from csv import writer
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -153,7 +154,26 @@ def test_topological_prior_density(n,k,sim_length):
     print 'Expected number of unique', ex
     print 'Expected total probability', c/ex
     
+def proper_proposals(start_tree, reps=10000):
+    points=[]
+    densities=[]
+    keys=['s1','s2','s3','s4','a','b','c','d','e','f','x','y']
+    for _ in xrange(reps):
+        pks={}
+        proposed,forward, backward = addadmix(start_tree,new_node_names=['x','y'], pks=pks, fixed_sink_source = ('a',0,'s1',0))
+        numbers=convert_to_vector(proposed,keys=keys)
+        density=pks['forward_density']
+        points.append(numbers+[density])
+
+    with open("results2.csv", "wb") as f:
+        wr = writer(f)
+        wr.writerows(points)
+    return 'done'
+        
     
+    
+
+
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(4)
@@ -161,7 +181,9 @@ if __name__=='__main__':
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    print test_topological_prior_density(6,0, 10000)
+    #print test_topological_prior_density(6,0, 10000)
+    from Rcatalogue_of_trees import tree_good
+    print proper_proposals(tree_good)[1]
 
     
     

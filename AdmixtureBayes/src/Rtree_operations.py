@@ -354,6 +354,19 @@ def get_all_admixture_proportions(tree):
             res.append(node[2])
     return res
 
+def convert_to_vector(tree, keys=None):
+    if keys is None:
+        keys=tree.keys()
+    res=[]
+    for key in keys:
+        node=tree[key]
+        if node_is_non_admixture(node):
+            res.append(node[3])
+        else:
+            res.extend(node[3:5])
+            res.append(node[2])
+    return res
+
 def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_branch, remove_branch=0):
     #if we are at the root, things are different.
     if add_to_branch=='r':
@@ -434,9 +447,11 @@ def remove_admix(tree, rkey, rbranch):
     t1= rnode[3+other_branch(rbranch)]
     t5= rnode[3+rbranch]
     alpha=rnode[2]
+    
     tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
     tree[orphanota_key]=_update_parent(tree[orphanota_key], rkey, parent_key)
     orphanota_branch=_get_index_of_parent(tree[orphanota_key], parent_key)
+    
     if parent_key!='r':
         tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
     if source_key=='r':
