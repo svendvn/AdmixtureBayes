@@ -100,11 +100,11 @@ def test_prior_model(start_tree, sim_length=100000, summaries=None):
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
-    sample_verbose_scheme={summary.name:(1,1) for summary in summaries}
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
-                overall_thinning=1, i_start_from=0, 
+                overall_thinning=int(1+sim_length/60000), i_start_from=0, 
                 temperature=1.0, proposal_update=None,
                 check_trees=True)
     print results
@@ -169,7 +169,58 @@ def proper_proposals(start_tree, reps=10000):
         wr = writer(f)
         wr.writerows(points)
     return 'done'
+
+def check_destinations(tree, reps=10000):
+    dic={}
+    
+    for _ in xrange(reps):
+        pks={}
+        ntree, _, _ = addadmix(tree, new_node_names=['x','y'],pks=pks)
+        unique_id=unique_identifier(ntree)
+        tup=(pks['source_key'],pks['source_branch'],pks['sink_key'],pks['sink_branch'])
+        if tup in dic:
+            assert dic[tup][0]==unique_id, 'There is not a unique mapping from sink source to unique id'
+            assert 1.0/dic[tup][1]==pks['forward_choices'], 'There was not a unqiue number of forward choices for '#+str(tup)+' : '+str(pks['forward_choices'])+'><'
+            dic[tup]=(unique_id, 1.0/pks['forward_choices'], dic[tup][2]+1)
+        else:
+            dic[tup]=(unique_id, 1.0/pks['forward_choices'],1)
+    res_ret=[]
+    total=0
+    for key, element in dic.items():
+        print key, ': ', element
+        total+=element[1]
+        res_ret.append(list(key)+list(element))
+    print 'TOTAL=', total
+    with open("results3.csv", "wb") as f:
+        wr = writer(f)
+        wr.writerows(res_ret)
+    return 'done'
         
+def check_predestinations(tree, reps=10000):
+    dic={}
+    
+    for _ in xrange(reps):
+        pks={}
+        ntree, _, _=deladmix(tree,pks=pks)
+        unique_id=unique_identifier(ntree)
+        tup=(pks['remove_key'],pks['remove_branch'],pks['sink_key'],pks['sink_branch'])
+        if tup in dic:
+            assert dic[tup][0]==unique_id, 'There is not a unique mapping from sink source to unique id'
+            assert 1.0/dic[tup][1]==pks['forward_choices'], 'There was not a unqiue number of forward choices for '#+str(tup)+' : '+str(pks['forward_choices'])+'><'
+            dic[tup]=(unique_id, 1.0/pks['forward_choices'], dic[tup][2]+1)
+        else:
+            dic[tup]=(unique_id, 1.0/pks['forward_choices'],1)
+    res_ret=[]
+    total=0
+    for key, element in dic.items():
+        print key, ': ', element
+        total+=element[1]
+        res_ret.append(list(key)+list(element))
+    print 'TOTAL=', total
+    with open("results3.csv", "wb") as f:
+        wr = writer(f)
+        wr.writerows(res_ret)
+    return 'done'     
     
     
 
@@ -183,7 +234,8 @@ if __name__=='__main__':
     #wait(1)
     #print test_topological_prior_density(6,0, 10000)
     from Rcatalogue_of_trees import tree_good
-    print proper_proposals(tree_good)[1]
+    #print proper_proposals(tree_good,100000)[1]
+    print check_predestinations(tree_good, 10000)
 
     
     

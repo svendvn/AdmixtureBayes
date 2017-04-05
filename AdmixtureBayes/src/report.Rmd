@@ -3,6 +3,9 @@ title: "MCMC run results"
 output: html_notebook
 ---
 
+## Description
+No description available
+
 ## Basic convergence analysis
 
 ```{r}
@@ -51,3 +54,6 @@ for(fil in files){
   }
 }
 ```
+
+## Conclusion
+No conclusion available

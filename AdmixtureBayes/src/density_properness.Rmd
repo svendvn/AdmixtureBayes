@@ -1,0 +1,52 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Looking at the density compared to the simulated
+```{r}
+tr=read.csv('results2.csv', header=F)
+totals=apply(tr,2, function(x) length(unique(x)))
+tr=tr[,which(totals>1)]
+head(tr)
+```
+
+De marginale histogrammer
+
+```{r}
+for(i in 1:ncol(tr)){
+  hist(tr[,i],breaks=100, freq = F)
+  if(i<7){
+    we=tr[order(tr[,i]),]
+    points(we[,i], we[,7], type='l',col='red')
+  }
+}
+```
+
+```{r}
+N=100000#nrow(tr)
+tr2=apply(tr,c(1,2), as.numeric)
+d=kde(tr2[1:N,c(1,2,5,6)], eval.points=tr2[1:N,c(1,2,5,6)])
+```
+
+```{r}
+plot(d$estimate, tr2[,7], pch=19, cex=0.2)
+abline(0,1,col='red')
+```
+
+It suggests that something is indeed wrong but it is hard to know the correct bandwidth. What characterizes these points?
+
+```{r}
+indexes=which((tr2[,7]-d$estimate)>24 & (tr2[,7]>47.5))
+plot(d$estimate[indexes], tr2[indexes,7], pch=19, cex=0.2, xlim=c(0,70),ylim=c(0,55))
+abline(0,1,col='red')
+```
+
+```{r}
+subtr=tr2[indexes,]
+apply(subtr,2,mean)
+subtr=tr2[-indexes,]
+apply(subtr,2,mean)
+```
+
+They are characterized by a very low admixture branch. In other words there seems to be too high probability to simulate a short admixture branch, which is just strange. Perhaps there is not enough data to estimate it precisely on that edge, but the image looks the same based on 10000 as 100000 points.
