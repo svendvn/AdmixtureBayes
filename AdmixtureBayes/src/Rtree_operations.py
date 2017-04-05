@@ -244,6 +244,7 @@ def get_branch_length(tree,key,branch):
     assert key!='r', 'Tried to access the length of the root branch'
     return tree[key][branch+3]
 
+
 def get_destination_of_lineages(tree, ready_lineages):
     single_coalescences={} #list of tuples ((key,branch),(sister_key,sister_branch))
     double_coalescences=[]

@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 from tree_statistics import unique_identifier
 from data_wrangling_functions import values_to_numbers, count_strings, count_strings2
-from numpy import isnan
+from numpy import isfinite, array
 
 
 
@@ -23,17 +23,17 @@ class Summary(object):
     
     def make_trajectory(self, x, **kwargs):
         if isinstance(x[0], float):
-            plt.plot(x[~isnan(x)],**kwargs)
+            plt.plot(array(x[isfinite(x)]),**kwargs)
         else:
             numbers=values_to_numbers(x)
             plt.plot(numbers, **kwargs)
             
             
-    def make_histogram(self, x,a=None, **kwargs):
+    def make_histogram(self, x, a=None, **kwargs):
         if isinstance(x[0], float):
-            plt.hist(x[~isnan(x)], fc=(1, 0, 0, 0.5), normed=True, **kwargs)
+            plt.hist(array(x[isfinite(x)]), fc=(1, 0, 0, 0.5), normed=True, **kwargs)
             if a is not None:
-                plt.hist(a[~isnan(a)],fc=(0, 1, 0, 0.5), normed=True, **kwargs)
+                plt.hist(array(a[isfinite(a)]),fc=(0, 1, 0, 0.5), normed=True, **kwargs)
         else:
             if a is None:
                 labels, counts1 = count_strings(x)

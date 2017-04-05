@@ -23,7 +23,7 @@ class basic_meta_proposal(object):
     
     def __init__(self):
         self.props=[addadmix_class(),deladmix_class(), regraft_class(), rescale_class()]
-        self.params=[None, None, None, [0.01]]
+        self.params=[None, None, None, [0.1]]
         self.node_naming=new_node_naming_policy()
         
     def __call__(self, tree, pks={}):

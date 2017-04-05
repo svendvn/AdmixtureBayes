@@ -66,11 +66,24 @@ def call_notebook():
                 
 if __name__=='__main__':
 
-    from summary import *
-    summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    import summary
+    summaries=[summary.s_variable('posterior'), 
+               summary.s_variable('mhr'), 
+               summary.s_no_admixes(), 
+               summary.s_tree_identifier(),
+               summary.s_average_branch_length(),
+               summary.s_total_branch_length(),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s) for s in ['backward_choices',
+                                                                                      'backward_density',
+                                                                                      'forward_density',
+                                                                                      'forward_choices',
+                                                                                      'proposal_type',
+                                                                                      'prior',
+                                                                                      'branch_prior',
+                                                                                      'no_admix_prior',
+                                                                                      'top_prior']]
     from generate_prior_trees import get_distribution_under_prior
-    distr=get_distribution_under_prior(leaves=4, sim_length=1000, list_of_summaries=[summaries[2]])
-    prior_distribution={summaries[2].name: distr[0]}
+    prior_distribution=get_distribution_under_prior(leaves=4, sim_length=1000, list_of_summaries=[summaries[2]])
     print prior_distribution
     full_analysis(summaries,
                   trajectories_for_all_temperatures=False,
