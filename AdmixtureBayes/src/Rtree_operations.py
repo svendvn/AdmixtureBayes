@@ -90,7 +90,7 @@ def remove_root_attachment(tree, orphanota_key):
                 del tree[key]
             else:
                 tree[key],r=get_branch_length_and_reset(tree[key], 'r', 'closed_branch')
-                print 'closed_branch!'
+                #print 'closed_branch!'
             tree[orphanota_key][0]=None
     return tree,'r', r,None
     
@@ -415,10 +415,15 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root, rem
     return tree
 
 def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key, remove_branch=0):
-    print 'undoing a closed branch', insertion_spot, remove_key, root_key
+    #print 'undoing a closed branch', insertion_spot, remove_key, root_key
     tree[remove_key][remove_branch]='r'
     tree[root_key[0]],_=get_branch_length_and_reset(tree[root_key[0]], 'r', insertion_spot)
     return tree
+
+def change_admixture(node):
+    assert node_is_admixture(node), 'tried to change admixture branches for a node without admixture'
+    new_node=[node[1],node[0],1.0-node[2],node[4],node[3]]+node[5:]
+    return new_node
 
 def get_number_of_admixes(tree):
     return sum((1 for node in tree.values() if node_is_admixture(node)))

@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 from tree_statistics import unique_identifier
-from data_wrangling_functions import values_to_numbers, count_strings, count_strings2
+from data_wrangling_functions import values_to_numbers, count_strings, count_strings2, thin_out_nans
 from numpy import isfinite, array
 
 
@@ -21,19 +21,28 @@ class Summary(object):
     def summary_of_phylogeny(self, tree):
         return None
     
-    def make_trajectory(self, x, **kwargs):
+    def make_trajectory(self, index, x, **kwargs):
         if isinstance(x[0], float):
-            plt.plot(array(x[isfinite(x)]),**kwargs)
+            x, index=thin_out_nans(x,index)
+            plt.plot(index,x,**kwargs)
         else:
             numbers=values_to_numbers(x)
-            plt.plot(numbers, **kwargs)
-            
+            plt.plot(index, numbers, **kwargs)
+        plt.title(self.name)
+    
+    
+
             
     def make_histogram(self, x, a=None, **kwargs):
         if isinstance(x[0], float):
-            plt.hist(array(x[isfinite(x)]), fc=(1, 0, 0, 0.5), normed=True, **kwargs)
+            x,_=thin_out_nans(x,x)
+            _,bins,_= plt.hist(x, fc=(1, 0, 0, 0.5), normed=True, **kwargs)
             if a is not None:
-                plt.hist(array(a[isfinite(a)]),fc=(0, 1, 0, 0.5), normed=True, **kwargs)
+                a,_=thin_out_nans(a,a)
+                if 'bins' in kwargs:
+                    plt.hist(a,fc=(0, 1, 0, 0.5), normed=True,  **kwargs)
+                else:
+                    plt.hist(a,fc=(0, 1, 0, 0.5), normed=True, bins=bins, **kwargs)
         else:
             if a is None:
                 labels, counts1 = count_strings(x)
@@ -44,6 +53,7 @@ class Summary(object):
             plt.bar(range(len(labels)), counts1, width=1.0, alpha=0.5, color='r', label='MCMC')
             if counts2 is not None:
                 plt.bar(range(len(labels)), counts2, width=1.0, alpha=0.5, color='g', label='MCMC')
+        plt.title(self.name)
     
 class s_no_admixes(Summary):
     
@@ -51,7 +61,7 @@ class s_no_admixes(Summary):
         super(s_no_admixes,self).__init__('no_admixes')
 
     def __call__(self, **kwargs):
-        old_tree=kwargs['old_tree']
+        old_tree=kwargs['tree']
         return get_number_of_admixes(old_tree)
     
     def summary_of_phylogeny(self, tree):
@@ -70,7 +80,7 @@ class s_total_branch_length(Summary):
         super(s_total_branch_length,self).__init__('total_branch_length')
 
     def __call__(self, **kwargs):
-        tree=kwargs['proposed_tree']
+        tree=kwargs['tree']
         return sum(get_all_branch_lengths(tree))
     
     def summary_of_phylogeny(self, tree):
@@ -82,7 +92,7 @@ class s_average_branch_length(Summary):
         super(s_average_branch_length,self).__init__('average_branch_length')
 
     def __call__(self, **kwargs):
-        tree=kwargs['proposed_tree']
+        tree=kwargs['tree']
         all_branch=get_all_branch_lengths(tree)
         return sum(all_branch)/len(all_branch)
     
@@ -107,27 +117,12 @@ class s_tree_identifier(Summary):
         super(s_tree_identifier,self).__init__('tree_identifier')
         
     def __call__(self, **kwargs):
-        old_tree=kwargs['old_tree']
+        old_tree=kwargs['tree']
         return unique_identifier(old_tree)
     
     def summary_of_phylogeny(self, tree):
         return unique_identifier(tree)
     
-    def make_trajectory(self, x, **kwargs):
-        numbers=values_to_numbers(x)
-        print 'numbers', numbers
-        plt.plot(numbers)
-    
-    def make_histogram(self, x,a=None,**kwargs):
-        if a is None:
-            labels, counts1 = count_strings(x)
-            counts2=None
-        else:
-            labels, counts1, counts2 = count_strings2(x,a)
-        print 'labels', labels
-        plt.bar(range(len(labels)), counts1, width=1.0, alpha=0.5, color='r', label='MCMC')
-        if counts2 is not None:
-            plt.bar(range(len(labels)), counts2, width=1.0, alpha=0.5, color='g', label='MCMC')
 
 class s_tree_identifier_new_tree(s_tree_identifier):
     

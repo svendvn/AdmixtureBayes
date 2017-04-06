@@ -5,7 +5,8 @@ from Rproposal_rescale import rescale
 from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector
 from numpy.random import choice
 from time import sleep as wait
-from MCMC import initialize_prior_as_posterior, basic_chain
+from MCMC import basic_chain
+from posterior import initialize_prior_as_posterior, initialize_trivial_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable
 from meta_proposal import basic_meta_proposal
 from generate_prior_trees import generate_admix_topology
@@ -16,6 +17,8 @@ from collections import Counter
 from scipy.optimize import brentq
 from analyse_results import save_to_csv
 from csv import writer
+from trivial_mcmc import Trivial_Summary, trivial_proposal
+
 
 def _get_new_nodes(i,k):
     if k==2:
@@ -95,7 +98,7 @@ def proposal_support(start_tree, n=10000, nodes=None):
     wait(1)
     return score
 
-def test_prior_model(start_tree, sim_length=100000, summaries=None):
+def test_prior_model(start_tree, sim_length=100000, summaries=None, thinning_coef=1):
     posterior=initialize_prior_as_posterior()
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
@@ -104,7 +107,7 @@ def test_prior_model(start_tree, sim_length=100000, summaries=None):
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
-                overall_thinning=int(1+sim_length/60000), i_start_from=0, 
+                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
                 temperature=1.0, proposal_update=None,
                 check_trees=True)
     print results
@@ -136,6 +139,7 @@ def test_topological_prior_density(n,k,sim_length):
         unique_id=unique_identifier(tree)
         list_of_simulated_trees.append(unique_id)
         if unique_id not in dictionary_of_probabilities:
+            print unique_id
             dictionary_of_probabilities[unique_id]=exp(topological_prior(tree))
     ad,ad2=dictionary_of_probabilities, Counter(list_of_simulated_trees)
     for key, val in ad.items():
@@ -222,7 +226,20 @@ def check_predestinations(tree, reps=10000):
         wr.writerows(res_ret)
     return 'done'     
     
-    
+def trivial_simulation(start_val, reps, thinning_coef=1):
+    posterior=initialize_trivial_posterior()
+    summaries=[Trivial_Summary()]
+    proposal=trivial_proposal()
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    final_tree,final_posterior, results,_= basic_chain(start_val, summaries, posterior, 
+                proposal, post=None, N=reps, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=int(thinning_coef+reps/60000), i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=False)
+    print results
+    save_to_csv(results, summaries)
+    return results
 
 
 
@@ -232,10 +249,10 @@ if __name__=='__main__':
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    #print test_topological_prior_density(6,0, 10000)
+    print test_topological_prior_density(3,3, 500000)
     from Rcatalogue_of_trees import tree_good
     #print proper_proposals(tree_good,100000)[1]
-    print check_predestinations(tree_good, 10000)
+    #print check_predestinations(tree_good, 10000)
 
     
     

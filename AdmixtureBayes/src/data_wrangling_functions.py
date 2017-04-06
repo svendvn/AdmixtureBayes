@@ -1,4 +1,5 @@
 from collections import Counter
+from numpy import isfinite
 
 def values_to_numbers(list_of_objects):
     res=[]
@@ -30,4 +31,6 @@ def count_strings2(values1, values2):
         counts1.append(dic1.get(key,0))
         counts2.append(dic2.get(key,0))
     return keys,_normalize(counts1, len(values1)), _normalize(counts2, len(values2))
-    
+
+def thin_out_nans(x, index):
+    return zip(*[(y,i) for y,i in zip(x,index) if isfinite(y)])

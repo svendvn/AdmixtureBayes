@@ -4,7 +4,7 @@ from scipy.special import binom
 from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_admixture_node_halfly, 
                               get_descendants_and_rest, graft, remove_admix, node_is_non_admixture,
                               make_consistency_checks, parent_is_spouse, halfbrother_is_uncle,
-                              parent_is_sibling, other_branch, get_branch_length)
+                              parent_is_sibling, other_branch, get_branch_length, change_admixture)
 from random import getrandbits
 from scipy.stats import expon
 
@@ -92,8 +92,9 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None):
     else:
         new_tree, forward_density ,backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
     
-    choices_forward=float(len(possible_nodes)*len(candidates))
+    choices_forward=float(len(possible_nodes)*len(candidates))*2
     choices_backward=float(len(_get_removable_admixture_branches(new_tree)))
+    
     pks['forward_density']=forward_density
     pks['backward_density']=backward_density
     pks['forward_choices']=choices_forward
@@ -101,52 +102,6 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None):
 
     return new_tree,forward_density/choices_forward, backward_density/choices_backward
 
-def toy_addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None):
-    '''
-    This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
-        c1: the branch length of the source population
-        c2: the branch length of the population genes are migrating into. 
-        u1: the position of the admixture source on the source population branch
-        u2: the position of the admixture destination on the sink population branch
-        w: the admixture proportion.
-        The connecting function, h, (see Green & Hastie 2009) is
-            h(c1,c2,u1,u2,w)=(c1*u1, c1*(1-u1), c2*u2, c2*(1-u2), 0.5*w)
-    '''
-    
-    possible_nodes=_get_possible_starters(tree)
-        
-    no_admixtures=get_number_of_admixes(tree)
-    new_tree= deepcopy(tree)
-    #print possible_nodes
-    sink_key, sink_branch=possible_nodes[choice(len(possible_nodes), 1)[0]]
-    children, other= get_descendants_and_rest(tree, sink_key)
-    candidates=_get_possible_sources(new_tree, children, other, sink_key,sink_branch)+[('r',0)]
-    ch= choice(len(candidates),1)[0]
-    source_key, source_branch=candidates[ch]
-    if fixed_sink_source is not None:
-        sink_key,sink_branch,source_key,source_branch = fixed_sink_source
-    pks['sink_key']=sink_key
-    pks['source_key']=source_key
-    pks['source_branch']=source_branch
-    pks['sink_branch']=sink_branch
-    #print 'children', children
-    #print 'candidates', candidates
-    #print 'sink', (sink_key, sink_branch)
-    #print 'source', (source_key,source_branch)
-    #print 'new_tree',new_tree
-    if new_node_names is None:
-        new_tree, forward_density, backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch)
-    else:
-        new_tree, forward_density ,backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
-    
-    choices_forward=float(len(possible_nodes)*len(candidates))
-    choices_backward=float(len(_get_removable_admixture_branches(new_tree)))
-    pks['forward_density']=forward_density
-    pks['backward_density']=backward_density
-    pks['forward_choices']=choices_forward
-    pks['backward_choices']=choices_backward
-
-    return new_tree,forward_density/choices_forward, backward_density/choices_backward
     
 def get_admixture_branch_length(x=None):
     if x is None:
@@ -186,6 +141,10 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2, admix_b_length=t4, new_node_name=sink_name, admixture_proportion= u3)
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
+    
+    if random()<0.5:
+        tree[sink_name]=change_admixture(tree[sink_name])
+        
     #print 'tree after grafting', tree
     return tree,q1*q2*q3*q4,1
 
@@ -199,7 +158,7 @@ def deladmix(tree,pks={}, fixed_remove=None):
     cop=deepcopy(tree)
     
     candidates=_get_removable_admixture_branches(cop)
-    print candidates
+    #print candidates
     if len(candidates)==0:
         return tree,1,1
     if fixed_remove is None:
@@ -223,7 +182,7 @@ def deladmix(tree,pks={}, fixed_remove=None):
     forward_density= 1.0
     
     forward_choices=float(len(candidates))
-    backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))
+    backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))*2
     pks['forward_choices']=forward_choices
     pks['backward_choices']=backward_choices
     pks['forward_density']=forward_density

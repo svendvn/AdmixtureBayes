@@ -1,5 +1,5 @@
 from Proposal_Function import prop_flat
-from scipy.stats import poisson
+from scipy.stats import poisson, norm, multivariate_normal
 from likelihood import likelihood
 from numpy.random import random
 from math import exp
@@ -11,30 +11,8 @@ from tree_warner import check
 from tree_plotting import pretty_string
 
 
-def initialize_posterior(emp_cov):
-    def posterior(x,pks={}):
-        #print tot_branch_length
-        prior_value=prior(x,pks=pks)
-        if prior_value==-float('inf'):
-            return prior_value
-        likelihood_value=likelihood(x, emp_cov)
-        pks['prior']=prior_value
-        pks['likelihood']=likelihood_value
-        return prior_value+likelihood_value
-    return posterior
 
-def initialize_prior_as_posterior():
-    def posterior(x,pks={}):
-        #print tot_branch_length
-        prior_value=prior(x,pks=pks)
-        if prior_value==-float('inf'):
-            return prior_value
-        pks['prior']=prior_value
-        pks['likelihood']=''
-        return prior_value
-    return posterior
-     
-
+            
 def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     newx,g1,g2,Jh,j1,j2=proposal(x,pks)
@@ -48,8 +26,8 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     post_new=posterior_function(newx,pks)
     pks['proposed_posterior']=post_new
     
-    mhr=exp(post_new-post)**temperature*g2*j2/j1/g1*Jh
-    
+    mhr=exp(temperature*(post_new-post))*g2*j2/j1/g1*Jh
+    #print post_new, post, post_new-post, exp(post_new-post), mhr
     pks['mhr']=mhr
     
     u=random()

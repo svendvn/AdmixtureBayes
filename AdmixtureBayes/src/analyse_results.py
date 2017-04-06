@@ -32,18 +32,18 @@ def full_analysis(summaries,
                 for layer,data in df.groupby('layer'):
                     filename=os.path.join(plot_prefix, summary.name+'_trail_layer'+str(layer)+'.png')
                     fig= plt.figure()
-                    summary.make_trajectory(data[summary.name])
+                    summary.make_trajectory(data['iteration'],data[summary.name])
                     fig.savefig(filename, bbox_inches='tight')
             if trajectories_for_all_chains:
                 for chain,data in df.groupby('origin'):
                     filename=os.path.join(plot_prefix, summary.name+'_trail_chain'+str(chain)+'.png')
                     fig= plt.figure()
-                    summary.make_trajectory(data[summary.name])
+                    summary.make_trajectory(data['iteration'],data[summary.name])
                     fig.savefig(filename, bbox_inches='tight')
             if not (trajectories_for_all_chains or trajectories_for_all_temperatures):
                 filename=os.path.join(plot_prefix, summary.name+'_trail_layer1.png')
                 fig= plt.figure()
-                summary.make_trajectory(main_chain[summary.name])
+                summary.make_trajectory(main_chain['iteration'],main_chain[summary.name])
                 fig.savefig(filename, bbox_inches='tight')
         if plot_distribution:
             filename=os.path.join(plot_prefix, summary.name+'_distrub.png')
@@ -94,4 +94,5 @@ if __name__=='__main__':
     
     
     
+   
     

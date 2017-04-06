@@ -2,6 +2,7 @@ from Rproposal_admix import addadmix_class, deladmix_class
 from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
 from numpy.random import choice
+from Rtree_operations import get_number_of_admixes
 
 class new_node_naming_policy(object):
     
@@ -22,12 +23,23 @@ class new_node_naming_policy(object):
 class basic_meta_proposal(object):
     
     def __init__(self):
-        self.props=[addadmix_class(),deladmix_class(), regraft_class(), rescale_class()]
+        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class()]
         self.params=[None, None, None, [0.1]]
         self.node_naming=new_node_naming_policy()
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
+        if get_number_of_admixes(tree)==0 and index<=1:
+            index=0
+            backj=0.25
+            forwj=0.5
+        elif get_number_of_admixes(tree)==1 and index==1:
+            backj=0.5
+            forwj=0.25
+        else:
+            backj=0.25
+            forwj=0.25
+        
         names=self.node_naming.next_nodes(self.props[index].new_nodes)
         pks['proposal_type']= self.props[index].proposal_name
         args=[]
@@ -36,7 +48,7 @@ class basic_meta_proposal(object):
         if self.params[index] is not None:
             args.extend(self.params[index])
         new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
-        return new_tree,forward,backward,1,0.25,0.25
+        return new_tree,forward,backward,1,forwj,backj
     
     
     

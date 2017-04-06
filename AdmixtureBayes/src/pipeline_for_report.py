@@ -4,6 +4,7 @@ import Rcatalogue_of_trees
 import Rtree_operations
 import summary
 import generate_prior_trees
+import trivial_mcmc
 
 def run_a():
     n=3
@@ -15,8 +16,8 @@ def run_a():
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s) for s in ['backward_choices','backward_density','forward_density','forward_choices','proposal_type','prior','branch_prior','no_admix_prior','top_prior']]
-    simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries)
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=1000, list_of_summaries=summaries[2:6])
+    simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=10)
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=100000, list_of_summaries=summaries[2:6])
     analyse_results.full_analysis(summaries,
                   trajectories_for_all_temperatures=False,
                   trajectories_for_all_chains=False,
@@ -30,6 +31,16 @@ def run_b():
                summary.s_tree_identifier()]
     simulation_sanity.test_prior_model_no_admixes(s_tree, 100000, summaries=summaries)
     prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, admixes=0, sim_length=1000, list_of_summaries=summaries[2:])
+    analyse_results.full_analysis(summaries,
+                  trajectories_for_all_temperatures=False,
+                  trajectories_for_all_chains=False,
+                  prior_distribution=prior_distribution)
+    
+def run_trivial():
+    simulation_sanity.trivial_simulation(8.0,100000)
+    print 'sim first'
+    summaries=[trivial_mcmc.Trivial_Summary()]
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=2, admixes=0, sim_length=100000, list_of_summaries=summaries)
     analyse_results.full_analysis(summaries,
                   trajectories_for_all_temperatures=False,
                   trajectories_for_all_chains=False,
