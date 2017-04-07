@@ -21,6 +21,9 @@ def full_analysis(summaries,
                   prior_distribution={},
                   plot_prefix='plots'):
     df=pd.DataFrame.from_csv(csv_file)
+    print int(burn_in*df.shape[0])
+    df=df.ix[int(burn_in*df.shape[0]):,]
+    df = df.reset_index(drop=True)
     main_chain=df.query('layer == 1')
     print main_chain
     if plot_distribution and prior_distribution:
