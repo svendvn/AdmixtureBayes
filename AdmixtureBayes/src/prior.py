@@ -12,7 +12,7 @@ def prior(tree, p=0.5, pks={}):
     if not all(branch>0 for branch in branches):
         return -float('inf')
     branch_prior=sum(map(expon.logpdf, branches))
-    no_admix_prior=geom.logpmf(len(admixtures)+1, 1.0-p)
+    no_admix_prior=no_admixes(p, len(admixtures))
     admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
@@ -22,6 +22,12 @@ def prior(tree, p=0.5, pks={}):
     pks['top_prior']= top_prior
     return logsum
 
+def no_admixes(p, admixes, hard_cutoff=None):
+    if hard_cutoff is None:
+        return geom.logpmf(admixes+1, 1.0-p)
+    if admixes>hard_cutoff:
+        return -float('inf')
+    return geom.logpmf(admixes+1, 1.0-p)-geom.logcdf(hard_cutoff+1, 1.0-p)
     
 def trees_without_admixture(no_leaves):
     '''

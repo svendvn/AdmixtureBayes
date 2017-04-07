@@ -1,4 +1,4 @@
-from Rproposal_admix import addadmix_class, deladmix_class
+from Rproposal_admix2 import addadmix_class, deladmix_class
 from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
 from numpy.random import choice

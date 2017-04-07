@@ -16,8 +16,12 @@ def run_a():
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s) for s in ['backward_choices','backward_density','forward_density','forward_choices','proposal_type','prior','branch_prior','no_admix_prior','top_prior']]
-    #simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=10)
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=100000, list_of_summaries=summaries[2:6])
+    simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=2)
+    def max_two(tree):
+        if Rtree_operations.get_number_of_admixes(tree)>2:
+            return False
+        return True
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=100000, list_of_summaries=summaries[2:6])#, thinning_criteria=max_two)
     analyse_results.full_analysis(summaries,
                   trajectories_for_all_temperatures=False,
                   trajectories_for_all_chains=False,

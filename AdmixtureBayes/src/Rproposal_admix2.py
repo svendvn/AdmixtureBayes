@@ -2,7 +2,7 @@ from numpy.random import choice, random, exponential
 from copy import deepcopy
 from scipy.special import binom
 from Rtree_operations import *
-from Rtree_operations import _update_parent, _get_index_of_parent, _update_child
+from Rtree_operations import _update_parent, _get_index_of_parent, _update_child, change_admixture
 from random import getrandbits
 from scipy.stats import expon
 from tree_plotting import pretty_print
@@ -91,7 +91,7 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None):
     else:
         new_tree, forward_density ,backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, new_node_names[0], new_node_names[1])
     
-    choices_forward=float(len(possible_nodes)*len(candidates))
+    choices_forward=float(len(possible_nodes)*len(candidates))*2
     choices_backward=float(len(_get_removable_admixture_branches(new_tree)))
     pks['forward_density']=forward_density
     pks['backward_density']=backward_density
@@ -152,6 +152,9 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
         tree[source_name][0+3]=u1
     tree[sink_name][0+3]=u2
     tree[sink_name][1+3]=t4
+    
+    if random()<0.5:
+        tree[sink_name]=change_admixture(tree[sink_name])
 
     #print 'tree after grafting', tree
     return tree,q1*q2*q3*q4,1
@@ -243,7 +246,7 @@ def deladmix(tree,pks={}, fixed_remove=None):
     forward_density= 1.0
     
     forward_choices=float(len(candidates))
-    backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))
+    backward_choices=float(get_possible_admixture_adds(new_tree, sink_key, sink_branch))*2
     pks['forward_choices']=forward_choices
     pks['backward_choices']=backward_choices
     pks['forward_density']=forward_density
