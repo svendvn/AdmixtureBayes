@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 from Rtree_operations import get_number_of_admixes, get_all_branch_lengths
 from tree_statistics import unique_identifier
 from data_wrangling_functions import values_to_numbers, count_strings, count_strings2, thin_out_nans
-from numpy import isfinite, array
+from numpy import isfinite, array, cumsum, linspace
 
 
 
@@ -122,6 +122,26 @@ class s_tree_identifier(Summary):
     
     def summary_of_phylogeny(self, tree):
         return unique_identifier(tree)
+    
+    def make_histogram(self, x, a=None, **kwargs):
+        if a is None:
+            labels, counts1 = count_strings(x)
+            counts2=None
+        else:
+            labels, counts1, counts2 = count_strings2(x,a)
+            labels, counts1, counts2 = zip(*[(x,y,z) for (x,y,z) in sorted(zip(labels,counts1,counts2), key=lambda pair: pair[1], reverse=True)])
+            print 'labels', labels
+            xaxis=range(0,20,2)+range(20,30,1)+list(linspace(30,40, len(labels)-20))
+            yaxis=counts1
+            zaxis=[2]*10+[1]*10+[10.0/(len(labels)-20)]*(len(labels)-20)
+            print len(xaxis), xaxis
+            print len(yaxis), yaxis
+            print len(zaxis), zaxis
+            print labels[:20]
+            plt.bar(xaxis, counts1, width=zaxis, alpha=0.5, color='r', label='MCMC')
+            if counts2 is not None:
+                plt.bar(xaxis, counts2, width=zaxis, alpha=0.5, color='g', label='MCMC')
+        plt.title(self.name)
     
 
 class s_tree_identifier_new_tree(s_tree_identifier):
