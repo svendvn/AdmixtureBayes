@@ -245,11 +245,12 @@ def trivial_simulation(start_val, reps, thinning_coef=1):
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(4)
+    topological_support(s_tree)
     #print test_prior_model(s_tree, 100000)
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    print test_topological_prior_density(3,3, 500000)
+    #print test_topological_prior_density(3,3, 500000)
     from Rcatalogue_of_trees import tree_good
     #print proper_proposals(tree_good,100000)[1]
     #print check_predestinations(tree_good, 10000)

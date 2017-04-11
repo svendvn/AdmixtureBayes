@@ -179,6 +179,41 @@ def get_descendants_and_rest(tree, key):
     descendant_keys=_get_descendants(tree, key)
     return descendant_keys, list(set(all_keys)-set(descendant_keys))
 
+def _get_descendants(tree, key):
+    if tree[key][5] is None:
+        return [key]
+    else:
+        ans=[key]+_get_descendants(tree, tree[key][5])
+        if tree[key][6] is None:
+            return ans
+        return ans+_get_descendants(tree, tree[key][6])
+
+def get_all_branches(tree):
+    res=[]
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            res.extend([(key, 0),(key,1)])
+        else:
+            res.append((key,0))
+    return res
+
+def get_all_branch_descendants_and_rest(tree, key,branch):
+    all_branches=get_all_branches(tree)
+    descendant_branches=_get_descendant_branches(tree, key,branch)
+    return descendant_branches, list(set(all_branches)-set(descendant_branches))
+
+def _get_descendant_branches(tree, key, branch):
+    child_key1=tree[key][5]
+    if child_key1 is None: #branch is leaf
+        return [(key,0)]
+    else:
+        child_key1_branch=mother_or_father(tree, child_key1, key)
+        ans=[(key, branch)]+_get_descendant_branches(tree, child_key1, child_key1_branch)
+        child_key2=tree[key][6]
+        if child_key2 is None:
+            return ans
+        return ans+_get_descendant_branches(tree, child_key2, mother_or_father(tree,child_key2, key))
+
 def get_other_children(node, child_key):
     res=[]
     for n in get_children(node):
@@ -207,14 +242,7 @@ def has_child_admixture(tree, key):
         return (node_is_admixture(tree[child2]))
     return False
         
-def _get_descendants(tree, key):
-    if tree[key][5] is None:
-        return [key]
-    else:
-        ans=[key]+_get_descendants(tree, tree[key][5])
-        if tree[key][6] is None:
-            return ans
-        return ans+_get_descendants(tree, tree[key][6])
+
     
 def get_leaf_keys(tree):
     res=[]
@@ -475,6 +503,57 @@ def remove_admix(tree, rkey, rbranch):
     tree[sorphanota_key]=_update_parent(tree[sorphanota_key], source_key, sparent_key)
     del tree[source_key]
     return tree, (t1,t2,t3,t4,t5), alpha, (orphanota_key,orphanota_branch)
+
+def remove_admix2(tree, rkey, rbranch, pks={}):
+    '''
+    removes an admixture. besides the smaller tree, also the disappeared branch lengths are returned.
+    parent_key          sparent_key
+        |                |
+        |t_1             | t_4
+        |   __---- source_key
+      rkey/   t_5       \
+        |                \t_3
+        |t_2          sorphanota_key  
+    orphanota_key   
+    and alpha=admixture proportion. The function returns new_tree, (t1,t2,t3,t4,t5), alpha 
+
+    Note that t_4 could be None if source key is root. The source_key node is not an admixture node by assumption.
+    '''
+    rnode= tree[rkey]
+    orphanota_key= get_children(rnode)[0]
+    parent_key= rnode[other_branch(rbranch)]
+    source_key= rnode[rbranch]
+    t1= rnode[3+other_branch(rbranch)]
+    t5= rnode[3+rbranch]
+    alpha=rnode[2]
+    
+    tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
+    tree[orphanota_key]=_update_parent(tree[orphanota_key], rkey, parent_key)
+    orphanota_branch=_get_index_of_parent(tree[orphanota_key], parent_key)
+    pks['orphanota_key']=orphanota_key
+    pks['orphanota_branch']=orphanota_branch
+    
+    if parent_key!='r':
+        tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
+    if source_key=='r':
+        tree,_,t3,_=remove_root_attachment(tree, rkey) #now sorphanota_key is new root
+        del tree[rkey]
+        pks['sorphanota_key']='r'
+        pks['sorphanota_branch']=0
+        return tree, (t1,t2,t3,None,t5),alpha
+    del tree[rkey]
+    source_node=tree[source_key]
+    sorphanota_key=get_other_children(source_node, child_key=rkey)[0]
+    sparent_key=source_node[0]
+    t4=source_node[3]
+    if sparent_key!='r':
+        tree[sparent_key]=_update_child(tree[sparent_key], source_key, sorphanota_key)
+    tree[sorphanota_key],t3=get_branch_length_and_reset(tree[sorphanota_key], source_key, t4, add=True)
+    tree[sorphanota_key]=_update_parent(tree[sorphanota_key], source_key, sparent_key)
+    pks['sorphanota_key']=sorphanota_key
+    pks['sorphanota_branch']=mother_or_father(tree, sorphanota_key, sparent_key)
+    del tree[source_key]
+    return tree, (t1,t2,t3,t4,t5), alpha
     
 def other_branch(branch):
     if branch==0:

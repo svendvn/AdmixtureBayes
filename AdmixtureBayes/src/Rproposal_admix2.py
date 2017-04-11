@@ -272,9 +272,10 @@ def get_backward_remove_density(t1,t2,t3,t4,t5, alpha):
     and the admixture proportion, alpha
     '''
     if t4 is None:
-        q4=1
+        #q4=1
+        q4=get_root_branch_length(t3)
     else:
-        q4=get_root_branch_length(t4)
+        q4=1#get_root_branch_length(t4)
     q1=get_root_branch_length(t1)
     q3=get_admixture_branch_length(t5)
     q2=get_admixture_proportion(alpha)
