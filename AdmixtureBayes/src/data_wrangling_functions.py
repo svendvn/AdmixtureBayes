@@ -19,6 +19,7 @@ def count_strings(values):
 
 def _normalize(values, normalizer):
     return [float(val)/normalizer for val in values]
+
 def count_strings2(values1, values2):
     dic1=Counter(values1)
     dic2=Counter(values2)

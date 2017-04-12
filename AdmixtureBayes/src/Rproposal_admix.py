@@ -379,9 +379,9 @@ if __name__=="__main__":
     #plot_graph(Rtree_operations.tree_on_the_border2_with_children)
     #t=Tester(Rtree_operations.tree_on_the_border2_with_children)
     #t.many_admixes(10)
-    from Rcatalogue_of_trees import tree_good
+    from Rcatalogue_of_trees import tree_good, tree_one_admixture
     pks={}
-    newt,forw,backw=addadmix(tree_good,pks=pks, check_opposite=True)
+    newt,forw,backw=addadmix(tree_one_admixture,pks=pks, check_opposite=True)
     print 'forw',forw
     print 'back',backw
     print 'pks',pks

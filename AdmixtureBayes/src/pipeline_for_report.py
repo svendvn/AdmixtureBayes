@@ -7,7 +7,7 @@ import generate_prior_trees
 import trivial_mcmc
 
 def run_a():
-    n=3
+    n=10
     s_tree=Rtree_operations.create_trivial_tree(n)
     summaries=[summary.s_variable('posterior'), 
                summary.s_variable('mhr'), 
@@ -21,7 +21,7 @@ def run_a():
         if Rtree_operations.get_number_of_admixes(tree)>2:
             return False
         return True
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=1000, list_of_summaries=summaries[2:6])#, thinning_criteria=max_two)
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=10000, list_of_summaries=summaries[2:6])#, thinning_criteria=max_two)
     analyse_results.full_analysis(summaries,
                   trajectories_for_all_temperatures=False,
                   trajectories_for_all_chains=False,

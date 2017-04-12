@@ -104,6 +104,7 @@ def test_prior_model(start_tree, sim_length=100000, summaries=None, thinning_coe
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
@@ -181,10 +182,10 @@ def check_destinations(tree, reps=10000):
         pks={}
         ntree, _, _ = addadmix(tree, new_node_names=['x','y'],pks=pks)
         unique_id=unique_identifier(ntree)
-        tup=(pks['source_key'],pks['source_branch'],pks['sink_key'],pks['sink_branch'])
+        tup=(pks['source_key'],pks['source_branch'],pks['sink_key'],pks['sink_branch'], pks['sink_new_branch'])
         if tup in dic:
             assert dic[tup][0]==unique_id, 'There is not a unique mapping from sink source to unique id'
-            assert 1.0/dic[tup][1]==pks['forward_choices'], 'There was not a unqiue number of forward choices for '#+str(tup)+' : '+str(pks['forward_choices'])+'><'
+            assert abs(1.0/dic[tup][1]-pks['forward_choices'])<1e-8, 'There was not a unqiue number of forward choices for '+str(tup)+' : '+str(pks['forward_choices'])+'><' +str(1.0/dic[tup][1])
             dic[tup]=(unique_id, 1.0/pks['forward_choices'], dic[tup][2]+1)
         else:
             dic[tup]=(unique_id, 1.0/pks['forward_choices'],1)
@@ -207,7 +208,7 @@ def check_predestinations(tree, reps=10000):
         pks={}
         ntree, _, _=deladmix(tree,pks=pks)
         unique_id=unique_identifier(ntree)
-        tup=(pks['remove_key'],pks['remove_branch'],pks['sink_key'],pks['sink_branch'])
+        tup=(pks['remove_key'],pks['remove_branch'])#,pks['sink_key'],pks['sink_branch'])
         if tup in dic:
             assert dic[tup][0]==unique_id, 'There is not a unique mapping from sink source to unique id'
             assert 1.0/dic[tup][1]==pks['forward_choices'], 'There was not a unqiue number of forward choices for '#+str(tup)+' : '+str(pks['forward_choices'])+'><'
@@ -245,15 +246,19 @@ def trivial_simulation(start_val, reps, thinning_coef=1):
 
 if __name__=='__main__':
     s_tree=create_trivial_tree(4)
-    topological_support(s_tree)
+    
+    #topological_support(s_tree)
     #print test_prior_model(s_tree, 100000)
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
     #print test_topological_prior_density(3,3, 500000)
-    from Rcatalogue_of_trees import tree_good
+    from Rcatalogue_of_trees import tree_good, tree_one_admixture, tree_minimal
+    
+    #tree2=addadmix(addadmix(addadmix(addadmix(tree_good)[0])[0])[0])[0]
     #print proper_proposals(tree_good,100000)[1]
-    #print check_predestinations(tree_good, 10000)
+    print check_destinations(tree_minimal, 20000)
+    #print check_predestinations(tree2, 100000)
 
     
     
