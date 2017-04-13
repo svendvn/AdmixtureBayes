@@ -5,12 +5,12 @@ from data_wrangling_functions import values_to_numbers, count_strings, count_str
 from numpy import isfinite, array, cumsum, linspace
 
 
-
 class Summary(object):
        
-    def __init__(self, name, pandable=True):
+    def __init__(self, name, pandable=True, output='double'):
         self.name=name
         self.pandable=pandable
+        self.output=output
     
     def __call__(self, **kwargs):
         pass
@@ -58,7 +58,7 @@ class Summary(object):
 class s_no_admixes(Summary):
     
     def __init__(self):
-        super(s_no_admixes,self).__init__('no_admixes')
+        super(s_no_admixes,self).__init__('no_admixes', output='integer')
 
     def __call__(self, **kwargs):
         old_tree=kwargs['tree']
@@ -102,8 +102,8 @@ class s_average_branch_length(Summary):
     
 class s_variable(Summary):
     
-    def __init__(self, variable, pandable=True):
-        super(s_variable, self).__init__(variable, pandable)
+    def __init__(self, variable, pandable=True, output='double'):
+        super(s_variable, self).__init__(variable, pandable, output)
 
     def __call__(self, **kwargs):
         if self.name not in kwargs:
@@ -114,7 +114,7 @@ class s_variable(Summary):
 class s_tree_identifier(Summary):
     
     def __init__(self):
-        super(s_tree_identifier,self).__init__('tree_identifier')
+        super(s_tree_identifier,self).__init__('tree_identifier', output='string')
         
     def __call__(self, **kwargs):
         old_tree=kwargs['tree']
@@ -147,7 +147,7 @@ class s_tree_identifier(Summary):
 class s_tree_identifier_new_tree(s_tree_identifier):
     
     def __init__(self):
-        super(s_tree_identifier,self).__init__('tree_identifier_new_tree')
+        super(s_tree_identifier,self).__init__('tree_identifier_new_tree', output='string')
         
     def __call__(self, **kwargs):
         tree=kwargs['proposed_tree']

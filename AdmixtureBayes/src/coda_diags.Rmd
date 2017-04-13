@@ -1,0 +1,89 @@
+---
+title: "R analysis using coda"
+output: html_notebook
+---
+
+Read in data
+
+```{r}
+df=read.csv('results.csv', header=T)
+sim_df=read.csv('sim_prior.csv', header =T)
+summs_df=read.csv('summaries.csv', header = T)
+library('coda')
+```
+
+Making a function for calculating every statistics within a dataframe
+
+```{r}
+all_nums=function(df){
+  mcmcobj=mcmc(df)
+  res_df=data.frame(summary=colnames(df))
+  summ_object=summary(mcmcobj)
+  res_df$mean=summ_object[[1]][,1]
+  res_df$naive_se=summ_object[[1]][,3]
+  res_df$se=summ_object[[1]][,4]
+  res_df$lower=summ_object[[2]][,1]
+  res_df$median=summ_object[[2]][,3]
+  res_df$upper=summ_object[[2]][,5]
+  res_df$geweke_pval=2*pnorm(-abs(geweke.diag(mcmcobj)$z))
+  res_df$rejection=rejectionRate(mcmcobj)
+  res_df$ESS=effectiveSize(mcmcobj)
+  return(res_df)
+}
+
+all_plots=function(df){
+  mcmcobj=mcmc(df)
+  crosscorr.plot(mcmcobj)
+  for(v in colnames(df)){
+    df2=as.data.frame(df[,v])
+    #print(df2)
+    colnames(df2) <- c(v)
+    mcmcobj=mcmc(df2)
+    plot(mcmcobj)
+    autocorr.plot(mcmcobj)
+    cumuplot(mcmcobj)
+  }
+}
+
+hist_numbers=function(x, true){
+  fd=hist(c(x,true), plot=F)
+  ad=hist(x, col=rgb(1,0,0,0.5), breaks=fd$breaks, freq=F, ylim=c(0,max(fd$density)*1.5))
+  bd=hist(true, breaks=fd$breaks, add=TRUE, col=rgb(0,1,0,0.5), freq=F)
+  ESS=effectiveSize(mcmc(x))
+  obs_p=(ad$count/length(x))[which(bd$counts>0)]
+  true_p=(bd$count/length(true))[which(bd$counts>0)]
+  se=sqrt(obs_p*(1-obs_p)/ESS)
+  #print(se)
+  for(i in 1:length(obs_p)){
+    lines(rep(ad$mids[i],2)  ,  1/(fd$breaks[2]-fd$breaks[1])*sapply(obs_p[i]+c(-1,1)*2*se[i], function(x) max(x,0)), lw=2.4)
+  }
+  #print('made lines')
+  G=ESS*sum((obs_p-true_p)^2/true_p)
+  return(c(G, 1-pchisq(G, length(obs_p)-1), 1-pchisq(G*length(x)/ESS, length(obs_p)-1)))
+}
+
+```
+
+
+```{r}
+for_plotting=c('integer','double')
+variables_to_plot_normally=summs_df$summary[summs_df$output%in%for_plotting]
+print(variables_to_plot_normally)
+df2=apply(df[,as.character(variables_to_plot_normally)],c(1,2),as.numeric)
+all_plots(df2)
+
+```
+
+```{r}
+all_nums(df2)
+```
+
+
+```{r}
+for(variable in variables_to_plot_normally){
+  if(variable %in% colnames(sim_df)){
+    print(hist_numbers(df2[,variable], sim_df[,variable]))
+  }
+}
+```
+

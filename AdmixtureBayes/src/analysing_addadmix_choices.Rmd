@@ -13,19 +13,34 @@ head(tr)
 This shows that it is a proper distribution. 
 
 ```{r}
-sum(tr[,6])
+sum(tr[,7])
 ```
+
+Here we test if the distribution matches:
+
+```{r}
+e=tr$V7*sum(tr$V8)
+x=tr$V8
+G=2*sum(x*log(x/e))
+data.frame(chisq=G, pval=1-pchisq(G, length(x)-1))
+```
+
 
 But do any of them map to the same tree (which is not necessarily illegal)
 
 ```{r}
-print(length(tr[,5]))
-print(length(unique(tr[,5])))
+print(length(tr[,6]))
+print(length(unique(tr[,6])))
 ```
 
 Some maps to the same thing (but not as many as we would expect)
 
 ```{r}
-tr[c(duplicated(tr[,5]),duplicated(tr[,5], fromLast = T)),]
+tr[duplicated(tr[,6]),]
+tr[duplicated(tr[,6], fromLast = T),]
+```
+
+```{r}
+
 ```
 

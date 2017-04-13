@@ -6,8 +6,9 @@ import summary
 import generate_prior_trees
 import trivial_mcmc
 
+
 def run_a():
-    n=10
+    n=3
     s_tree=Rtree_operations.create_trivial_tree(n)
     summaries=[summary.s_variable('posterior'), 
                summary.s_variable('mhr'), 
@@ -15,17 +16,22 @@ def run_a():
                summary.s_tree_identifier(),
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
-               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s) for s in ['backward_choices','backward_density','forward_density','forward_choices','proposal_type','prior','branch_prior','no_admix_prior','top_prior']]
-    simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=10)
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['backward_choices','backward_density','forward_density','forward_choices']]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+               
+    simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=3)
     def max_two(tree):
         if Rtree_operations.get_number_of_admixes(tree)>2:
             return False
         return True
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=10000, list_of_summaries=summaries[2:6])#, thinning_criteria=max_two)
-    analyse_results.full_analysis(summaries,
-                  trajectories_for_all_temperatures=False,
-                  trajectories_for_all_chains=False,
-                  prior_distribution=prior_distribution)
+    list_of_summaries=summaries[2:6]
+    nsim=100000
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=nsim, list_of_summaries=list_of_summaries)#, thinning_criteria=max_two)
+    analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
+    analyse_results.generate_summary_csv(summaries)
+    #analyse_results.full_analysis(summaries,
+    #              trajectories_for_all_temperatures=False,
+    #              trajectories_for_all_chains=False,
+    #              prior_distribution=prior_distribution)
     
 def run_b():
     n=4

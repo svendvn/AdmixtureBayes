@@ -4,11 +4,16 @@ import os
 import matplotlib.pyplot as plt
 from subprocess import call
 
-def save_to_csv(list_of_tuples, summaries):
+def generate_summary_csv(list_of_summaries, filename= 'summaries.csv'):
+    df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+[('output', [summ.output for summ in list_of_summaries])])
+    df.to_csv(filename)
+
+def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=(1,1)):
     df=pd.DataFrame.from_items([('iteration',list_of_tuples[0])]+[(summ_object.name,summ_col) for summ_object,summ_col in zip(summaries,list_of_tuples[1:])])
-    df['origin']=1
-    df['layer']=1
-    df.to_csv('results.csv')
+    if origin_layer is not None: 
+        df['origin']=origin_layer[0]
+        df['layer']=origin_layer[1]
+    df.to_csv(filename)
     
     
 def full_analysis(summaries,
