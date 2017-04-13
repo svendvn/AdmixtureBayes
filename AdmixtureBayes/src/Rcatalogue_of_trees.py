@@ -3,12 +3,15 @@ tree_clean={'s1':['s1s2',None, None, 0.1,None],
       's1s2':['r',None, None, 0.2,None],
       's3':['r',None, None, 0.2, None]}
 
-tree_one_admixture={'s1':['s1b',None, None, 0.1,None],
-      's1b':['s1s2','s3b',0.2, 0.1,0.2],
-      's2':['s1s2', None, None, 0.1,None],
-      's1s2':['r',None, None, 0.2,None],
-      's3b':['r',None, None, 0.2, None],
-      's3':['s3b',None,None,0.2,None]}
+tree_minimal={'s1':['r',None, None, 0.1,None,None,None],
+              's2':['r',None, None, 0.1,None,None,None]}
+
+tree_one_admixture={'s1':['s1b',None, None, 0.1,None,None,None],
+      's1b':['s1s2','s3b',0.2, 0.1,0.2, 's1',None],
+      's2':['s1s2', None, None, 0.1,None,None,None],
+      's1s2':['r',None, None, 0.2,None, 's1b','s2'],
+      's3b':['r',None, None, 0.2, None, 's3', 's1b'],
+      's3':['s3b',None,None,0.2,None,None,None]}
 
 tree_two_admixture={'s1':['s1b',None, None, 0.1,None],
       's1c':['s1s2','s3b', 0.4,0.05,0.1],
