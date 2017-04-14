@@ -51,6 +51,25 @@ class basic_meta_proposal(object):
         new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
         return new_tree,forward,backward,1,forwj,backj
     
+class no_admix_proposal(object):
+    
+    def __init__(self):
+        self.props=[regraft_class(), rescale_class()]
+        self.params=[None, [0.5]]
+        self.node_naming=new_node_naming_policy()
+        
+    def __call__(self, tree, pks={}):
+        index=choice(len(self.props),1)[0]
+        
+        names=self.node_naming.next_nodes(self.props[index].new_nodes)
+        pks['proposal_type']= self.props[index].proposal_name
+        args=[]
+        if names:
+            args.append(names)
+        if self.params[index] is not None:
+            args.extend(self.params[index])
+        new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
+        return new_tree,forward,backward,1,0.5,0.5
     
     
     

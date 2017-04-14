@@ -41,7 +41,7 @@ all_plots=function(df){
     mcmcobj=mcmc(df2)
     plot(mcmcobj)
     autocorr.plot(mcmcobj)
-    cumuplot(mcmcobj)
+    #cumuplot(mcmcobj)
   }
 }
 
@@ -87,3 +87,24 @@ for(variable in variables_to_plot_normally){
 }
 ```
 
+
+Analysing each proposal type with respect to mhr.
+```{r}
+if('proposal_type' %in% colnames(df)){
+  barplot(table(df$proposal_type))
+  if( 'mhr' %in% colnames(df)){
+    rmf=function(x,n=500){
+      x=sapply(x, function(x){min(as.numeric(x),1)})
+      return(stats::filter(x,rep(1/n,n), sides=2))
+    }
+    rmeans= aggregate(mhr ~ proposal_type, df, rmf, simplify = T)
+    df_rmeans=data.frame(do.call(cbind, rmeans[,2]))
+    colnames(df_rmeans) <- rmeans[,1]
+    df_rmeans$id=1:nrow(df_rmeans)
+    library('ggplot2')
+    library('reshape2')
+    df_melt=melt(df_rmeans, id='id')
+    ggplot(df_melt,aes(x=id,y=value,colour=variable,group=variable)) + geom_line()
+  }
+}
+```

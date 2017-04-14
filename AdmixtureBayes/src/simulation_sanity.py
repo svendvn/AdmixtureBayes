@@ -8,7 +8,7 @@ from time import sleep as wait
 from MCMC import basic_chain
 from posterior import initialize_prior_as_posterior, initialize_trivial_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable
-from meta_proposal import basic_meta_proposal
+from meta_proposal import basic_meta_proposal, no_admix_proposal
 from generate_prior_trees import generate_admix_topology
 from prior import prior, topological_prior
 from tree_statistics import unique_identifier
@@ -115,20 +115,37 @@ def test_prior_model(start_tree, sim_length=100000, summaries=None, thinning_coe
     save_to_csv(results, summaries)
     return results
 
-def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None):
+def test_prior_model_several_chains(start_trees, sim_length=100000, summaries=None, thinning_coef=1):
     posterior=initialize_prior_as_posterior()
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
-    proposal.props=proposal.props[2:] #a little hack under the hood
-    proposal.params=proposal.params[2:] #a little hack under the hood.
-    sample_verbose_scheme={summary.name:(1,1) for summary in summaries}
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
-                overall_thinning=1, i_start_from=0, 
+                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
                 temperature=1.0, proposal_update=None,
                 check_trees=True)
+    print results
+    save_to_csv(results, summaries)
+    return results
+
+def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, thinning_coef=1):
+    posterior=initialize_prior_as_posterior()
+    if summaries is None:
+        summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    proposal=no_admix_proposal()
+    #proposal.props=proposal.props[2:] #a little hack under the hood
+    #proposal.params=proposal.params[2:] #a little hack under the hood.
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+                proposal, post=None, N=sim_length, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=False)
     save_to_csv(results, summaries)
     return results
     

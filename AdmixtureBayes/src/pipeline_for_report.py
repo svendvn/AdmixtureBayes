@@ -38,13 +38,21 @@ def run_b():
     s_tree=Rtree_operations.create_trivial_tree(n)
     summaries=[summary.s_variable('posterior'), 
                summary.s_variable('mhr'), 
-               summary.s_tree_identifier()]
-    simulation_sanity.test_prior_model_no_admixes(s_tree, 100000, summaries=summaries)
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, admixes=0, sim_length=1000, list_of_summaries=summaries[2:])
-    analyse_results.full_analysis(summaries,
-                  trajectories_for_all_temperatures=False,
-                  trajectories_for_all_chains=False,
-                  prior_distribution=prior_distribution)
+               summary.s_no_admixes(), 
+               summary.s_tree_identifier(),
+               summary.s_average_branch_length(),
+               summary.s_total_branch_length(),
+               summary.s_variable('proposal_type', output='string')]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    simulation_sanity.test_prior_model_no_admixes(s_tree, 200000, summaries=summaries, thinning_coef=5)
+    list_of_summaries=summaries[2:6]
+    nsim=20000
+    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, admixes=0, sim_length=nsim, list_of_summaries=list_of_summaries)
+    analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
+    analyse_results.generate_summary_csv(summaries)
+    #analyse_results.full_analysis(summaries,
+    #              trajectories_for_all_temperatures=False,
+    #              trajectories_for_all_chains=False,
+    #              prior_distribution=prior_distribution)
     
 def run_trivial():
     simulation_sanity.trivial_simulation(8.0,100000)
@@ -57,4 +65,4 @@ def run_trivial():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    run_a()
+    run_b()
