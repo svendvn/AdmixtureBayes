@@ -381,6 +381,7 @@ if __name__=="__main__":
     #t.many_admixes(10)
     from Rcatalogue_of_trees import tree_good, tree_one_admixture
     pks={}
+
     newt,forw,backw=addadmix(tree_one_admixture,pks=pks, check_opposite=True)
     print 'forw',forw
     print 'back',backw

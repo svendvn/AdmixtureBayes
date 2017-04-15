@@ -16,7 +16,8 @@ def run_a():
                summary.s_tree_identifier(),
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
-               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['backward_choices','backward_density','forward_density','forward_choices']]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+               summary.s_variable('proposal_type', output='string'),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
                
     simulation_sanity.test_prior_model(s_tree, 100000, summaries=summaries, thinning_coef=3)
     def max_two(tree):
@@ -43,7 +44,7 @@ def run_b():
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
                summary.s_variable('proposal_type', output='string')]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    simulation_sanity.test_prior_model_no_admixes(s_tree, 200000, summaries=summaries, thinning_coef=5)
+    simulation_sanity.test_prior_model_no_admixes(s_tree, 100000, summaries=summaries, thinning_coef=3)
     list_of_summaries=summaries[2:6]
     nsim=20000
     prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, admixes=0, sim_length=nsim, list_of_summaries=list_of_summaries)
@@ -65,4 +66,4 @@ def run_trivial():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    run_b()
+    run_a()

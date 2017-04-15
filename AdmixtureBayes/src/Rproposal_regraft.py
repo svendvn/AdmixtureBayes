@@ -4,7 +4,7 @@ from scipy.stats import expon, uniform
 from Rtree_operations import (get_parents, is_root, get_descendants_and_rest, 
 node_is_non_admixture, has_child_admixture, insert_children_in_tree,
 remove_parent_attachment, graft, node_is_admixture, get_real_parents, halfbrother_is_uncle,
-get_branch_length)
+get_branch_length, get_all_branch_descendants_and_rest, other_branch)
 from random import getrandbits
 #from os import urandom
 #from tree_warner import check
@@ -14,12 +14,11 @@ def _get_possible_regrafters(tree):
     for key in tree:
         parents=get_real_parents(tree[key])
         #print parents
-        if len(parents)==1:
-            parent=parents[0]
+        for branch, parent in enumerate(parents):
             #print key,(not is_root(parent)),node_is_non_admixture(tree[parent]),(not has_child_admixture(tree, parent))
             #if (not is_root(parent)) and node_is_non_admixture(tree[parent]) and (not has_child_admixture(tree, parent)):
             if parent=='r' or (node_is_non_admixture(tree[parent]) and not halfbrother_is_uncle(tree, key, parent)):
-                res.append(key)
+                res.append((key,branch))
     return res
 
 def _get_possible_branches(tree, children, other):
@@ -54,28 +53,37 @@ class regraft_class(object):
         return make_regraft(*args, **kwargs)
 
 def make_regraft(tree, new_node=None, pks={}):
-    possible_nodes=_get_possible_regrafters(tree)
+    possible_nodes= _get_possible_regrafters(tree)
     
     assert len(possible_nodes)>0, 'There were no regraft locations possible, which is strange because the root is regraftable and always look the same.'
     
     new_tree= deepcopy(tree)
-    regrafter=choice(possible_nodes, 1)[0]
-    pks['regrafter']=regrafter
+    regraft_key, regraft_branch= possible_nodes[choice(len(possible_nodes), 1)[0]]
+    pks['regraft_key']=regraft_key
+    pks['regraft_branch']=regraft_branch
     #print 'regrafter', regrafter
-    new_tree, remove_distrub, remove_val,remove_par=remove_parent_attachment(new_tree, regrafter)
+    new_tree, remove_distrub, remove_val,remove_par=remove_parent_attachment(new_tree, regraft_key, regraft_branch)
     q_backward=back_density(remove_distrub, remove_val, remove_par)
-    children, other= get_descendants_and_rest(tree, regrafter)
-    candidates=_get_possible_branches(new_tree, children, other)+[('r',0)]
+    #pretty_print(new_tree)
+    children, other= get_all_branch_descendants_and_rest(new_tree, regraft_key, regraft_branch)
+    candidates=_thin_out_sibling(new_tree, other, regraft_key)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     recipient_key, recipient_branch=candidates[ch]
-    #print 'regrafter', regrafter
-    #print 'into_tree', candidates[ch]
+    #print 'regrafter', regraft_key, regraft_branch
+    #print 'into_tree', candidates, candidates[ch]
     #print 'new_tree',new_tree
-    new_tree, q_forward= regraft(new_tree, regrafter, recipient_key, new_node=new_node, which_branch=recipient_branch)
+    new_tree, q_forward= regraft(new_tree, regraft_key, regraft_branch, recipient_key, new_node=new_node, which_branch=recipient_branch)
     #_, new_other =  get_descendants_and_rest(new_tree, regrafter)
     #print len(other), len(new_other)
 
     return new_tree, q_forward, q_backward
+
+def _thin_out_sibling(tree, branches, key):
+#     print 'branches', branches
+#     for r,w in branches:
+#         if r!='r':
+#             print r,w,tree[r][3+w]
+    return [(r,w) for r,w in branches if (r!='r' and tree[r][3+w]!='closed_branch' and r!=key)]
 
 def back_density(distrub, val, par):
     if distrub=='r':
@@ -93,16 +101,17 @@ def simulate_and_forward_density(distrub, par=None):
         q=uniform.pdf(insertion_spot*branch_length,scale=branch_length)
     return insertion_spot, q
 
-def regraft(tree, remove_key, add_to_branch, new_node=None,which_branch=0):
+def regraft(tree, remove_key,remove_branch, add_to_branch, new_node=None,which_branch=0):
     
     if add_to_branch=='r':
         insertion_spot, q=simulate_and_forward_density('r')
     else:
         branch_length=get_branch_length(tree, add_to_branch,which_branch)
+        #print branch_length
         insertion_spot, q=simulate_and_forward_density('u', branch_length)
     if new_node is None:
         new_node=str(getrandbits(68)).strip()
-    tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch)
+    tree=graft(tree, remove_key, add_to_branch, insertion_spot, new_node, which_branch, remove_branch=remove_branch)
     return tree,q
 
 if __name__=='__main__':
@@ -135,7 +144,8 @@ if __name__=='__main__':
         #    break
         #print 'after', tr
     newt=Rcatalogue_of_trees.tree_good
-    for _ in range(2):
+    print _get_possible_regrafters(newt)
+    for _ in range(200):
         newt,forw,backw= make_regraft(newt)
         print 1*(forw<backw), 'for-bac',forw,backw
     pretty_print(newt)

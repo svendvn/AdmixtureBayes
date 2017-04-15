@@ -6,7 +6,7 @@ from Rtree_operations import create_trivial_tree, make_consistency_checks, get_n
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import basic_chain
-from posterior import initialize_prior_as_posterior, initialize_trivial_posterior
+from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable
 from meta_proposal import basic_meta_proposal, no_admix_proposal
 from generate_prior_trees import generate_admix_topology
@@ -18,6 +18,7 @@ from scipy.optimize import brentq
 from analyse_results import save_to_csv
 from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
+from Rtree_to_covariance_matrix import make_covariance
 
 
 def _get_new_nodes(i,k):
@@ -148,6 +149,25 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
                 check_trees=False)
     save_to_csv(results, summaries)
     return results
+
+def test_posterior_model(true_tree, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1):
+    m=make_covariance(true_tree)
+    if start_tree is None:
+        start_tree=true_tree
+    posterior=initialize_posterior(m)
+    if summaries is None:
+        summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    proposal=basic_meta_proposal()
+    #proposal.props=proposal.props[2:] #a little hack under the hood
+    #proposal.params=proposal.params[2:] #a little hack under the hood.
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+                proposal, post=None, N=sim_length, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=False)
+    save_to_csv(results, summaries)
     
 def test_topological_prior_density(n,k,sim_length):
     dictionary_of_probabilities={}
