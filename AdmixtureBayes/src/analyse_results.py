@@ -3,9 +3,16 @@ import seaborn as sns
 import os
 import matplotlib.pyplot as plt
 from subprocess import call
+from docutils.nodes import reference
 
-def generate_summary_csv(list_of_summaries, filename= 'summaries.csv'):
-    df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+[('output', [summ.output for summ in list_of_summaries])])
+def generate_summary_csv(list_of_summaries, filename= 'summaries.csv', reference_tree=None):
+    if reference_tree is not None:
+        df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+
+                                   [('output', [summ.output for summ in list_of_summaries])]+
+                                   [('value', [summ(reference_tree) for summ in list_of_summaries])])
+    else:    
+        df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+
+                                   [('output', [summ.output for summ in list_of_summaries])])
     df.to_csv(filename)
 
 def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=(1,1)):

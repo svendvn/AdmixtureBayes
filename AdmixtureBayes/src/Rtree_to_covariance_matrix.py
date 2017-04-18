@@ -72,11 +72,11 @@ class Covariance_Matrix():
 
     
 def leave_node(key, node, population, covmat):
-    if node_is_non_admixture(node): #if the node is coalescence it is not admixture
+    if node_is_non_admixture(node): 
         return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat)]
     else:
         new_pop=population.remove_partition(1.0-node[2])
-        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, dependent=node[1]),
+        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, dependent='none'), #changed dependent='none' to go to most loose restriction that still makes sense. To go back,put dependent=node[1
                 follow_branch(parent_key=node[1],branch_length=node[4], population=new_pop, covmat=covmat, dependent='none')]
 
 def follow_branch(parent_key, branch_length, population, covmat, dependent="none"):
@@ -157,20 +157,22 @@ def make_covariance(tree, node_keys):
 
 
 if __name__=="__main__":
+    from tree_plotting import pretty_print, plot_as_directed_graph
+    from Rtree_operations import insert_children_in_tree
     
-    tree_clean={'s1':['s1s2',None, None, 0.1,None],
+    tree_clean=insert_children_in_tree({'s1':['s1s2',None, None, 0.1,None],
           's2':['s1s2', None, None, 0.1,None],
           's1s2':['r',None, None, 0.2,None],
-          's3':['r',None, None, 0.2, None]}
+          's3':['r',None, None, 0.2, None]})
     
-    tree_one_admixture={'s1':['s1b',None, None, 0.1,None],
+    tree_one_admixture=insert_children_in_tree({'s1':['s1b',None, None, 0.1,None],
           's1b':['s1s2','s3b',0.2, 0.1,0.2],
           's2':['s1s2', None, None, 0.1,None],
           's1s2':['r',None, None, 0.2,None],
           's3b':['r',None, None, 0.2, None],
-          's3':['s3b',None,None,0.2,None]}
+          's3':['s3b',None,None,0.2,None]})
     
-    tree_two_admixture={'s1':['s1b',None, None, 0.1,None],
+    tree_two_admixture=insert_children_in_tree({'s1':['s1b',None, None, 0.1,None],
           's1c':['s1s2','s3b', 0.4,0.05,0.1],
           's1b':['s1c','s3a',0.2, 0.05,0.2],
           's2':['s1s2', None, None, 0.1,None],
@@ -178,9 +180,9 @@ if __name__=="__main__":
           's3b':['r',None, None, 0.2, None],
           's3':['s3a',None,None,0.1,None],
           's3a':['s3b', None,None,0.1,None]
-          }
+          })
     
-    tree_two_admixture_cross={'s1':['s1b',None, None, 0.1,None],
+    tree_two_admixture_cross=insert_children_in_tree({'s1':['s1b',None, None, 0.1,None],
           's1c':['s1s2','s3a', 0.4,0.05,0.1],
           's1b':['s1c',None,None, 0.05,None],
           's2':['s1s2', None, None, 0.1,None],
@@ -188,9 +190,9 @@ if __name__=="__main__":
           's3b':['r','s1b', 0.4, 0.2, 0.2],
           's3':['s3a',None,None,0.1,None],
           's3a':['s3b', None,None,0.1,None]
-          }
+          })
     
-    tree_illegal={'s1':['s1b',None, None, 0.1,None],
+    tree_illegal=insert_children_in_tree({'s1':['s1b',None, None, 0.1,None],
           's1c':['s1s2','s3a', 0.4,0.05,0.1],
           's1b':['s1c','s3b',0.2, 0.05,0.2],
           's2':['s1s2', None, None, 0.1,None],
@@ -198,18 +200,18 @@ if __name__=="__main__":
           's3b':['r',None, None, 0.2, None],
           's3':['s3a',None,None,0.1,None],
           's3a':['s3b', None,None,0.1,None]
-          }
+          })
     
-    tree_on_the_border={'s1':['c',None, None, 0.1,None],
+    tree_on_the_border=insert_children_in_tree({'s1':['c',None, None, 0.1,None],
           's2':['a',None, None,0.05,None],
           's3':['b',None,None, 0.3,None],
           'a':['b','d', 0.5,0.2,0.1],
           'c':['r','d',0.5,0.1,0.1],
           'd':['e',None,None,0.05,None],
           'b':['e',None,None,0.02,None],
-          'e':['r',None,None,0.05,None]}
+          'e':['r',None,None,0.05,None]})
     
-    tree_on_the_border2={'s1':['d',None, None, 0.1,None],
+    tree_on_the_border2=insert_children_in_tree({'s1':['d',None, None, 0.1,None],
           's2':['a',None, None,0.05,None],
           's3':['e',None,None, 0.3,None],
           's4':['b',None,None, 0.3,None],
@@ -218,30 +220,42 @@ if __name__=="__main__":
           'b':['f',None,None,0.05,None],
           'f':['r',None,None,0.02,None],
           'e':['f',None,None,0.05,None],
-          'd':['r',None,None,0.05,None]}
+          'd':['r',None,None,0.05,None]})
     
-    tree_admix_to_child={
+    tree_admix_to_child=insert_children_in_tree({
         's1':['r',None,None, 0.1,None],
         's2':['s2a',None,None,0.1,None],
         's3':['s3s2',None,None,0.1,None],
         's2a':['s3s2','s3s2a', 0.5,0.1,0.13],
         's3s2':['s3s2a',None,None,0.1,None],
         's3s2a':['r',None,None,0.01]
-        }
+        })
     
     #print make_covariance(tree_clean,['s1','s2','s3'])
     #print make_covariance(tree_one_admixture,['s1','s2','s3'])
     print 'two admixtures same direction consistent'
+    pretty_print(tree_two_admixture)
+    plot_as_directed_graph(tree_two_admixture, drawing_name='h1.BMP')
     print make_covariance(tree_two_admixture,['s1','s2','s3'])
     print 'two admixtures cross same direction'
+    pretty_print(tree_illegal)
+    plot_as_directed_graph(tree_illegal, drawing_name='h2.BMP')
     print make_covariance(tree_illegal,['s1','s2','s3'])
     print 'admixture-admixture coalescent'
+    plot_as_directed_graph(tree_on_the_border, drawing_name='h3.BMP')
+    pretty_print(tree_on_the_border)
     print make_covariance(tree_on_the_border,['s1','s2','s3'])
     print 'admixture on admixture'
+    plot_as_directed_graph(tree_on_the_border2, drawing_name='h4.BMP')
+    pretty_print(tree_on_the_border2)
     print make_covariance(tree_on_the_border2,['s1','s2','s3','s4'])
     print 'admixture to higher in tree'
+    plot_as_directed_graph(tree_admix_to_child, drawing_name='h5.BMP')
+    pretty_print(tree_admix_to_child)
     print make_covariance(tree_admix_to_child,['s1','s2','s3'])
     print 'two admixtures cross different directions'
+    plot_as_directed_graph(tree_two_admixture_cross, drawing_name='h6.BMP')
+    pretty_print(tree_two_admixture_cross)
     print make_covariance(tree_two_admixture_cross,['s1','s2','s3'])
     
 
@@ -249,13 +263,13 @@ if __name__=="__main__":
     
     N=40
     tree=create_trivial_tree(N)
-    print make_covariance(tree,['s'+str(i+1) for i in range(N)])
+    #print make_covariance(tree,['s'+str(i+1) for i in range(N)])
     def som():
         for i in range(1000):
             make_covariance(tree,['s'+str(i+1) for i in range(N)])
     import cProfile
      
-    print cProfile.run('som()')
+    #print cProfile.run('som()')
     
     #print cProfile.run("likewise()")
     

@@ -54,6 +54,20 @@ class Summary(object):
             if counts2 is not None:
                 plt.bar(range(len(labels)), counts2, width=1.0, alpha=0.5, color='g', label='MCMC')
         plt.title(self.name)
+        
+class s_basic_tree_statistics(Summary):
+    
+    def __init__(self, function, name, output='double'):
+        super(s_basic_tree_statistics, self).__init__(name, output=output)
+        self.function=function
+        
+    def __call__(self, **kwargs):
+        tree=kwargs['tree']
+        return self.function(tree)
+
+    def summary_of_phylogeny(self, tree):
+        return self.function(tree)
+        
     
 class s_no_admixes(Summary):
     

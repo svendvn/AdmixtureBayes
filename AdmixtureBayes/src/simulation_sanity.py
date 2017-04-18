@@ -19,6 +19,7 @@ from analyse_results import save_to_csv
 from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
 from Rtree_to_covariance_matrix import make_covariance
+from pathos.multiprocessing import Pool
 
 
 def _get_new_nodes(i,k):
@@ -122,16 +123,17 @@ def test_prior_model_several_chains(start_trees, sim_length=100000, summaries=No
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
-    
-    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
-                proposal, post=None, N=sim_length, 
-                sample_verbose_scheme=sample_verbose_scheme, 
-                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
-                temperature=1.0, proposal_update=None,
-                check_trees=True)
-    print results
-    save_to_csv(results, summaries)
-    return results
+    p=Pool(len(start_trees))
+    def func(nstart_tree):
+        n,start_tree=nstart_tree
+        final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+                    proposal, post=None, N=sim_length, 
+                    sample_verbose_scheme=sample_verbose_scheme, 
+                    overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
+                    temperature=1.0, proposal_update=None,
+                    check_trees=True)
+        save_to_csv(results, summaries, filename='results_'+str(n+1)+'csv', origin_layer=(n+1,1))
+    p.map(func, enumerate(start_trees))
 
 def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, thinning_coef=1):
     posterior=initialize_prior_as_posterior()
@@ -151,7 +153,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
     return results
 
 def test_posterior_model(true_tree, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1):
-    m=make_covariance(true_tree)
+    m=make_covariance(true_tree, get_trivial_nodes(4))
     if start_tree is None:
         start_tree=true_tree
     posterior=initialize_posterior(m)
@@ -161,6 +163,7 @@ def test_posterior_model(true_tree, start_tree=None, sim_length=100000, summarie
     #proposal.props=proposal.props[2:] #a little hack under the hood
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    sample_verbose_scheme['posterior']=(1,1)
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 

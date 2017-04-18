@@ -7,6 +7,7 @@ Read in data
 
 ```{r}
 df=read.csv('results.csv', header=T)
+df=df[2000:nrow(df),]
 sim_df=read.csv('sim_prior.csv', header =T)
 summs_df=read.csv('summaries.csv', header = T)
 library('coda')
@@ -45,9 +46,9 @@ all_plots=function(df){
   }
 }
 
-hist_numbers=function(x, true){
+hist_numbers=function(x, true, name='x'){
   fd=hist(c(x,true), plot=F)
-  ad=hist(x, col=rgb(1,0,0,0.5), breaks=fd$breaks, freq=F, ylim=c(0,max(fd$density)*1.5))
+  ad=hist(x, col=rgb(1,0,0,0.5), breaks=fd$breaks, freq=F, ylim=c(0,max(fd$density)*1.5), main=name)
   bd=hist(true, breaks=fd$breaks, add=TRUE, col=rgb(0,1,0,0.5), freq=F)
   ESS=effectiveSize(mcmc(x))
   obs_p=(ad$count/length(x))[which(bd$counts>0)]
@@ -82,7 +83,7 @@ all_nums(df2)
 ```{r}
 for(variable in variables_to_plot_normally){
   if(variable %in% colnames(sim_df)){
-    print(hist_numbers(df2[,variable], sim_df[,variable]))
+    print(hist_numbers(df2[,variable], sim_df[,variable], name=variable))
   }
 }
 ```
@@ -93,9 +94,9 @@ Analysing each proposal type with respect to mhr.
 if('proposal_type' %in% colnames(df)){
   barplot(table(df$proposal_type))
   if( 'mhr' %in% colnames(df)){
-    rmf=function(x,n=500){
+    rmf=function(x,n=50){
       x=sapply(x, function(x){min(as.numeric(x),1)})
-      return(stats::filter(x,rep(1/n,n), sides=2))
+      return((cumsum(x)[(n+1):length(x)]-cumsum(x[1:(length(x)-n)]))/n)
     }
     rmeans= aggregate(mhr ~ proposal_type, df, rmf, simplify = T)
     df_rmeans=data.frame(do.call(cbind, rmeans[,2]))

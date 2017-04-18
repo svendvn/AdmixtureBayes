@@ -18,9 +18,114 @@ def create_trivial_tree(size, total_height=1.0):
     del tree[new_inner_node]
     return _rename_root(tree, new_inner_node)
 
+def create_trivial_equibranched_tree(size, height=1.0):
+    '''
+    constructs tree of the form (..((s1,s2),s3),s4)...)
+    '''
+    tree={'s1':['n1',None,None,height,None, None,None],
+          's2':['n1',None,None,height,None, None,None],
+          'n1':['n2',None,None,height,None, 's1','s2']}
+    nex_inner_node='n2'
+    new_inner_node='n1'
+    for k in range(3,size+1):
+        old_inner_node='n'+str(k-2)
+        new_inner_node='n'+str(k-1)
+        nex_inner_node='n'+str(k)
+        new_leaf='s'+str(k)
+        tree[new_leaf]=[new_inner_node, None,None, height,None, None,None]
+        tree[new_inner_node]=[nex_inner_node, None,None, height, None, new_leaf,old_inner_node]
+    del tree[new_inner_node]
+    return _rename_root(tree, new_inner_node)
+
+def find_children(tree, parent_key):
+    res=[]
+    for key,node in tree.items():
+        if node[0]==parent_key:
+            res.append(key)
+        if node[1]==parent_key:
+            res.append(key)
+    while len(res)<2:
+        res.append(None)
+    return res
+
+def create_balanced_tree(size, height=1.0):
+    return finish_tree_with_coalescences({}, get_trivial_nodes(size), height)
+        
+
+def finish_tree_with_coalescences(tree, keys_to_finish, height=1.0):
+    while len(keys_to_finish)>1:
+        key1,key2=keys_to_finish[:2]
+        if len(keys_to_finish)==2:
+            new_key='r'
+        else:
+            new_key=key1+key2
+        tree[key1]=[new_key,None,None,height,None]+find_children(tree,key1)
+        tree[key2]=[new_key,None,None,height,None]+find_children(tree,key2)
+        keys_to_finish=keys_to_finish[2:]
+        keys_to_finish.append(new_key)
+        print len(keys_to_finish)
+    return tree
+        
+
+def create_burled_leaved_tree(size, height):
+    res={}
+    for i in range(size):
+        res['s'+str(i+1)]=['a'+str(i+1), None, None, height, None,None,None]
+        res['a'+str(i+1)]=['b'+str(i+1), 'm'+str(i+1), 0.5, height, height,'s'+str(i+1),None]
+        res['b'+str(i+1)]=['n'+str(i+1), 'm'+str(i+1), 0.5, height, height,'a'+str(i+1),None]
+        res['m'+str(i+1)]=['n'+str(i+1),None ,None, height, None,'a'+str(i+1),'b'+str(i+1)]
+    return finish_tree_with_coalescences(res, ['n'+str(i+1) for i in range(size)], height)
+    
+
 def get_trivial_nodes(size):
     return ['s'+str(n+1) for n in xrange(size)]
 
+def get_distance_to_root(tree, key, function=max):
+    if key=='r':
+        return 0.0
+    node=tree[key]
+    if node_is_admixture(node):
+        return function(get_distance_to_root(tree, node[0])+node[3], 
+                   get_distance_to_root(tree, node[1])+node[4], node[2])
+    else:
+        return get_distance_to_root(tree, node[0])+node[3]
+
+def special_max(x,y,z=None):
+    return max(x,y)
+
+def special_min(x,y,z=None):
+    return min(x,y)
+
+def average_admixture_node(x,y,z):
+    return z*x+(1-z)*y
+
+def get_max_distance_to_root(tree):
+    return max(get_leaf_distances_to_root(tree, function=special_max))
+
+def get_min_distance_to_root(tree):
+    return min(get_leaf_distances_to_root(tree, function=special_min))
+
+def get_average_distance_to_root(tree):
+    av_lengths=get_leaf_distances_to_root(tree, function=average_admixture_node)
+    return float(sum(av_lengths))/len(av_lengths)
+
+def get_leaf_distances_to_root(tree, function=max):
+    res=[]
+    for key, node in tree.items():
+        if node_is_leaf_node(node):
+            res.append(get_distance_to_root(tree, key, function=function))
+    return res
+
+def get_number_of_ghost_populations(tree):
+    count=0
+    for key,node in tree.items():
+        if node_is_coalescence(node):
+            child1,child2=get_children(node)
+            if node_is_admixture(tree[child1]) and node_is_admixture(tree[child2]):
+                count+=1
+    return count
+
+    
 def update_all_branches(tree, updater):
     for key, node in tree.items():
         if node_is_admixture(node):
@@ -842,6 +947,10 @@ if __name__=='__main__':
           's2':['s1s2', None, None, 0.1,None],
           's1s2':['r',None, None, 0.2,None],
           's3':['r',None, None, 0.4, None]}
+        
+        print create_burled_leaved_tree(5,1.0)
+        print pretty_string(create_burled_leaved_tree(5,1.0))
+        print pretty_string(create_balanced_tree(15, 1.0))
         
         from copy import deepcopy
         from Rcatalogue_of_trees import *
