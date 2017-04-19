@@ -4,7 +4,6 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               get_admixture_proportion)
 from copy import deepcopy
 from prior import matchmake
-from statsmodels.sandbox.regression.try_treewalker import branch
 
 
 def node_count(tree):
@@ -148,7 +147,7 @@ class generate_predefined_list(object):
         self.listi=listi
         
     def __call__(self):
-        return self.listi.pop(0)
+        return float(self.listi.pop(0))
     
 def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths=None, admixture_proportions=None):
     '''
@@ -230,8 +229,12 @@ def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths
     
     return insert_children_in_tree(tree)
               
-            
-        
+def identifier_to_tree_clean(identifier):            
+    ad2, branch_lengths, admixture_proportions=divide_triple_string(identifier)
+    tree_good2= identifier_to_tree(ad2, 
+                                   branch_lengths=string_to_generator(branch_lengths), 
+                                   admixture_proportions=string_to_generator(admixture_proportions))
+    return tree_good2
 
 def unique_identifier_and_branch_lengths(tree):
     leaves, coalescences_nodes, admixture_nodes=get_categories(tree)

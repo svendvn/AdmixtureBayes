@@ -38,7 +38,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     return x,post
 
 
-def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=False):
+def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=True):
     if proposal_update is not None:
         proposal.update(proposal_update)
     

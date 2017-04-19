@@ -9,7 +9,7 @@ from MCMC import basic_chain
 from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable
 from meta_proposal import basic_meta_proposal, no_admix_proposal
-from generate_prior_trees import generate_admix_topology
+from generate_prior_trees import generate_admix_topology, generate_phylogeny
 from prior import prior, topological_prior
 from tree_statistics import unique_identifier
 from math import exp
@@ -20,6 +20,7 @@ from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
 from Rtree_to_covariance_matrix import make_covariance
 from pathos.multiprocessing import Pool
+from scipy.stats import geom
 
 
 def _get_new_nodes(i,k):
@@ -152,8 +153,13 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
     save_to_csv(results, summaries)
     return results
 
-def test_posterior_model(true_tree, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1):
-    m=make_covariance(true_tree, get_trivial_nodes(4))
+def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4):
+    if true_tree is None:
+        if admixtures_of_true_tree is None:
+            admixtures_of_true_tree=geom.rvs(p=0.5)-1
+        true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree)
+        
+    m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
         start_tree=true_tree
     posterior=initialize_posterior(m)
@@ -171,6 +177,33 @@ def test_posterior_model(true_tree, start_tree=None, sim_length=100000, summarie
                 temperature=1.0, proposal_update=None,
                 check_trees=False)
     save_to_csv(results, summaries)
+    return true_tree
+
+def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4):
+    if true_tree is None:
+        if admixtures_of_true_tree is None:
+            admixtures_of_true_tree=geom.rvs(p=0.5)-1
+        true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree)
+        
+    m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
+    if start_tree is None:
+        start_tree=true_tree
+    posterior=initialize_posterior(m)
+    if summaries is None:
+        summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
+    proposal=basic_meta_proposal()
+    #proposal.props=proposal.props[2:] #a little hack under the hood
+    #proposal.params=proposal.params[2:] #a little hack under the hood.
+    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
+    sample_verbose_scheme['posterior']=(1,1)
+    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+                proposal, post=None, N=sim_length, 
+                sample_verbose_scheme=sample_verbose_scheme, 
+                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
+                temperature=1.0, proposal_update=None,
+                check_trees=False)
+    save_to_csv(results, summaries)
+    return true_tree
     
 def test_topological_prior_density(n,k,sim_length):
     dictionary_of_probabilities={}

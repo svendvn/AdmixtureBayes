@@ -5,7 +5,7 @@ from numpy import zeros, diag, ix_, outer
 from tree_operations import get_number_of_admixes_on_branch
 from itertools import izip
 
-from Rtree_operations import node_is_non_admixture, node_is_coalescence
+from Rtree_operations import node_is_non_admixture, node_is_coalescence, get_leaf_keys
 
 class Population:
     
@@ -127,7 +127,9 @@ def _thin_out_dic(dic, taken):
             del dic[key]
     return dic,ready_nodes
                 
-def make_covariance(tree, node_keys):
+def make_covariance(tree, node_keys=None):
+    if node_keys is None:
+        node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
     covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})

@@ -442,7 +442,7 @@ def get_sister_branch(tree, parent, key, branch):
         elif parent[6]==key:
             return parent[5], mother_or_father(tree, parent[5], tree[key][branch])
         else:
-            assert False, "the parent was not really a parent"
+            assert False, "the parent was not really a parent"+'\n'+pretty_string(tree)+'\n'+'parent,key,branch='+str(parent)+','+str(key)+','+str(branch)
         
         
 

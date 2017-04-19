@@ -5,6 +5,7 @@ import Rtree_operations
 import summary
 import generate_prior_trees
 import trivial_mcmc
+import tree_statistics
 
 
 def run_a():
@@ -84,8 +85,8 @@ def run_c():
     analyse_results.generate_summary_csv(summaries)
     
 def run_d():
-    true_tree=Rcatalogue_of_trees.tree_good
-    s_tree=Rtree_operations.create_trivial_tree(4)
+    #true_tree=Rcatalogue_of_trees.tree_good
+    s_tree=Rtree_operations.create_trivial_tree(9)
     summaries=[summary.s_variable('posterior'), 
                summary.s_variable('mhr'), 
                summary.s_no_admixes(), 
@@ -96,9 +97,30 @@ def run_d():
                summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    #simulation_sanity.test_posterior_model(true_tree,None, 100000, summaries=summaries, thinning_coef=3)
+    r=simulation_sanity.test_posterior_model(None,None, 200000, summaries=summaries, thinning_coef=3, admixtures_of_true_tree=2, no_leaves_true_tree=9)
+    print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
+    analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
+    
+def run_posterior_multichain():
+    s_tree=Rtree_operations.create_trivial_tree(19)
+    summaries=[summary.s_variable('posterior'), 
+               summary.s_variable('mhr'), 
+               summary.s_no_admixes(), 
+               summary.s_tree_identifier(),
+               summary.s_average_branch_length(),
+               summary.s_total_branch_length(),
+               summary.s_basic_tree_statistics(Rtree_operations.get_number_of_ghost_populations, 'ghost_pops', output='integer'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
+               summary.s_variable('proposal_type', output='string'),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    r=simulation_sanity.test_posterior_model_multichain(None,None, 100000, summaries=summaries, thinning_coef=3, admixtures_of_true_tree=2, no_leaves_true_tree=19)
+    print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
 def run_trivial():
@@ -112,4 +134,4 @@ def run_trivial():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    run_a()
+    run_d()

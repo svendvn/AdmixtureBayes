@@ -41,6 +41,15 @@ def initialize_trivial_posterior():
             assert False, 'input in posterior was not recognizable.'
     return posterior
 
+def print_pks(pks):
+    for key, value in pks.items():
+        print '\t',key,':',value
+
+def call_post(posterior_function,tree, posterior_function_name='posterior', tree_name='tree'):
+    pks={}
+    print posterior_function_name+'('+tree_name+')=', posterior_function(tree, pks=pks)
+    print_pks(pks)
+
 if __name__=='__main__':
     import Rcatalogue_of_trees
     import Rtree_operations
@@ -55,14 +64,7 @@ if __name__=='__main__':
     
     true_posterior=initialize_posterior(true_cov)
     ref_posterior=initialize_posterior(ref_cov)
-    def print_pks(pks):
-        for key, value in pks.items():
-            print '\t',key,':',value
-    
-    def call_post(posterior_function,tree, posterior_function_name='posterior', tree_name='tree'):
-        pks={}
-        print posterior_function_name+'('+tree_name+')=', posterior_function(tree, pks=pks)
-        print_pks(pks)
+
         
     
     call_post(true_posterior, ref_tree, 'true_posterior', 'ref_tree')

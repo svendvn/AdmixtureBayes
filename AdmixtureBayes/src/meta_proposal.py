@@ -10,7 +10,7 @@ class new_node_naming_policy(object):
         self.n=0
         
     def next_nodes(self, no_nodes):
-        print self.n
+        #print self.n
         if no_nodes==2:
             self.n+=1 
             return ['x'+str(self.n)+a for a in ['a','b']]
@@ -50,6 +50,17 @@ class basic_meta_proposal(object):
             args.extend(self.params[index])
         new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
         return new_tree,forward,backward,1,forwj,backj
+
+    def adapt(self,mhr):
+        pass
+    
+    def extract_new_values(self):
+        information={}
+        information['n']=self.node_naming.n
+        return information
+    
+    def wear_new_values(self, information):
+        self.node_naming.n=information['n']
     
 class no_admix_proposal(object):
     

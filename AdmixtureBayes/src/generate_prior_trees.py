@@ -1,5 +1,5 @@
 from numpy.random import choice
-from Rtree_operations import _rename_root
+from Rtree_operations import rename_root
 from tree_plotting import pretty_print
 from copy import deepcopy
 from numpy import argsort
@@ -55,7 +55,7 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
     for key, node in tree.items():
         if node[0] is None and node[1] is None:
             del tree[key]
-            tree=_rename_root(tree,key)
+            tree=rename_root(tree,key)
     return tree
 
 def generate_phylogeny(size,admixes, leaf_nodes=None):
