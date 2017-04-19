@@ -9,7 +9,7 @@ def generate_summary_csv(list_of_summaries, filename= 'summaries.csv', reference
     if reference_tree is not None:
         df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+
                                    [('output', [summ.output for summ in list_of_summaries])]+
-                                   [('value', [summ(reference_tree) for summ in list_of_summaries])])
+                                   [('value', [summ.summary_of_phylogeny(reference_tree) for summ in list_of_summaries])])
     else:    
         df=pd.DataFrame.from_items([('summary', [summ.name for summ in list_of_summaries])]+
                                    [('output', [summ.output for summ in list_of_summaries])])

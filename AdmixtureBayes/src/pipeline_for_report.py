@@ -30,9 +30,9 @@ def run_a():
         return True
     list_of_summaries=summaries[2:10]
     nsim=100000
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=nsim, list_of_summaries=list_of_summaries)#, thinning_criteria=max_two)
-    analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
-    analyse_results.generate_summary_csv(summaries)
+    #prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=nsim, list_of_summaries=list_of_summaries)#, thinning_criteria=max_two)
+    #analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
+    #analyse_results.generate_summary_csv(summaries)
     #analyse_results.full_analysis(summaries,
     #              trajectories_for_all_temperatures=False,
     #              trajectories_for_all_chains=False,
@@ -98,7 +98,7 @@ def run_d():
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    simulation_sanity.test_posterior_model(true_tree,None, 100000, summaries=summaries, thinning_coef=3)
+    #simulation_sanity.test_posterior_model(true_tree,None, 100000, summaries=summaries, thinning_coef=3)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
 def run_trivial():
@@ -112,4 +112,4 @@ def run_trivial():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    run_d()
+    run_a()

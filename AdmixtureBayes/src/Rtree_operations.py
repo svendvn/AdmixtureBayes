@@ -16,7 +16,7 @@ def create_trivial_tree(size, total_height=1.0):
         tree[new_leaf]=[new_inner_node, None,None, step_size*(k-1),None, None,None]
         tree[new_inner_node]=[nex_inner_node, None,None, step_size, None, new_leaf,old_inner_node]
     del tree[new_inner_node]
-    return _rename_root(tree, new_inner_node)
+    return rename_root(tree, new_inner_node)
 
 def create_trivial_equibranched_tree(size, height=1.0):
     '''
@@ -35,7 +35,7 @@ def create_trivial_equibranched_tree(size, height=1.0):
         tree[new_leaf]=[new_inner_node, None,None, height,None, None,None]
         tree[new_inner_node]=[nex_inner_node, None,None, height, None, new_leaf,old_inner_node]
     del tree[new_inner_node]
-    return _rename_root(tree, new_inner_node)
+    return rename_root(tree, new_inner_node)
 
 def find_children(tree, parent_key):
     res=[]
@@ -189,7 +189,7 @@ def remove_root_attachment(tree, orphanota_key, orphanota_branch):
     for key,branch,len_to_root in rooted_keys:
         if key!=orphanota_key or orphanota_branch!=branch:
             if node_is_coalescence(tree[key]):
-                tree=_rename_root(tree, key)
+                tree=rename_root(tree, key)
                 r=len_to_root
                 del tree[key]
             else:
@@ -216,7 +216,7 @@ def get_branch_length_and_reset(node, parent_key, new_length,add=False):
     else:
         assert False, 'could not give new length because the parent was unknown'
     
-def _rename_root(tree, old_name):
+def rename_root(tree, old_name):
     for _,node in tree.items():
         if node[0]==old_name:
             node[0]='r'
@@ -375,6 +375,18 @@ def get_parent_of_branch(tree, key, branch):
 def get_branch_length(tree,key,branch):
     assert key!='r', 'Tried to access the length of the root branch'
     return tree[key][branch+3]
+
+def get_admixture_proportion(tree, child_key,child_branch):
+    key=get_parent_of_branch(tree, child_key,child_branch)
+    assert node_is_admixture(tree[key]), 'Tried to get the admixture proportion of a non-admixture node'
+    return tree[key][2]
+
+def update_parent_and_branch_length(tree, child_key, child_branch, new_parent, new_branch_length):
+    assert child_key!='r', 'Tried to update the root branch'
+    tree[child_key][child_branch]=new_parent
+    tree[child_key][child_branch+3]=new_branch_length
+    return tree
+    
 
 
 def get_destination_of_lineages(tree, ready_lineages):

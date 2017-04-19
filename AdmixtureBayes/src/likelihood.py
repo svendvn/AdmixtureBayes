@@ -1,7 +1,17 @@
 from Rtree_to_covariance_matrix import make_covariance
 
 from scipy.stats import wishart
+from numpy.linalg import eig
 
+def n_mark(cov_mat):
+    m=cov_mat.shape[0]
+    w,_=eig(cov_mat)
+    S=sum(w)
+    print S
+    USS=sum(w*w)
+    print USS
+    return (m-1)*S**2 / ( (m+1)*USS-S**2 )
+    
 
 def likelihood(tree, emp_cov, nodes=None, M=12):
     r=emp_cov.shape[0]
@@ -25,9 +35,12 @@ if __name__=="__main__":
     true_tree=Rcatalogue_of_trees.tree_good
     s_tree=Rtree_operations.create_trivial_tree(4)
     emp_cov=make_covariance(true_tree, Rtree_operations.get_trivial_nodes(4))
+    nmark=n_mark(emp_cov)
+    print 'm,nmark',emp_cov.shape[0], nmark
     print emp_cov
     print make_covariance(s_tree, Rtree_operations.get_trivial_nodes(4))
-    print likelihood(s_tree, emp_cov)
+    print 'likelihood(M=12)', likelihood(s_tree, emp_cov)
+    print 'likelihood(M=nmark)', likelihood(s_tree, emp_cov,M=nmark)
 #     from tree_operations import make_flat_list_no_admix
 #     from numpy import diag
 #     N=5

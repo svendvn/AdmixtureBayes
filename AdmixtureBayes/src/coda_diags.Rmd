@@ -46,21 +46,40 @@ all_plots=function(df){
   }
 }
 
+SE_per_category=function(x,breaks){
+  list_indicators <- list()
+  for(i in 1:(length(breaks)-1)){
+    list_indicators[[i]] <- (x<breaks[i+1])*(x>=breaks[i])
+  }
+  df_parted=data.frame(list_indicators)
+  colnames(df_parted) <- as.character(0:(length(list_indicators)-1))
+  mcmcobj=mcmc(df_parted)
+  summ_object=summary(mcmcobj)
+  return(summ_object[[1]][,4])
+}
+
 hist_numbers=function(x, true, name='x'){
-  fd=hist(c(x,true), plot=F)
-  ad=hist(x, col=rgb(1,0,0,0.5), breaks=fd$breaks, freq=F, ylim=c(0,max(fd$density)*1.5), main=name)
-  bd=hist(true, breaks=fd$breaks, add=TRUE, col=rgb(0,1,0,0.5), freq=F)
+  fd=hist(c(x,true), plot=F, breaks=20)
+  breaks=fd$breaks
+  if(min(breaks)<0.01 & min(breaks)>-0.01){
+    breaks=0:(floor(max(breaks))+2)-0.5
+  }
+  ad=hist(x, col=rgb(1,0,0,0.5), breaks=breaks, freq=F, ylim=c(0,max(fd$density)*1.5), main=name)
+  bd=hist(true, breaks=breaks, add=TRUE, col=rgb(0,1,0,0.5), freq=F)
   ESS=effectiveSize(mcmc(x))
-  obs_p=(ad$count/length(x))[which(bd$counts>0)]
-  true_p=(bd$count/length(true))[which(bd$counts>0)]
-  se=sqrt(obs_p*(1-obs_p)/ESS)
+  obs_p=(ad$count/length(x))
+  true_p=(bd$count/length(true))
+  obs_p_censored=(ad$count/length(x))[bd$counts>0]
+  true_p_censored=(bd$count/length(true))[bd$counts>0]
+  se=SE_per_category(x,breaks)
   #print(se)
   for(i in 1:length(obs_p)){
-    lines(rep(ad$mids[i],2)  ,  1/(fd$breaks[2]-fd$breaks[1])*sapply(obs_p[i]+c(-1,1)*2*se[i], function(x) max(x,0)), lw=2.4)
+    lines(rep(ad$mids[i],2)  ,  1/(breaks[2]-breaks[1])*sapply(obs_p[i]+c(-1,1)*2*se[i], function(x) max(x,0)), lw=2.4)
   }
   #print('made lines')
-  G=ESS*sum((obs_p-true_p)^2/true_p)
-  return(c(G, 1-pchisq(G, length(obs_p)-1), 1-pchisq(G*length(x)/ESS, length(obs_p)-1)))
+  G=ESS*sum((obs_p_censored-true_p_censored)^2/true_p_censored)
+  return(list(chisquare_test=data.frame(G=G, pobs_ESS=1-pchisq(G, length(obs_p_censored)-1), pobs_N=1-pchisq(G*length(x)/ESS, length(obs_p_censored)-1)),
+              pvals=2*pnorm(-abs(obs_p-true_p)/se)))
 }
 
 ```
