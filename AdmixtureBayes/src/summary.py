@@ -124,6 +124,14 @@ class s_variable(Summary):
             return None
         return kwargs[self.name]
     
+class s_posterior(Summary):
+    
+    def __init__(self, ):
+        super(s_posterior, self).__init__('posterior', output='double')
+
+    def __call__(self, **kwargs):
+        return sum(kwargs['posterior'])
+    
     
 class s_tree_identifier(Summary):
     

@@ -9,11 +9,11 @@ def initialize_posterior(emp_cov, M=None):
         #print tot_branch_length
         prior_value=prior(x,pks=pks)
         if prior_value==-float('inf'):
-            return prior_value
+            return -float('inf'), prior_value
         likelihood_value=likelihood(x, emp_cov,M=M)
         pks['prior']=prior_value
         pks['likelihood']=likelihood_value
-        return prior_value+likelihood_value
+        return likelihood_value,prior_value
     return posterior
 
 def initialize_prior_as_posterior():
@@ -23,8 +23,8 @@ def initialize_prior_as_posterior():
         if prior_value==-float('inf'):
             return prior_value
         pks['prior']=prior_value
-        pks['likelihood']=''
-        return prior_value
+        pks['likelihood']=0
+        return 0,prior_value
     return posterior
 
 def initialize_trivial_posterior():

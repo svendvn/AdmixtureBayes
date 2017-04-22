@@ -22,7 +22,6 @@ def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=
         df['layer']=origin_layer[1]
     df.to_csv(filename)
     
-    
 def full_analysis(summaries,
                   csv_file='results.csv', 
                   trajectories=True, 

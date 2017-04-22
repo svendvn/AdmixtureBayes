@@ -467,7 +467,10 @@ def mother_or_father(tree, child_key, parent_key):
         return 0
     elif tree[child_key][1]==parent_key:
         return 1
-    assert False, 'The child did not match its parent'
+    assert False, 'The child did not match its parent'+\
+                  '\n'+pretty_string(tree)+'\n\n'+\
+                  'child_key,parent_key='+str(child_key)+\
+                  ','+str(parent_key)
     
 def insert_children_in_tree(tree):
     children={key:[] for key in tree}

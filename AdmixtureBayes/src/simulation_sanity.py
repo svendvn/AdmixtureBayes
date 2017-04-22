@@ -20,7 +20,8 @@ from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
 from Rtree_to_covariance_matrix import make_covariance
 from pathos.multiprocessing import Pool
-from scipy.stats import geom
+from scipy.stats import geom, wishart
+from likelihood import n_mark
 
 
 def _get_new_nodes(i,k):
@@ -153,7 +154,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
     save_to_csv(results, summaries)
     return results
 
-def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4):
+def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=None, wishart_df=None):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -162,7 +163,12 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
         start_tree=true_tree
-    posterior=initialize_posterior(m)
+    if wishart_df is None:
+        wishart_df=n_mark(true_tree)
+    if sim_from_wishart:
+        r=m.shape[0]
+        m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
+    posterior=initialize_posterior(m,wishart_df)
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
@@ -176,7 +182,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
                 overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
                 temperature=1.0, proposal_update=None,
                 check_trees=False)
-    save_to_csv(results, summaries)
+    save_to_csv(results, summaries, filename= filename)
     return true_tree
 
 def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4):
@@ -299,6 +305,20 @@ def check_predestinations(tree, reps=10000):
         wr = writer(f)
         wr.writerows(res_ret)
     return 'done'     
+
+def marginalize_out_data_in_posterior(no_leaves, trees=100, nsim=50000):
+    summaries=[summary.s_posterior(), 
+           summary.s_no_admixes(), 
+           summary.s_tree_identifier(),
+           summary.s_average_branch_length(),
+           summary.s_total_branch_length(),
+           summary.s_basic_tree_statistics(Rtree_operations.get_number_of_ghost_populations, 'ghost_pops', output='integer'),
+           summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
+           summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
+           summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root')]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    
+    for _ in xrange(trees):
+        pass
     
 def trivial_simulation(start_val, reps, thinning_coef=1):
     posterior=initialize_trivial_posterior()

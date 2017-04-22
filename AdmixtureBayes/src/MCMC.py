@@ -26,7 +26,10 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     post_new=posterior_function(newx,pks)
     pks['proposed_posterior']=post_new
     
-    mhr=exp(temperature*(post_new-post))*g2*j2/j1/g1*Jh
+    #print temperature
+    likelihood_old, prior_old = post
+    likelihood_new,prior_new = post_new
+    mhr=exp((likelihood_new-likelihood_old)/temperature+(prior_new-prior_old))*g2*j2/j1/g1*Jh
     #print post_new, post, post_new-post, exp(post_new-post), mhr
     pks['mhr']=mhr
     
@@ -40,7 +43,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
 
 def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=True):
     if proposal_update is not None:
-        proposal.update(proposal_update)
+        proposal.wear_exportable_state(proposal_update)
     
     tree=start_tree
     if check_trees:
@@ -49,7 +52,7 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
         post=posterior_function(tree)
     
     iteration_summary=[]
-    
+    #print 'random', random()
         
     for i in range(i_start_from,i_start_from+N):
         proposal_knowledge_scraper={}
@@ -68,7 +71,7 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
             #print pretty_string(tree)
             check(tree, proposal_knowledge_scraper)
     
-    return tree, post, zip(*iteration_summary), None#,proposal.get_update()
+    return tree, post, zip(*iteration_summary),proposal.get_exportable_state()
         
         
         

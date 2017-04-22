@@ -54,12 +54,12 @@ class basic_meta_proposal(object):
     def adapt(self,mhr):
         pass
     
-    def extract_new_values(self):
+    def get_exportable_state(self):
         information={}
         information['n']=self.node_naming.n
-        return information
+        return information     
     
-    def wear_new_values(self, information):
+    def wear_exportable_state(self, information):
         self.node_naming.n=information['n']
     
 class no_admix_proposal(object):
