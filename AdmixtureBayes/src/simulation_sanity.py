@@ -1,8 +1,7 @@
-from tree_plotting import plot_as_directed_graph, plot_graph, pretty_print, pretty_string
 from Rproposal_admix import addadmix, deladmix
 from Rproposal_regraft import make_regraft
 from Rproposal_rescale import rescale
-from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector
+from Rtree_operations import create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector,pretty_print, pretty_string
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import basic_chain
@@ -31,6 +30,7 @@ def _get_new_nodes(i,k):
         return 'x'+str(i)
 
 def topological_support(start_tree, n=10000, nodes=None):
+    from tree_plotting import plot_as_directed_graph, plot_graph, pretty_print, pretty_string
     tree=start_tree
     score=0
     for i in range(n):

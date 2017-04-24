@@ -1,6 +1,5 @@
 from numpy.random import choice
-from Rtree_operations import rename_root
-from tree_plotting import pretty_print
+from Rtree_operations import rename_root,pretty_print
 from copy import deepcopy
 from numpy import argsort
 from collections import Counter

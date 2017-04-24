@@ -8,7 +8,7 @@ from summary import *
 from multiprocessing import Queue, Process
 from prior import prior
 from tree_warner import check
-from tree_plotting import pretty_string
+from Rtree_operations import pretty_string
 
 
 

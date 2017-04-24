@@ -431,6 +431,9 @@ def pretty_string(tree):
     res+='}'
     return res
 
+def pretty_print(tree):
+    print pretty_string(tree)
+
 def get_sister_branch(tree, parent, key, branch):
     #print parent,key
     #print pretty_string(tree)

@@ -2,10 +2,9 @@ from numpy.random import choice, random, exponential
 from copy import deepcopy
 from scipy.special import binom
 from Rtree_operations import *
-from Rtree_operations import _update_parent, _get_index_of_parent, _update_child, change_admixture
+from Rtree_operations import _update_parent, _get_index_of_parent, _update_child, change_admixture, pretty_print
 from random import getrandbits
 from scipy.stats import expon
-from tree_plotting import pretty_print
 
 
 

@@ -5,10 +5,11 @@ from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_a
                               get_descendants_and_rest, graft, remove_admix, node_is_non_admixture,
                               make_consistency_checks, parent_is_spouse, halfbrother_is_uncle,
                               parent_is_sibling, other_branch, get_branch_length, change_admixture,
-                              get_all_branches, get_all_branch_descendants_and_rest, remove_admix2)
+                              get_all_branches, get_all_branch_descendants_and_rest, remove_admix2,
+                              pretty_string)
 from random import getrandbits
 from scipy.stats import expon
-from tree_plotting import pretty_string
+#from tree_plotting import 
 
 
 
