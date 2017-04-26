@@ -141,6 +141,6 @@ if __name__=='__main__':
     
     parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
     parser.add_argument('--df', type=float, default=100.0, help='degrees of freedom to run under')
-    parser.add_argument('--output_folder', type=str, defalut='', help='directory')
+    parser.add_argument('--output_folder', type=str, default='', help='directory')
     options=parser.parse_args()
     run_e(options.df, options.output_folder)
