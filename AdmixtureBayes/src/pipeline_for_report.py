@@ -104,8 +104,8 @@ def run_d():
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
-def run_e(df):
-    simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=df, prefix='df,'+str(int(df)))
+def run_e(df, out):
+    simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out)
     
 def run_posterior_multichain():
     s_tree=Rtree_operations.create_trivial_tree(19)
@@ -141,6 +141,6 @@ if __name__=='__main__':
     
     parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
     parser.add_argument('--df', type=float, default=100.0, help='degrees of freedom to run under')
-    
+    parser.add_argument('--output_folder', type=string, defalut='', help='directory')
     options=parser.parse_args()
-    run_e(options.df)
+    run_e(options.df, options.output_folder)

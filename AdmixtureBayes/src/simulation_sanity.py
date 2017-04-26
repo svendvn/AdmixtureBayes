@@ -22,6 +22,7 @@ from Rtree_to_covariance_matrix import make_covariance
 from pathos.multiprocessing import Pool
 from scipy.stats import geom, wishart
 from likelihood import n_mark
+import os
 
 
 def _get_new_nodes(i,k):
@@ -309,7 +310,7 @@ def check_predestinations(tree, reps=10000):
         wr.writerows(res_ret)
     return 'done'     
 
-def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wishart_df=None, prefix=''):
+def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wishart_df=None, prefix='', dest_folder=''):
     summaries=[s_posterior(), 
            s_no_admixes(),
            s_average_branch_length(),
@@ -320,7 +321,7 @@ def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wisha
            s_basic_tree_statistics(get_average_distance_to_root, 'average_root')]+[s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
     
     for i in xrange(no_trees):
-        result_file='results_'+prefix+str(i+1)+'.csv'
+        result_file=os.path.join(dest_folder,'results_'+prefix+str(i+1)+'.csv')
         test_posterior_model(thinning_coef=49, summaries= summaries, filename= result_file, sim_from_wishart=True,sim_length=nsim, wishart_df=wishart_df, no_leaves_true_tree=no_leaves)
     
 def trivial_simulation(start_val, reps, thinning_coef=1):
