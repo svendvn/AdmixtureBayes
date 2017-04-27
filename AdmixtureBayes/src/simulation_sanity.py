@@ -8,7 +8,7 @@ from time import sleep as wait
 from MCMC import basic_chain
 from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable, s_posterior, s_average_branch_length, s_total_branch_length, s_basic_tree_statistics
-from meta_proposal import basic_meta_proposal, no_admix_proposal
+from meta_proposal import basic_meta_proposal, no_admix_proposal, adaptive_proposal
 from generate_prior_trees import generate_admix_topology, generate_phylogeny
 from prior import prior, topological_prior
 from tree_statistics import unique_identifier
@@ -108,9 +108,9 @@ def test_prior_model(start_tree, sim_length=100000, summaries=None, thinning_coe
     posterior=initialize_prior_as_posterior()
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
-    proposal=basic_meta_proposal()
+    proposal=adaptive_proposal() #basic_meta_proposal()
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
-    
+    sample_verbose_scheme['posterior']=(1,1000)
     final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 

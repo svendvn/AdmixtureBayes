@@ -185,7 +185,7 @@ def remove_root_attachment(tree, orphanota_key, orphanota_branch):
     Here a new root is born.
     
     '''
-    rooted_keys=_find_rooted_nodes(tree)
+    rooted_keys=find_rooted_nodes(tree)
     for key,branch,len_to_root in rooted_keys:
         if key!=orphanota_key or orphanota_branch!=branch:
             if node_is_coalescence(tree[key]):
@@ -234,7 +234,7 @@ def _rename_child(node, old_name, new_name):
     return node
     
     
-def _find_rooted_nodes(tree):
+def find_rooted_nodes(tree):
     res=[]
     for key,node in tree.items():
         if node[0]=='r' or (node[1] is not None and node[1]=='r'):
@@ -375,6 +375,9 @@ def get_parent_of_branch(tree, key, branch):
 def get_branch_length(tree,key,branch):
     assert key!='r', 'Tried to access the length of the root branch'
     return tree[key][branch+3]
+
+def get_branch_length_from_parent(tree, child_key, parent_key):
+    return tree[child_key][3+mother_or_father(tree, child_key, parent_key)]
 
 def get_admixture_proportion(tree, child_key,child_branch):
     key=get_parent_of_branch(tree, child_key,child_branch)
@@ -953,6 +956,8 @@ def make_consistency_checks(tree, leaf_nodes=None):
     res_dic={name:(bool, message) for name,bool,message in zip(names,bools, messages)}
     
     return res_bool, res_dic
+
+
 
                 
         

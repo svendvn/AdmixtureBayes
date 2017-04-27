@@ -35,7 +35,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     u=random()
     pks['U']=u
-    #proposal.update(mhr, u, post_new, post, temperature)
+    proposal.adapt(mhr, u, post_new, post, temperature)
     if u<mhr:
         return newx,post_new
     return x,post

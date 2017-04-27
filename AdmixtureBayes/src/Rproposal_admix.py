@@ -383,7 +383,7 @@ if __name__=="__main__":
     from Rcatalogue_of_trees import tree_good, tree_one_admixture
     pks={}
 
-    newt,forw,backw=addadmix(tree_one_admixture,pks=pks, check_opposite=True)
+    newt,forw,backw=addadmix(tree_good,pks=pks, check_opposite=True)
     print 'forw',forw
     print 'back',backw
     print 'pks',pks

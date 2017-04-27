@@ -15,7 +15,7 @@ def rescale(tree, sigma=0.01, pks={}):
     updat=updater(sigma)
     new_tree=update_all_branches(new_tree, updat)
     if new_tree is None:
-        return tree,1,1
+        return tree,1,0 #rejecting by setting backward jump probability to 0.
     return new_tree ,1,1
 
 class rescale_class(object):
