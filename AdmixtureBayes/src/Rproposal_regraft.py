@@ -9,7 +9,7 @@ from random import getrandbits
 #from os import urandom
 #from tree_warner import check
 
-def _get_possible_regrafters(tree):
+def get_possible_regrafters(tree):
     res=[]
     for key in tree:
         parents=get_real_parents(tree[key])
@@ -53,7 +53,7 @@ class regraft_class(object):
         return make_regraft(*args, **kwargs)
 
 def make_regraft(tree, new_node=None, pks={}):
-    possible_nodes= _get_possible_regrafters(tree)
+    possible_nodes= get_possible_regrafters(tree)
     
     assert len(possible_nodes)>0, 'There were no regraft locations possible, which is strange because the root is regraftable and always look the same.'
     
@@ -62,11 +62,11 @@ def make_regraft(tree, new_node=None, pks={}):
     pks['regraft_key']=regraft_key
     pks['regraft_branch']=regraft_branch
     #print 'regrafter', regrafter
-    new_tree, remove_distrub, remove_val,remove_par=remove_parent_attachment(new_tree, regraft_key, regraft_branch)
+    new_tree, remove_distrub, remove_val, remove_par = remove_parent_attachment(new_tree, regraft_key, regraft_branch)
     q_backward=back_density(remove_distrub, remove_val, remove_par)
     #pretty_print(new_tree)
     children, other= get_all_branch_descendants_and_rest(new_tree, regraft_key, regraft_branch)
-    candidates=_thin_out_sibling(new_tree, other, regraft_key)+[('r',0)]
+    candidates=thin_out_sibling(new_tree, other, regraft_key)+[('r',0)]
     ch= choice(len(candidates),1)[0]
     recipient_key, recipient_branch=candidates[ch]
     #print 'regrafter', regraft_key, regraft_branch
@@ -78,7 +78,7 @@ def make_regraft(tree, new_node=None, pks={}):
 
     return new_tree, q_forward, q_backward
 
-def _thin_out_sibling(tree, branches, key):
+def thin_out_sibling(tree, branches, key):
 #     print 'branches', branches
 #     for r,w in branches:
 #         if r!='r':

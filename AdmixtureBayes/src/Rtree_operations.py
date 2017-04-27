@@ -232,7 +232,15 @@ def _rename_child(node, old_name, new_name):
     else:
         assert False, "tried to rename a child that didn't exist in its parents documents."
     return node
-    
+
+def rename_parent(node, old_name, new_name):
+    if node[0]==old_name:
+        node[0]=new_name
+    elif node[1]==old_name:
+        node[1]=new_name
+    else:
+        assert False, 'tried to rename a parent that didnt exist in its childs document'
+    return node
     
 def find_rooted_nodes(tree):
     res=[]
@@ -566,6 +574,47 @@ def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root, rem
         tree[rkey]=_update_parent(tree[rkey], 'r', new_name_for_old_root)
     
     return tree
+
+def materialize_root(tree, new_key):
+    (child_key1, child_branch1,_),(child_key2, child_branch2,_) = find_rooted_nodes(tree)
+    tree[new_key]=['r',None,None,None,None,child_key1, child_key2]
+    tree[child_key1][child_branch1]=new_key
+    tree[child_key2][child_branch2]=new_key
+    return tree
+
+def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft, chosen_piece, new_node_name='x'):
+    if parent_key=='r':
+        sister_key,sister_branch= _get_root_sibling(tree, regraft_key, regraft_branch)
+        if chosen_piece.child_key=='r':
+            u1,_=chosen.pieces.get_leaf_and_root_sided_length()
+            tree[sister_key][sister_branch]=tree[sister_key][sister_branch]+u1
+        else:
+            tree[chosen_piece.child_key][child]
+    else:
+        if chosen_piece.child_key=='r':
+            tree=materialize_root(tree, new_node_name)
+            u1,_=chosen.pieces.get_leaf_and_root_sided_length()
+            tree[new_key][3]=u1            
+        else:
+            u1,u2=chosen.pieces.get_leaf_and_root_sided_length()
+            tree[new_node_name]=[chosen_piece.parent_key, None,None,u2,None,regraft_key,chosen_piece.child_key]
+            if chosen_piece.parent_key=='r':
+                pass
+            else:
+                tree[chosen_piece.parent_key]=_rename_child(tree[chosen_piece.parent_key], chosen_piece.child_key, new_node_name)
+            update_parent_and_branch_length(tree, chosen_piece.child_key, chosen_piece.child_branch, new_node_name, u1)
+        sibling_key=get_other_children(tree[parent_key], regraft_key)
+        grandfather_key=tree[parent_key][0]
+        tree[sibling_key]=rename_parent(tree[sibling_key], parent_key, grandfather_key)
+        tree[regraft_key][regraft_branch]=new_node_name
+        if grandfather_key!='r':
+            tree[grandfather_key]=_rename_child(tree[grandfather_key], parent_key, sibling_key)
+        del tree[parent_key]
+    
+    if chosen_piece.child_key == parent_key: #after removal of the regrafter, the child_key will disappear, so we will need to fix that. 
+        
+        
+    
 
 def graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_key, remove_branch=0):
     #print 'undoing a closed branch', insertion_spot, remove_key, root_key

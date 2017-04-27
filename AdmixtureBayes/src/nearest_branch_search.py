@@ -17,7 +17,26 @@ class piece(object):
             self.direction='to_root'
         
     def __str__(self):
-        return ', '.join(map(str,[self.start_lattitude, self.end_lattitude, self.start_distance, self.end_distance]))
+        return ', '.join(map(str,[(self.child_key,self.child_branch, self.parent_key), self.start_lattitude, self.end_lattitude, self.start_distance, self.end_distance, self.direction]))
+    
+    def get_branch_key(self):
+        return (self.child_key, self.child_branch)
+    
+    def get_coverage(self):
+        return self.start_distance, self.end_distance
+    
+    def contains_distance(self, distance):
+        if self.end_distance is None:
+            return distance>=self.start_distance
+        return distance<=self.end_distance and distance>=self.start_distance
+    
+    def get_leaf_and_root_sided_length(self, distance):
+        if self.end_distance is None:
+            return distance-self.start_distance, None
+        if self.direction=='to_leaves':
+            return self.end_distance-distance, distance-self.start_distance
+        else:
+            return distance-self.start_distance, self.end_distance-distance
 
 class lineage(object):
     
@@ -45,6 +64,9 @@ class lineage(object):
             pieces.append(piece(self.lattitude, None, self.distance, None,'r',0,None))
         return new_lineages, pieces
 
+    def under_cap(self, cap):
+        return self.distance<cap
+
 
 def insert_root_in_tree(tree):
     (child_key1,_,_),(child_key2,_,_)=find_rooted_nodes(tree)
@@ -54,10 +76,9 @@ def remove_root_from_tree(tree):
     del tree['r']
     
 
-def distanced_branch_lengths(tree, start_key):
+def distanced_branch_lengths(tree, start_key, visited_keys=[], upper_cap=float('inf')):
     insert_root_in_tree(tree)
     pieces=[]
-    visited_keys=[]
     lineages=[lineage(start_key, 0, 0)]
     while lineages:
         lineages.sort(key=lambda x: x.distance)
@@ -67,13 +88,13 @@ def distanced_branch_lengths(tree, start_key):
             print lin.key
             new_lineages, new_pieces= lin.follow(tree, visited_keys)
             pieces.extend(new_pieces)
-            lineages.extend(new_lineages)
+            lineages.extend([new_lineage for new_lineage in new_lineages if new_lineage.under_cap(upper_cap)])
     remove_root_from_tree(tree)
     return pieces
     
 if __name__=='__main__':
     from Rcatalogue_of_trees import tree_good
-    ad=distanced_branch_lengths(tree_good, 'a')
+    ad=distanced_branch_lengths(tree_good, 'a', upper_cap=0.12)
     for e in ad:
         print e
     
