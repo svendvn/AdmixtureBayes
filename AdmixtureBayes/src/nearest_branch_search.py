@@ -1,42 +1,7 @@
-from Rtree_operations import find_rooted_nodes, get_real_children, get_real_parents, get_branch_length, mother_or_father
+from Rtree_operations import find_rooted_nodes, get_real_children, get_real_parents, get_branch_length, mother_or_father, pretty_print
+from piece_of_tree import piece
 
 
-class piece(object):
-    
-    def __init__(self, start_lattitude, end_lattitude, start_distance, end_distance, child_key, child_branch, parent_key):
-        self.start_lattitude=start_lattitude
-        self.end_lattitude=end_lattitude
-        self.start_distance=start_distance
-        self.end_distance=end_distance
-        self.child_key=child_key
-        self.child_branch=child_branch
-        self.parent_key=parent_key
-        if start_lattitude>end_lattitude:
-            self.direction='to_leaves'
-        else:
-            self.direction='to_root'
-        
-    def __str__(self):
-        return ', '.join(map(str,[(self.child_key,self.child_branch, self.parent_key), self.start_lattitude, self.end_lattitude, self.start_distance, self.end_distance, self.direction]))
-    
-    def get_branch_key(self):
-        return (self.child_key, self.child_branch)
-    
-    def get_coverage(self):
-        return self.start_distance, self.end_distance
-    
-    def contains_distance(self, distance):
-        if self.end_distance is None:
-            return distance>=self.start_distance
-        return distance<=self.end_distance and distance>=self.start_distance
-    
-    def get_leaf_and_root_sided_length(self, distance):
-        if self.end_distance is None:
-            return distance-self.start_distance, None
-        if self.direction=='to_leaves':
-            return self.end_distance-distance, distance-self.start_distance
-        else:
-            return distance-self.start_distance, self.end_distance-distance
 
 class lineage(object):
     
@@ -85,7 +50,7 @@ def distanced_branch_lengths(tree, start_key, visited_keys=[], upper_cap=float('
         lin=lineages.pop(0)
         if lin.key not in visited_keys:
             visited_keys.append(lin.key)
-            print lin.key
+            #print lin.key
             new_lineages, new_pieces= lin.follow(tree, visited_keys)
             pieces.extend(new_pieces)
             lineages.extend([new_lineage for new_lineage in new_lineages if new_lineage.under_cap(upper_cap)])

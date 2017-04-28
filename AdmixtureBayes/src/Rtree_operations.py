@@ -1,3 +1,4 @@
+from nltk.metrics import distance
 def create_trivial_tree(size, total_height=1.0):
     '''
     constructs tree of the form (..((s1,s2),s3),s4)...)
@@ -557,7 +558,7 @@ def graft(tree, remove_key, add_to_branch, insertion_spot, new_node_code, which_
     return tree
     
 def graft_onto_root(tree, insertion_spot, remove_key, new_name_for_old_root, remove_branch=0):    
-    root_keys=_find_rooted_nodes(tree)
+    root_keys=find_rooted_nodes(tree)
 
     if len(root_keys)==1:#this is the special case where an admixture leads to the new root
         return graft_onto_rooted_admixture(tree, insertion_spot, remove_key, root_keys[0], remove_branch=remove_branch)
@@ -586,33 +587,50 @@ def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft
     if parent_key=='r':
         sister_key,sister_branch= _get_root_sibling(tree, regraft_key, regraft_branch)
         if chosen_piece.child_key=='r':
-            u1,_=chosen.pieces.get_leaf_and_root_sided_length()
-            tree[sister_key][sister_branch]=tree[sister_key][sister_branch]+u1
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            tree[sister_key][sister_branch+3]=tree[sister_key][sister_branch+3]+u1
+        elif chosen_piece.child_key==sister_key and chosen_piece.child_branch==sister_branch:
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            tree[sister_key][sister_branch+3]=u1
         else:
-            tree[chosen_piece.child_key][child]
+            tree=rename_root(tree, sister_key)
+            del tree[sister_key]
+            u1,u2=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            if chosen_piece.parent_key == sister_key:
+                tree[new_node_name]=['r', None,None,u2,None,regraft_key,chosen_piece.child_key]
+            else:
+                tree[new_node_name]=[chosen_piece.parent_key, None,None,u2,None,regraft_key,chosen_piece.child_key]
+            if chosen_piece.parent_key=='r':
+                pass
+            elif chosen_piece.parent_key != sister_key:
+                tree[chosen_piece.parent_key]=_rename_child(tree[chosen_piece.parent_key], chosen_piece.child_key, new_node_name)
+            tree=update_parent_and_branch_length(tree, chosen_piece.child_key, chosen_piece.child_branch, new_node_name, u1)
+            tree[regraft_key][regraft_branch]=new_node_name
     else:
         if chosen_piece.child_key=='r':
             tree=materialize_root(tree, new_node_name)
-            u1,_=chosen.pieces.get_leaf_and_root_sided_length()
-            tree[new_key][3]=u1            
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            tree[new_node_name][3]=u1       
+            tree[regraft_key][regraft_branch]='r'     
         else:
-            u1,u2=chosen.pieces.get_leaf_and_root_sided_length()
+            u1,u2=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            #print u1,u2
             tree[new_node_name]=[chosen_piece.parent_key, None,None,u2,None,regraft_key,chosen_piece.child_key]
             if chosen_piece.parent_key=='r':
                 pass
             else:
                 tree[chosen_piece.parent_key]=_rename_child(tree[chosen_piece.parent_key], chosen_piece.child_key, new_node_name)
-            update_parent_and_branch_length(tree, chosen_piece.child_key, chosen_piece.child_branch, new_node_name, u1)
-        sibling_key=get_other_children(tree[parent_key], regraft_key)
+            tree=update_parent_and_branch_length(tree, chosen_piece.child_key, chosen_piece.child_branch, new_node_name, u1)
+            tree[regraft_key][regraft_branch]=new_node_name
+        sibling_key=get_other_children(tree[parent_key], regraft_key)[0]
         grandfather_key=tree[parent_key][0]
+        _=get_branch_length_and_reset(tree[sibling_key],parent_key, tree[parent_key][3], add=True)
         tree[sibling_key]=rename_parent(tree[sibling_key], parent_key, grandfather_key)
-        tree[regraft_key][regraft_branch]=new_node_name
         if grandfather_key!='r':
             tree[grandfather_key]=_rename_child(tree[grandfather_key], parent_key, sibling_key)
         del tree[parent_key]
     
-    if chosen_piece.child_key == parent_key: #after removal of the regrafter, the child_key will disappear, so we will need to fix that. 
-        
+    return tree    
         
     
 
@@ -1031,32 +1049,32 @@ if __name__=='__main__':
         print tree2
         print tree_on_the_border2_with_children
         
-        tree3=remove_parent_attachment(deepcopy(tree2), "s1")[0]
-        print tree3
-        print graft(tree3, 'f', 'r', 0.3, 'new_code', 0)
+        #tree3=remove_parent_attachment(deepcopy(tree2), "s1")[0]
+        #print tree3
+        #print graft(tree3, 'f', 'r', 0.3, 'new_code', 0)
         #print remove_parent_attachment(tree2, 'f')
         #print get_descendants_and_rest(tree2, 'b')
         #print is_root(*get_parents(tree2['a']))
         
-        trouble={'a': ['132', 'c', 0.5, 0.06013128348912011, 0.1, 's2', None], 'c': ['212', 'r', 0.5, 0.03639623632910125, 0.15000000000000002, 'a', None], 'b': ['r', None, None, 0.07, None, '132', 's4'], 'e': ['132', None, None, 0.05, None, '212', 's3'], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['212', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '132': ['b', None, None, 0.1398687165108799, None, 'a', 'e'], '212': ['e', None, None, 0.06360376367089875, None, 'c', 's1']}
-        trouble= remove_parent_attachment(trouble, 'b')[0]
-        print trouble
-        print graft(trouble, 'b', 'r', 0.314, 'dont see me', 'hallo')
-        
-        trouble3={'a': ['n17', 'c', 0.5, 0.0006670327290825764, 0.1, 's2', None], 'c': ['n15', 'r', 0.5, 0.02087163982263861, 0.4814480657456043, 'a', None], 'n16': ['n17', None, None, 0.005272434567465561, None, 's4', 's3'], 'n17': [None, None, None, 0.013899593800954894, None, 'a', 'n16'], 'n15': ['r', None, None, 0.05969046586907494, None, 'c', 's1'], 's3': ['n16', None, None, 0.07815645814883887, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n15', None, None, 0.5947563021746359, None, None, None], 's4': ['n16', None, None, 0.00017898147838901196, None, None, None]}
-        print graft(trouble3, 'n17', 'a', 1, 'n18', 1)
-        
-        tree_trouble={'a': ['n37', 'c', 0.5, 1.5717637721311875, 0.1, 's1', None], 'n66': ['r', None, None, 0.008798782728668674, None, 's3', 's4'], 'c': ['n54', 'n37', 0.5, 0.771318479326775, 0.07345113788460944, 'a', None], 's3': ['n66', None, None, 0.010969920361510089, None, None, None], 's2': ['n54', None, None, 0.404441491678861, None, None, None], 's1': ['a', None, None, 0.06451508173696463, None, None, None], 's4': ['n66', None, None, 1.7305330689019498, None, None, None], 'n67': ['r', None, None, 0.24519067463109384, None, 'n54', 'n37'], 'n54': ['n67', None, None, 0.25870104556004564, None, 'c', 's2'], 'n37': ['n67', None, None, 0.9342460567572629, None, 'c', 'a']}
-        print 'tree_trouble', tree_trouble
-        removed=remove_parent_attachment(tree_trouble, 'n54')[0]
-        print 'pruned tree', removed
-        adm=graft(removed, 'n54', 'c', 0.3, 'n68', 0) #FIXME: the function is being called like this via make_regraft
-        print adm
-        
-        print tree_on_the_border2_with_children
-        print remove_admix(tree_on_the_border2_with_children, 'a', 0)
-        
-        trouble_tree={'157': ['e', '95', 0.48, 0.053593995338132035, 0, '209', None], '156': ['r', None, None, 0.03852924467461515, None, '177', '184'], '196': ['209', '184', 0.48, 0.0005592709077173309, 0, 'c', None], '177': ['156', '87', 0.48, 0.04409469700439552, 0, '226', None], '138': ['54', '184', 0.48, 0.0923842952243634, 0, 's3', None], '87': ['95', None, None, 0.021717663805443786, None, 'b', '177'], '251': ['c', 'r', 0.48, 0.048451187058856385, 0, 'a', None], 's3': ['138', None, None, 0.003662331553773855, None, None, None], 's2': ['149', None, None, 0.031232370021655256, None, None, None], 's1': ['d', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '184': ['156', None, None, 0.014531521069126824, None, 'f', '196'], '209': ['157', '164', 0.48, 0.04266174601860901, 0, '196', None], '149': ['a', None, None, 0.018767629978344746, None, 's2', '54'], '164': ['f', None, None, 0.00649759823036904, None, '95', '209'], '226': ['177', None, 0.48, 0.004168053034161371, 0, 'd', None], '95': ['164', None, None, 0.02046617829442733, None, '87', '157'], 'a': ['b', '251', 0.5, 0.2, 0.05154881294114362, '149', None], 'c': ['196', 'd', 0.5, 0.003184987735541627, 0.1, '251', None], 'b': ['87', None, None, 0.001318559669759849, None, 's4', 'a'], 'e': ['f', None, None, 0.05, None, '157', '184'], 'd': ['226', None, None, 0.0017372499614431128, None, 's1', 'c'], 'f': ['184', None, None, 0.005468478930873175, None, '164', 'e'], '54': ['184', '149', 0.48, 0.17449964855898192, 0, '138', None]}
+#         trouble={'a': ['132', 'c', 0.5, 0.06013128348912011, 0.1, 's2', None], 'c': ['212', 'r', 0.5, 0.03639623632910125, 0.15000000000000002, 'a', None], 'b': ['r', None, None, 0.07, None, '132', 's4'], 'e': ['132', None, None, 0.05, None, '212', 's3'], 's3': ['e', None, None, 0.3, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['212', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '132': ['b', None, None, 0.1398687165108799, None, 'a', 'e'], '212': ['e', None, None, 0.06360376367089875, None, 'c', 's1']}
+#         trouble= remove_parent_attachment(trouble, 'b')[0]
+#         print trouble
+#         print graft(trouble, 'b', 'r', 0.314, 'dont see me', 'hallo')
+#         
+#         trouble3={'a': ['n17', 'c', 0.5, 0.0006670327290825764, 0.1, 's2', None], 'c': ['n15', 'r', 0.5, 0.02087163982263861, 0.4814480657456043, 'a', None], 'n16': ['n17', None, None, 0.005272434567465561, None, 's4', 's3'], 'n17': [None, None, None, 0.013899593800954894, None, 'a', 'n16'], 'n15': ['r', None, None, 0.05969046586907494, None, 'c', 's1'], 's3': ['n16', None, None, 0.07815645814883887, None, None, None], 's2': ['a', None, None, 0.05, None, None, None], 's1': ['n15', None, None, 0.5947563021746359, None, None, None], 's4': ['n16', None, None, 0.00017898147838901196, None, None, None]}
+#         print graft(trouble3, 'n17', 'a', 1, 'n18', 1)
+#         
+#         tree_trouble={'a': ['n37', 'c', 0.5, 1.5717637721311875, 0.1, 's1', None], 'n66': ['r', None, None, 0.008798782728668674, None, 's3', 's4'], 'c': ['n54', 'n37', 0.5, 0.771318479326775, 0.07345113788460944, 'a', None], 's3': ['n66', None, None, 0.010969920361510089, None, None, None], 's2': ['n54', None, None, 0.404441491678861, None, None, None], 's1': ['a', None, None, 0.06451508173696463, None, None, None], 's4': ['n66', None, None, 1.7305330689019498, None, None, None], 'n67': ['r', None, None, 0.24519067463109384, None, 'n54', 'n37'], 'n54': ['n67', None, None, 0.25870104556004564, None, 'c', 's2'], 'n37': ['n67', None, None, 0.9342460567572629, None, 'c', 'a']}
+#         print 'tree_trouble', tree_trouble
+#         removed=remove_parent_attachment(tree_trouble, 'n54')[0]
+#         print 'pruned tree', removed
+#         adm=graft(removed, 'n54', 'c', 0.3, 'n68', 0) #FIXME: the function is being called like this via make_regraft
+#         print adm
+#         
+#         print tree_on_the_border2_with_children
+#         print remove_admix(tree_on_the_border2_with_children, 'a', 0)
+#         
+#         trouble_tree={'157': ['e', '95', 0.48, 0.053593995338132035, 0, '209', None], '156': ['r', None, None, 0.03852924467461515, None, '177', '184'], '196': ['209', '184', 0.48, 0.0005592709077173309, 0, 'c', None], '177': ['156', '87', 0.48, 0.04409469700439552, 0, '226', None], '138': ['54', '184', 0.48, 0.0923842952243634, 0, 's3', None], '87': ['95', None, None, 0.021717663805443786, None, 'b', '177'], '251': ['c', 'r', 0.48, 0.048451187058856385, 0, 'a', None], 's3': ['138', None, None, 0.003662331553773855, None, None, None], 's2': ['149', None, None, 0.031232370021655256, None, None, None], 's1': ['d', None, None, 0.1, None, None, None], 's4': ['b', None, None, 0.3, None, None, None], '184': ['156', None, None, 0.014531521069126824, None, 'f', '196'], '209': ['157', '164', 0.48, 0.04266174601860901, 0, '196', None], '149': ['a', None, None, 0.018767629978344746, None, 's2', '54'], '164': ['f', None, None, 0.00649759823036904, None, '95', '209'], '226': ['177', None, 0.48, 0.004168053034161371, 0, 'd', None], '95': ['164', None, None, 0.02046617829442733, None, '87', '157'], 'a': ['b', '251', 0.5, 0.2, 0.05154881294114362, '149', None], 'c': ['196', 'd', 0.5, 0.003184987735541627, 0.1, '251', None], 'b': ['87', None, None, 0.001318559669759849, None, 's4', 'a'], 'e': ['f', None, None, 0.05, None, '157', '184'], 'd': ['226', None, None, 0.0017372499614431128, None, 's1', 'c'], 'f': ['184', None, None, 0.005468478930873175, None, '164', 'e'], '54': ['184', '149', 0.48, 0.17449964855898192, 0, '138', None]}
 
         
         
@@ -1069,6 +1087,10 @@ if __name__=='__main__':
         print make_consistency_checks(tree_with_illegal_alpha)
         
         #print update_all_branches(tree_good, )
+        
+        from piece_of_tree import piece
+        p=piece(0, None, 0, None, 'r', 0, None)
+        pretty_print(  move_node(tree_good, 'c', 1, 'd', 0.01, p, new_node_name='x')  )
 
         
         

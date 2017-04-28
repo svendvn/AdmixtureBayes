@@ -1,6 +1,7 @@
 from Rproposal_admix import addadmix_class, deladmix_class
 from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
+from Rproposal_sliding_regraft import sliding_regraft_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -97,15 +98,17 @@ class no_admix_proposal(object):
 class adaptive_proposal(object):
     
     def __init__(self):
-        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
         start_value_of_sigma=0.1
+        start_value_of_slider=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
+        self.regraft_count=0
         self.rescale_count=0
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, None, [start_value_of_sigma]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma]]
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
@@ -139,12 +142,20 @@ class adaptive_proposal(object):
             old_sigma=sigma
             sigma*=exp(gamma*(mhr-self.desired_mhr))
             self.params[3]=[sigma]
-#             print 'old_sigma=',old_sigma
-#             print 'mhr=',mhr
-#             print 'count=',self.rescale_count
-#             print 'gamma=', gamma
-#             print 'multiplier=', exp(gamma*(mhr-self.desired_mhr))
-#             print 'new_sigma=', sigma
+        if self.recently_called_type=='sliding_regraft':
+            self.regraft_count+=1
+            gamma=self.multiplier/self.regraft_count**self.alpha
+            slider=self.params[2][0]
+            old_slider=slider
+            slider*=exp(gamma*(mhr-self.desired_mhr))
+            slider=min(slider,15)
+            self.params[2]=[slider]
+            print 'old_slider=',old_slider
+            print 'mhr=',mhr
+            print 'count=',self.regraft_count
+            print 'gamma=', gamma
+            print 'multiplier=', exp(gamma*(mhr-self.desired_mhr))
+            print 'new_slider=', slider
             
     
     def get_exportable_state(self):

@@ -24,15 +24,15 @@ def run_a():
                summary.s_variable('proposal_type', output='string'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
                
-    simulation_sanity.test_prior_model(s_tree, 200000, summaries=summaries, thinning_coef=3)
+    simulation_sanity.test_prior_model(s_tree, 50000, summaries=summaries, thinning_coef=3)
     def max_two(tree):
         if Rtree_operations.get_number_of_admixes(tree)>2:
             return False
         return True
     list_of_summaries=summaries[2:10]
     nsim=100000
-    prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=nsim, list_of_summaries=list_of_summaries)#, thinning_criteria=max_two)
-    analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior2.csv', origin_layer=None)
+    #prior_distribution=generate_prior_trees.get_distribution_under_prior(leaves=n, sim_length=nsim, list_of_summaries=list_of_summaries)#, thinning_criteria=max_two)
+    #analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior2.csv', origin_layer=None)
     #analyse_results.generate_summary_csv(summaries)
     #analyse_results.full_analysis(summaries,
     #              trajectories_for_all_temperatures=False,
