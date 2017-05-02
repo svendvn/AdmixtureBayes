@@ -2,7 +2,7 @@ from Proposal_Function import prop_flat
 from scipy.stats import poisson, norm, multivariate_normal
 from likelihood import likelihood
 from numpy.random import random
-from math import exp
+from math import exp, log
 from tree_operations import get_number_of_admixes, illegal_branch_length
 from summary import *
 from multiprocessing import Queue, Process
@@ -29,7 +29,22 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     #print temperature
     likelihood_old, prior_old = post
     likelihood_new,prior_new = post_new
-    mhr=exp((likelihood_new-likelihood_old)/temperature+(prior_new-prior_old))*g2*j2/j1/g1*Jh
+    #print 'Posterior Matrix:'
+    #print likelihood_old, prior_old
+    #print likelihood_new, prior_new
+    
+    #for key,val in pks.items():
+    #    print key, '=', val
+    
+    if g2<=0 or j2<=0:
+        logmhr=-float('inf')
+    else:
+        logmhr=(likelihood_new-likelihood_old)/temperature+(prior_new-prior_old)+log(g2)+log(j2)-log(j1)-log(g1)+log(Jh)
+    if logmhr>100:
+        mhr=float('inf')
+    else:
+        mhr=exp(logmhr)
+        
     #print post_new, post, post_new-post, exp(post_new-post), mhr
     pks['mhr']=mhr
     

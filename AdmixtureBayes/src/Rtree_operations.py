@@ -1,4 +1,3 @@
-from nltk.metrics import distance
 def create_trivial_tree(size, total_height=1.0):
     '''
     constructs tree of the form (..((s1,s2),s3),s4)...)
@@ -31,7 +30,7 @@ def create_trivial_equibranched_tree(size, height=1.0):
     for k in range(3,size+1):
         old_inner_node='n'+str(k-2)
         new_inner_node='n'+str(k-1)
-        nex_inner_node='n'+str(k)
+        nex_inner_node='n'+str(k  )
         new_leaf='s'+str(k)
         tree[new_leaf]=[new_inner_node, None,None, height,None, None,None]
         tree[new_inner_node]=[nex_inner_node, None,None, height, None, new_leaf,old_inner_node]
@@ -363,6 +362,9 @@ def get_leaf_keys(tree):
         if node_is_leaf_node(node):
             res.append(key)
     return res
+
+def get_no_leaves(tree):
+    return len(get_leaf_keys(tree))
 
 def get_categories(tree):
     leaves=[]

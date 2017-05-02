@@ -11,6 +11,7 @@ class updater(object):
         return normal(scale=self.sigma)
 
 def rescale(tree, sigma=0.01, pks={}):
+    pks['rescale_adap_param']=sigma
     new_tree=deepcopy(tree)
     updat=updater(sigma)
     new_tree=update_all_branches(new_tree, updat)

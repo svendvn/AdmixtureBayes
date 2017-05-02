@@ -2,13 +2,15 @@ from Rproposal_admix import addadmix, deladmix
 from Rproposal_regraft import make_regraft
 from Rproposal_rescale import rescale
 from Rtree_operations import (create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector,pretty_print, pretty_string,
-                              get_number_of_ghost_populations, get_max_distance_to_root, get_min_distance_to_root, get_average_distance_to_root)
+                              get_number_of_ghost_populations, get_max_distance_to_root, get_min_distance_to_root, get_average_distance_to_root, get_no_leaves)
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import basic_chain
+from MCMCMC import MCMCMC
+from temperature_scheme import fixed_geometrical
 from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable, s_posterior, s_average_branch_length, s_total_branch_length, s_basic_tree_statistics
-from meta_proposal import basic_meta_proposal, no_admix_proposal, adaptive_proposal
+from meta_proposal import basic_meta_proposal, no_admix_proposal, adaptive_proposal, adaptive_proposal_no_admix
 from generate_prior_trees import generate_admix_topology, generate_phylogeny
 from prior import prior, topological_prior
 from tree_statistics import unique_identifier
@@ -23,6 +25,7 @@ from pathos.multiprocessing import Pool
 from scipy.stats import geom, wishart
 from likelihood import n_mark
 import os
+
 
 
 def _get_new_nodes(i,k):
@@ -143,7 +146,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
     posterior=initialize_prior_as_posterior()
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
-    proposal=no_admix_proposal()
+    proposal=adaptive_proposal_no_admix()
     #proposal.props=proposal.props[2:] #a little hack under the hood
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
@@ -161,6 +164,9 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
         true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree)
+    else:
+        no_leaves_true_tree=get_no_leaves(true_tree)
+        admixtures_of_true_tree=get_number_of_admixes(true_tree)
         
     m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
@@ -175,7 +181,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     posterior=initialize_posterior(m,wishart_df)
     if summaries is None:
         summaries=[s_posterior(), s_variable('mhr'), s_no_admixes()]
-    proposal=basic_meta_proposal()
+    proposal=adaptive_proposal()
     #proposal.props=proposal.props[2:] #a little hack under the hood
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
@@ -189,24 +195,46 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     save_to_csv(results, summaries, filename= filename)
     return true_tree
 
-def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4):
+def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, wishart_df=None, sim_from_wishart=False, no_chains=4):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
         true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree)
+    else:
+        no_leaves_true_tree=get_no_leaves(true_tree)
+        admixtures_of_true_tree=get_number_of_admixes(true_tree)
         
     m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
         start_tree=true_tree
-    posterior=initialize_posterior(m)
+    if wishart_df is None:
+        wishart_df=n_mark(m)
+    if sim_from_wishart:
+        r=m.shape[0]
+        print m
+        m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
+        print m
+    posterior=initialize_posterior(m,wishart_df)
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
     #proposal.props=proposal.props[2:] #a little hack under the hood
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
-    sample_verbose_scheme['posterior']=(1,1)
-    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+    sample_verbose_scheme_first=deepcopy(sample_verbose_scheme)
+    sample_verbose_scheme_first['posterior']=(1,1)
+    final_tree,final_posterior, results,_=MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
+               posterior_function= posterior,
+               summaries=summaries, 
+               temperature_scheme=fixed_geometrical(10.0,no_chains), 
+               printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
+               iteration_scheme=sim_lengths, 
+               overall_thinnings=int(thinning_coef+sim_length/60000), 
+               proposal_scheme= [proposal_function for _ in range(n)], 
+               cores=no_chains, 
+               no_chains=no_chains)
+    
+    basic_chain(start_tree, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
                 overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 

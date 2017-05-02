@@ -94,21 +94,86 @@ class no_admix_proposal(object):
     
     def wear_exportable_state(self, information):
         self.node_naming.n=information['n']
-        
-class adaptive_proposal(object):
+
+class adaptive_proposal_no_admix(object):
     
     def __init__(self):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
+        self.props=[sliding_regraft_class(), rescale_class()]
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
-        self.regraft_count=0
-        self.rescale_count=0
+        self.regraft_count=10
+        self.rescale_count=10
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma]]
+        self.params=[[start_value_of_slider], [start_value_of_sigma]]
+
+    def __call__(self, tree, pks={}):
+        index=choice(len(self.props),1)[0]
+        backj=0.5
+        forwj=0.5
+        
+        names=self.node_naming.next_nodes(self.props[index].new_nodes)
+        pks['proposal_type']= self.props[index].proposal_name
+        self.recently_called_type=self.props[index].proposal_name
+        args=[]
+        if names:
+            args.append(names)
+        if self.params[index] is not None:
+            args.extend(self.params[index])
+        new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
+        return new_tree,forward,backward,1,forwj,backj
+    
+    def adapt(self,mhr, u, post_new, post, temperature):
+        if self.recently_called_type=='rescale':
+            new_val, self.rescale_count= standard_update(self.rescale_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[1][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='rescale')
+            self.params[1]=[new_val]
+#         if self.recently_called_type=='sliding_regraft':
+#             new_val, self.regraft_count= standard_update(self.regraft_count, 
+#                                                          self.multiplier, 
+#                                                          self.alpha, 
+#                                                          self.params[0][0], 
+#                                                          mhr, 
+#                                                          desired_mhr=self.desired_mhr, 
+#                                                          verbose=False,
+#                                                          name='regraft_slider',
+#                                                          max_val=15.0)
+#             self.params[0]=[new_val]
+            
+            
+    def get_exportable_state(self):
+        information={}
+        information['n']=self.node_naming.n
+        #information['params']=self.params
+        return information     
+    
+    def wear_exportable_state(self, information):
+        self.node_naming.n=information['n']
+        #self.params=information['params']
+
+class adaptive_proposal(object):
+    
+    def __init__(self):
+        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class()] #[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
+        start_value_of_sigma=0.1
+        start_value_of_slider=0.1
+        self.node_naming=new_node_naming_policy()
+        self.recently_called_type=None
+        self.regraft_count=10
+        self.rescale_count=10
+        self.multiplier=10
+        self.desired_mhr=0.234
+        self.alpha=0.9
+        self.params=[None, None, None, [start_value_of_sigma]]#[None, None, [start_value_of_slider], [start_value_of_sigma]]
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
@@ -134,28 +199,29 @@ class adaptive_proposal(object):
         new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
         return new_tree,forward,backward,1,forwj,backj
 
-    def adapt(self,mhr, u, post_new, post, temperature):
+    def adapt(self, mhr, u, post_new, post, temperature):
         if self.recently_called_type=='rescale':
-            self.rescale_count+=1
-            gamma=self.multiplier/self.rescale_count**self.alpha
-            sigma=self.params[3][0]
-            old_sigma=sigma
-            sigma*=exp(gamma*(mhr-self.desired_mhr))
-            self.params[3]=[sigma]
+            new_val, self.rescale_count= standard_update(self.rescale_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[3][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='rescale')
+            self.params[3]=[new_val]
         if self.recently_called_type=='sliding_regraft':
-            self.regraft_count+=1
-            gamma=self.multiplier/self.regraft_count**self.alpha
-            slider=self.params[2][0]
-            old_slider=slider
-            slider*=exp(gamma*(mhr-self.desired_mhr))
-            slider=min(slider,15)
-            self.params[2]=[slider]
-            print 'old_slider=',old_slider
-            print 'mhr=',mhr
-            print 'count=',self.regraft_count
-            print 'gamma=', gamma
-            print 'multiplier=', exp(gamma*(mhr-self.desired_mhr))
-            print 'new_slider=', slider
+            new_val, self.regraft_count= standard_update(self.regraft_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[2][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='regraft_slider',
+                                                         max_val=15.0)
+            self.params[2]=[new_val]
+            
             
     
     def get_exportable_state(self):
@@ -167,6 +233,22 @@ class adaptive_proposal(object):
     def wear_exportable_state(self, information):
         self.node_naming.n=information['n']
         #self.params=information['params']
+        
+        
+def standard_update(count, multiplier, alpha, old_value, mhr, desired_mhr=0.234, verbose=False, max_val=float('inf'), name='value'):
+    count+=1
+    gamma=multiplier/count**alpha
+    change=exp(gamma*(min(1.0,mhr)-desired_mhr))
+    value=old_value*change
+    value=min(value, max_val)
+    if verbose:
+        print 'old_'+name+'=',old_value
+        print 'mhr=',mhr
+        print 'count=',count
+        print 'gamma=', gamma
+        print 'multiplier=', change
+        print 'new_'+name+'=', value
+    return value,count
     
 
     
