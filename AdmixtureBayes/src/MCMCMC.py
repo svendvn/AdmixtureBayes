@@ -103,10 +103,10 @@ def flipping(trees, posteriors, temperature_scheme, proposal_updates):
         #print alpha
         if logalpha>0 or random() < exp(logalpha):
             count+=1
-            if i==0 or j==0:
-                print 'FLIP!', count
-                print temp_i, post_i
-                print temp_j, post_j
+            #if i==0 or j==0:
+                #print 'FLIP!', count
+                #print temp_i, post_i
+                #print temp_j, post_j
             step_permutation[i],step_permutation[j]=step_permutation[j],step_permutation[i]
             posteriors[j],posteriors[i]=post_i,post_j
             trees[i],trees[j]=trees[j],trees[i]
