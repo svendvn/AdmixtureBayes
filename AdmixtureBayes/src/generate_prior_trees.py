@@ -228,17 +228,34 @@ def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_su
     
     
 if __name__=='__main__':
-    print _classify_type(12, 12, 0, 1)
-    #print _allowed_generation([1, 4, 6, 8, 9, 11],12)
-    #print _allowed_generation([2,3], 5)
-    #print _allowed_generation([1,2], 5)
-    #print _allowed_generation([2,3,5], 5)
     
-    from tree_plotting import plot_graph, pretty_print
-    for _ in xrange(100):
-        ak=generate_admix_topology(2, 1)
-        pretty_print(ak)
-    #plot_graph(ak)
+    from argparse import ArgumentParser
+    
+    parser = ArgumentParser(usage='generate tree from admixturebayes', version='0.0.1')
+    parser.add_argument('--leaves', type=int, default=4, help='number of leaves in tree')
+    parser.add_argument('--admixes', type=int, default=2, help='number of admixture events in tree')
+    parser.add_argument('--output_file', type=str, default='tmp.txt', help='directory')
+    options=parser.parse_args()
+    tree= generate_phylogeny(options.leaves, options.admixes)
+    from tree_statistics import unique_identifier_and_branch_lengths
+    s=unique_identifier_and_branch_lengths(tree)
+    pretty_print(tree)
+    print 'turns into', s
+    with open(options.output_file, 'w') as f:
+        f.write(s)
+    
+    
+#     print _classify_type(12, 12, 0, 1)
+#     #print _allowed_generation([1, 4, 6, 8, 9, 11],12)
+#     #print _allowed_generation([2,3], 5)
+#     #print _allowed_generation([1,2], 5)
+#     #print _allowed_generation([2,3,5], 5)
+#     
+#     from tree_plotting import plot_graph, pretty_print
+#     for _ in xrange(100):
+#         ak=generate_admix_topology(2, 1)
+#         pretty_print(ak)
+#     #plot_graph(ak)
     
     
     

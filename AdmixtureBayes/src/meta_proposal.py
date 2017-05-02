@@ -137,17 +137,17 @@ class adaptive_proposal_no_admix(object):
                                                          verbose=False,
                                                          name='rescale')
             self.params[1]=[new_val]
-#         if self.recently_called_type=='sliding_regraft':
-#             new_val, self.regraft_count= standard_update(self.regraft_count, 
-#                                                          self.multiplier, 
-#                                                          self.alpha, 
-#                                                          self.params[0][0], 
-#                                                          mhr, 
-#                                                          desired_mhr=self.desired_mhr, 
-#                                                          verbose=False,
-#                                                          name='regraft_slider',
-#                                                          max_val=15.0)
-#             self.params[0]=[new_val]
+        if self.recently_called_type=='sliding_regraft':
+            new_val, self.regraft_count= standard_update(self.regraft_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[0][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='regraft_slider',
+                                                         max_val=15.0)
+            self.params[0]=[new_val]
             
             
     def get_exportable_state(self):
@@ -163,7 +163,7 @@ class adaptive_proposal_no_admix(object):
 class adaptive_proposal(object):
     
     def __init__(self):
-        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class()] #[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         self.node_naming=new_node_naming_policy()
@@ -173,7 +173,7 @@ class adaptive_proposal(object):
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, None, [start_value_of_sigma]]#[None, None, [start_value_of_slider], [start_value_of_sigma]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma]]
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]

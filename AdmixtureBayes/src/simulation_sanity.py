@@ -13,11 +13,11 @@ from summary import s_no_admixes, s_total_branch_length, s_variable, s_posterior
 from meta_proposal import basic_meta_proposal, no_admix_proposal, adaptive_proposal, adaptive_proposal_no_admix
 from generate_prior_trees import generate_admix_topology, generate_phylogeny
 from prior import prior, topological_prior
-from tree_statistics import unique_identifier
+from tree_statistics import unique_identifier, unique_identifier_and_branch_lengths
 from math import exp
 from collections import Counter
 from scipy.optimize import brentq
-from analyse_results import save_to_csv
+from analyse_results import save_to_csv, save_pandas_dataframe_to_csv
 from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
 from Rtree_to_covariance_matrix import make_covariance
@@ -25,6 +25,7 @@ from pathos.multiprocessing import Pool
 from scipy.stats import geom, wishart
 from likelihood import n_mark
 import os
+from copy import deepcopy
 
 
 
@@ -195,7 +196,8 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     save_to_csv(results, summaries, filename= filename)
     return true_tree
 
-def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, wishart_df=None, sim_from_wishart=False, no_chains=4):
+def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, 
+                                    wishart_df=None, sim_from_wishart=False, no_chains=4, result_file='results_mc3.csv'):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -215,6 +217,11 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
         m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
         print m
     posterior=initialize_posterior(m,wishart_df)
+    print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
+    post_=posterior(true_tree)
+    print 'likelihood(true_tree)', post_[0]
+    print 'prior(true_tree)', post_[1]
+    print 'posterior(true_tree)', sum(post_)
     if summaries is None:
         summaries=[s_variable('posterior'), s_variable('mhr'), s_no_admixes()]
     proposal=basic_meta_proposal()
@@ -223,24 +230,18 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme_first=deepcopy(sample_verbose_scheme)
     sample_verbose_scheme_first['posterior']=(1,1)
-    final_tree,final_posterior, results,_=MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
+    results,_= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
                temperature_scheme=fixed_geometrical(10.0,no_chains), 
                printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
                iteration_scheme=sim_lengths, 
-               overall_thinnings=int(thinning_coef+sim_length/60000), 
-               proposal_scheme= [proposal_function for _ in range(n)], 
+               overall_thinnings=int(thinning_coef+sum(sim_lengths)/60000), 
+               proposal_scheme= [adaptive_proposal() for _ in range(no_chains)], 
                cores=no_chains, 
                no_chains=no_chains)
-    
-    basic_chain(start_tree, summaries, posterior, 
-                proposal, post=None, N=sim_length, 
-                sample_verbose_scheme=sample_verbose_scheme, 
-                overall_thinning=int(thinning_coef+sim_length/60000), i_start_from=0, 
-                temperature=1.0, proposal_update=None,
-                check_trees=False)
-    save_to_csv(results, summaries)
+    print 'finished MC3'
+    save_pandas_dataframe_to_csv(results, result_file)
     return true_tree
     
 def test_topological_prior_density(n,k,sim_length):

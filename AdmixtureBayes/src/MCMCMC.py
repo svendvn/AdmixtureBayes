@@ -99,11 +99,14 @@ def flipping(trees, posteriors, temperature_scheme, proposal_updates):
         i,j = choice(n,2,False)
         post_i,post_j=posteriors[i],posteriors[j]
         temp_i,temp_j=temperature_scheme.get_temp(i), temperature_scheme.get_temp(j)
-        alpha=exp( (post_i[0]-post_j[0])*(1.0/temp_i-1.0/temp_j) )
+        logalpha=-(post_i[0]-post_j[0])*(1.0/temp_i-1.0/temp_j)
         #print alpha
-        if random() < alpha:
+        if logalpha>0 or random() < exp(logalpha):
             count+=1
-            #print 'FLIP!', count
+            if i==0 or j==0:
+                print 'FLIP!', count
+                print temp_i, post_i
+                print temp_j, post_j
             step_permutation[i],step_permutation[j]=step_permutation[j],step_permutation[i]
             posteriors[j],posteriors[i]=post_i,post_j
             trees[i],trees[j]=trees[j],trees[i]
