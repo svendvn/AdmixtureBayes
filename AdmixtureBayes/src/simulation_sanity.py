@@ -197,7 +197,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     return true_tree
 
 def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, 
-                                    wishart_df=None, sim_from_wishart=False, no_chains=4, result_file='results_mc3.csv'):
+                                    wishart_df=None, sim_from_wishart=False, no_chains=8, result_file='results_mc3.csv'):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -233,7 +233,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     results,_= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
-               temperature_scheme=fixed_geometrical(10.0,no_chains), 
+               temperature_scheme=fixed_geometrical(100.0,no_chains), 
                printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
                iteration_scheme=sim_lengths, 
                overall_thinnings=int(thinning_coef+sum(sim_lengths)/60000), 

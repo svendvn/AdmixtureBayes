@@ -138,7 +138,7 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model_multichain(true_tree,s_tree, [50]*20000, summaries=summaries, thinning_coef=30, wishart_df=wishart_df, result_file=result_file)
+    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*20000, summaries=summaries, thinning_coef=30, wishart_df=wishart_df, result_file=result_file)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     

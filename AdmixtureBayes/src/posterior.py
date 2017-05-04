@@ -13,6 +13,7 @@ def initialize_posterior(emp_cov, M=None):
         likelihood_value=likelihood(x, emp_cov,M=M)
         pks['prior']=prior_value
         pks['likelihood']=likelihood_value
+        pks['posterior']=prior_value+likelihood_value
         return likelihood_value,prior_value
     return posterior
 

@@ -124,6 +124,23 @@ class s_variable(Summary):
             return None
         return kwargs[self.name]
     
+class s_variable_recalculated(Summary):
+    
+    def __init__(self, variable, pandable=True, output='double', pks_function=None, args=[]):
+        super(s_variable_recalculated, self).__init__(variable, pandable, output)
+        self.pks_function=pks_function
+        self.args=args
+
+    def __call__(self, **kwargs):
+        if self.name not in kwargs:
+            return None
+        return kwargs[self.name]
+    
+    def summary_of_phylogeny(self, tree):
+        pks={}
+        self.pks_function(tree, *self.args, pks=pks)
+        return pks[self.name]
+    
 class s_posterior(Summary):
     
     def __init__(self, ):
