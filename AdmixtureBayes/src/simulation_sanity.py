@@ -17,7 +17,7 @@ from tree_statistics import unique_identifier, unique_identifier_and_branch_leng
 from math import exp
 from collections import Counter
 from scipy.optimize import brentq
-from analyse_results import save_to_csv, save_pandas_dataframe_to_csv
+from analyse_results import save_to_csv, save_pandas_dataframe_to_csv, save_permuts_to_csv
 from csv import writer
 from trivial_mcmc import Trivial_Summary, trivial_proposal
 from Rtree_to_covariance_matrix import make_covariance
@@ -237,7 +237,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     #if 'likelihood' in sample_verbose_scheme:
         #sample_verbose_scheme_first['likelihood']=(1,1)
     print sample_verbose_scheme_first
-    results,_= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
+    results,permuts= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
                temperature_scheme=fixed_geometrical(100.0,no_chains), 
@@ -249,7 +249,12 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
                no_chains=no_chains)
     print 'finished MC3'
     save_pandas_dataframe_to_csv(results, result_file)
+    save_permuts_to_csv(permuts, get_permut_filename(result_file))
     return true_tree
+
+def get_permut_filename(filename):
+    parts=filename.split('.')
+    return '.'.join(parts[:-1])+'permuts.'+parts[-1]
     
 def test_topological_prior_density(n,k,sim_length):
     dictionary_of_probabilities={}

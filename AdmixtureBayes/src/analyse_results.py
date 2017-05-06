@@ -3,7 +3,6 @@ import seaborn as sns
 import os
 import matplotlib.pyplot as plt
 from subprocess import call
-from docutils.nodes import reference
 
 def generate_summary_csv(list_of_summaries, filename= 'summaries.csv', reference_tree=None):
     if reference_tree is not None:
@@ -21,6 +20,12 @@ def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=
         df['origin']=origin_layer[0]
         df['layer']=origin_layer[1]
     df.to_csv(filename)
+    
+def save_permuts_to_csv(list_of_permuts, filename='results-permuts.csv'):
+    with open(filename, 'w') as f:
+        f.write('flip_number,'+','.join(map(str,range(len(list_of_permuts))))+'\n')
+        for n,permut in enumerate(list_of_permuts):
+            f.write(str(n)+','+','.join(map(str,permut))+'\n')
     
 def save_pandas_dataframe_to_csv(pd_dataframe, filename='results.csv'):
     pd_dataframe.to_csv(filename)
