@@ -4,6 +4,7 @@ from copy import deepcopy
 from numpy import argsort
 from collections import Counter
 from scipy.stats import uniform, expon, geom
+import linear_distribution
 
 
 def set_outgoing_branch(node, parent_name, branch, length):
@@ -57,16 +58,19 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
             tree=rename_root(tree,key)
     return tree
 
-def generate_phylogeny(size,admixes, leaf_nodes=None):
+def generate_phylogeny(size,admixes, leaf_nodes=None, skewed_admixture_prior=False):
     tree=generate_admix_topology(size, admixes, leaf_nodes)
     for node in tree.values():
-        node=_resimulate(node)
+        node=_resimulate(node, skewed_admixture_prior)
     return tree
 
 
-def _resimulate(node):
+def _resimulate(node, skewed_admixture_prior=False):
     if node[2] is not None:
-        node[2]=uniform.rvs()
+        if skewed_admixture_prior:
+            node[2]=linear_distribution.rvs()
+        else:
+            node[2]=uniform.rvs()
     if node[3] is not None:
         node[3]=expon.rvs()
     if node[4] is not None:

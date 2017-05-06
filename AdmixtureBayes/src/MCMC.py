@@ -100,7 +100,7 @@ def _calc_and_print_summaries(sample_verbose_scheme,summaries,**kwargs):
         if save_bool or print_bool:
             val=s(**kwargs)
             if print_bool:
-                print s.pretty_print(val)
+                print str(iteration)+'. '+ s.pretty_print(val)
             if save_bool:
                 res.append(val)
             else:

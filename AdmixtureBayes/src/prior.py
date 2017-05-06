@@ -3,8 +3,9 @@ from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proporti
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
 from math import log, factorial,exp
 from scipy.special import binom 
+import linear_distribution
 
-def prior(tree, p=0.5, pks={}):
+def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
     admixtures=get_all_admixture_proportions(tree)
     if not all(prop>=0 and prop <=1 for prop in admixtures):
         return -float('inf')
@@ -13,14 +14,20 @@ def prior(tree, p=0.5, pks={}):
         return -float('inf')
     branch_prior=sum(map(expon.logpdf, branches))
     no_admix_prior=no_admixes(p, len(admixtures))
-    admix_prop_prior=0
+    if use_skewed_distr:
+        admix_prop_prior=linear_admixture_proportions(admixtures)
+    else:
+        admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
-    pks['branch_prior']= branch_prior
-    pks['no_admix_prior']=no_admix_prior
-    pks['admix_prop_prior']=admix_prop_prior
-    pks['top_prior']= top_prior
+    pks['proposed_branch_prior']= branch_prior
+    pks['proposed_no_admix_prior']=no_admix_prior
+    pks['proposed_admix_prop_prior']=admix_prop_prior
+    pks['proposed_top_prior']= top_prior
     return logsum
+
+def linear_admixture_proportions(admixtures):
+    return sum((linear_distribution.logpdf(admixture) for admixture in admixtures))
 
 def no_admixes(p, admixes, hard_cutoff=None):
     if hard_cutoff is None:

@@ -1,4 +1,4 @@
-from tree_plotting import plot_as_directed_graph, plot_graph
+from tree_plotting import plot_as_directed_graph, plot_graph, pretty_print
 from tree_statistics import unique_identifier_and_branch_lengths, identifier_to_tree_clean
 from generate_prior_trees import generate_phylogeny
 from scipy.stats import geom
@@ -8,6 +8,9 @@ from Rtree_to_covariance_matrix import make_covariance
 
 def plot_string_tree(stree):
     plot_graph(identifier_to_tree_clean(stree))
+    
+def plot_big_tree(stree):
+    plot_as_directed_graph(identifier_to_tree_clean(stree))
     
 def simulate_tree(no_leaves, no_admixes=None):
     if no_admixes is None:
@@ -32,21 +35,30 @@ def add_random_admix(stree, *kwargs):
 
 def see_covariance_matrix(stree):
     print make_covariance(identifier_to_tree_clean(stree))
+    
+def print_tree(stree):
+    pretty_print(identifier_to_tree_clean(stree))
         
     
     
     
 if __name__=='__main__':
-    #s=simulate_tree(3, 0)
+    #s=simulate_tree(9, 0)
     #save_tree(s, 'tree.txt')
-    #plot_string_tree(s)
+    #plot_big_tree(s)
     
     #s=load_tree('tree.txt')
     #s=add_random_admix(s)
-    #plot_string_tree(s)
+    #print_tree(s)
+    #plot_big_tree(s)
     #save_tree(s, 'tree2.txt')
     
-    s=load_tree('tree2.txt')
+    #s=load_tree('tree2.txt')
+    #s=add_random_admix(s)
+    #plot_big_tree(s)
+    #save_tree(s, 'tree3.txt')
+    
+    s=load_tree('tree3.txt')
     see_covariance_matrix(s)
-    #plot_string_tree(s)
+    plot_string_tree(s)
     

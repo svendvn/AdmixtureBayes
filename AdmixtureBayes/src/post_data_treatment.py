@@ -14,7 +14,7 @@ import analyse_results
 from tree_plotting import plot_graph, plot_as_directed_graph
 
 
-def extend_summary(filename, df=10, resfile='test.csv'):
+def extend_summary(filename, df=10, resfile='test.csv', other_trees=[], other_trees_tree_files=[]):
     ad=file_to_list_of_rows(filename)
     print ad
     _,names,_,values= ad
@@ -23,6 +23,7 @@ def extend_summary(filename, df=10, resfile='test.csv'):
     plot_as_directed_graph(true_tree)
     summaries=get_summaries(true_tree, df)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree, filename=resfile)
+    
     
 
 def file_to_list_of_rows(filename):
@@ -55,5 +56,5 @@ def get_summaries(true_tree, df=10):
     return summaries
 
 if __name__=='__main__':
-    extend_summary('../../../Documents/9_2/summaries.csv', df=100, resfile='../../../Documents/9_2/summaries_df100.csv')
+    extend_summary('../../../Documents/9_2b/summaries.csv', df=10000, resfile='../../../Documents/9_2b/summaries_df10000.csv')
     

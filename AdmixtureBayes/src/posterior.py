@@ -2,12 +2,14 @@ from prior import prior
 from likelihood import likelihood, n_mark
 from scipy.stats import norm, multivariate_normal
 
-def initialize_posterior(emp_cov, M=None):
+
+
+def initialize_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     if M is None:
         M=n_mark(emp_cov)
     def posterior(x,pks={}):
         #print tot_branch_length
-        prior_value=prior(x,pks=pks)
+        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         likelihood_value=likelihood(x, emp_cov,M=M)

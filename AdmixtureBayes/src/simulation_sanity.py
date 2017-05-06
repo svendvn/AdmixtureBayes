@@ -160,11 +160,13 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
     save_to_csv(results, summaries)
     return results
 
-def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, wishart_df=None):
+def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, 
+                         admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, 
+                         wishart_df=None, sap_sim=False, sap_ana=False):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
-        true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree)
+        true_tree=generate_phylogeny(no_leaves_true_tree, admixtures_of_true_tree, skewed_admixture_prior=sap_sim)
     else:
         no_leaves_true_tree=get_no_leaves(true_tree)
         admixtures_of_true_tree=get_number_of_admixes(true_tree)
@@ -179,7 +181,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         print m
         m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
         print m
-    posterior=initialize_posterior(m,wishart_df)
+    posterior=initialize_posterior(m,wishart_df, use_skewed_distr = sap_ana)
     if summaries is None:
         summaries=[s_posterior(), s_variable('mhr'), s_no_admixes()]
     proposal=adaptive_proposal()
@@ -216,7 +218,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
         print m
         m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
         print m
-    posterior=initialize_posterior(m,wishart_df)
+    posterior=initialize_posterior(m,wishart_df, use_skewed_distr=True)
     print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
     post_=posterior(true_tree)
     print 'likelihood(true_tree)', post_[0]
@@ -229,7 +231,12 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme_first=deepcopy(sample_verbose_scheme)
-    sample_verbose_scheme_first['posterior']=(1,1)
+    if 'posterior' in sample_verbose_scheme:
+        sample_verbose_scheme_first['posterior']=(1,1)#(1,1)
+        sample_verbose_scheme_first['no_admixes']=(1,1)
+    #if 'likelihood' in sample_verbose_scheme:
+        #sample_verbose_scheme_first['likelihood']=(1,1)
+    print sample_verbose_scheme_first
     results,_= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
@@ -339,7 +346,7 @@ def check_predestinations(tree, reps=10000):
         wr.writerows(res_ret)
     return 'done'     
 
-def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wishart_df=None, prefix='', dest_folder=''):
+def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wishart_df=None, prefix='', dest_folder='', sap_sim=False, sap_ana=False):
     summaries=[s_posterior(), 
            s_no_admixes(),
            s_average_branch_length(),
@@ -351,7 +358,7 @@ def marginalize_out_data_in_posterior(no_leaves, no_trees=100, nsim=50000, wisha
     
     for i in xrange(no_trees):
         result_file=os.path.join(dest_folder,'results_'+prefix+str(i+1)+'.csv')
-        test_posterior_model(thinning_coef=49, summaries= summaries, filename= result_file, sim_from_wishart=True,sim_length=nsim, wishart_df=wishart_df, no_leaves_true_tree=no_leaves)
+        test_posterior_model(thinning_coef=49, summaries= summaries, filename= result_file, sim_from_wishart=True,sim_length=nsim, wishart_df=wishart_df, no_leaves_true_tree=no_leaves, sap_sim=sap_sim, sap_ana=sap_ana)
     
 def trivial_simulation(start_val, reps, thinning_coef=1):
     posterior=initialize_trivial_posterior()

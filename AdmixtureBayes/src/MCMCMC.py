@@ -41,11 +41,17 @@ def MCMCMC(starting_trees,
                                     - adapt(mhr): updates the proposals based on the mhr ratio, mhr
                                     - extract_new_values(): after two chains have changed position in the flipping, this function gets the information that should be changed_later
                                     - wear_new_values(information): the new values from extract_new_values replaces the old values.
+        #ps:     - a list of doubles in the interval [0,1] indicating the parameter of the geometrically distributed prior on the number of admixture events for each chain. Or:
+        #        - a double in the interval [0,1] indicating the same parameter for all geometrically distributed prior on the number of admixture events.
                                     
     '''
     
     if no_chains is None:
         no_chains=cores
+
+    #if isinstance(ps, int):
+     #   ps=[ps]*no_chains
+
         
     if len(printing_schemes)==1:
         printing_schemes=[printing_schemes[0]]*no_chains
@@ -68,7 +74,7 @@ def MCMCMC(starting_trees,
     cum_iterations=0
     for no_iterations in iteration_scheme:
         #letting each chain run for no_iterations:
-        iteration_object=_pack_everything(trees, posteriors, temperature_scheme,printing_schemes,overall_thinnings,no_iterations, cum_iterations,proposal_updates)
+        iteration_object=_pack_everything(trees, posteriors, temperature_scheme, printing_schemes, overall_thinnings, no_iterations, cum_iterations, proposal_updates)
         if no_chains==1:#debugging purposes
             new_state=[_basic_chain_unpacker(iteration_object.next())]
         else:
@@ -99,7 +105,7 @@ def flipping(trees, posteriors, temperature_scheme, proposal_updates):
         i,j = choice(n,2,False)
         post_i,post_j=posteriors[i],posteriors[j]
         temp_i,temp_j=temperature_scheme.get_temp(i), temperature_scheme.get_temp(j)
-        logalpha=-(post_i[0]-post_j[0])*(1.0/temp_i-1.0/temp_j)
+        logalpha=-(post_i[0]+post_i[1]-post_j[0]-post_j[1])*(1.0/temp_i-1.0/temp_j)
         #print alpha
         if logalpha>0 or random() < exp(logalpha):
             count+=1

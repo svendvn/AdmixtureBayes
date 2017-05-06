@@ -111,8 +111,8 @@ def run_d():
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
-def run_e(df, out):
-    simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out)
+def run_e(df, out, sap_sim, sap_ana):
+    simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out, sap_sim=sap_sim, sap_ana=sap_ana)
     
 def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv'):
     if true_tree_as_identifier is None:
@@ -137,6 +137,8 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
+               summary.s_likelihood(),
+               summary.s_prior(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
     r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*20000, summaries=summaries, thinning_coef=30, wishart_df=wishart_df, result_file=result_file)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
@@ -153,15 +155,20 @@ def run_trivial():
                   prior_distribution=prior_distribution)
     
 if __name__=='__main__':
-    #run_posterior_multichain()
-    #import sys
-    #sys.exit()
+    #run_posterior_multichain(true_tree_as_identifier='tree2.txt')
+    
+    import sys
+    
     
     from argparse import ArgumentParser
     
     parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
-    parser.add_argument('--df', type=float, default=100.0, help='degrees of freedom to run under')
+    parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
+    parser.add_argument('--sap_simulations', action='store_true',default=False, help='skewed admixture proportion prior in the simulated datasets')
+    parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
     parser.add_argument('--true_tree', type=str, default='', help='file with the true tree to use')
     parser.add_argument('--result_file', type=str, default='', help='file to save results in')
     options=parser.parse_args()
+    run_e(options.df, options.result_file, sap_sim=options.sap_simulations, sap_ana=options.sap_analysis)
+    sys.exit()
     run_posterior_multichain(options.df, options.true_tree, options.result_file)

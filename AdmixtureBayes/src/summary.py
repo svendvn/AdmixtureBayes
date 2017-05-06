@@ -16,7 +16,7 @@ class Summary(object):
         pass
     
     def pretty_print(self, output):
-        return str(output)
+        return self.name+'= '+str(output)
     
     def summary_of_phylogeny(self, tree):
         return None
@@ -138,7 +138,7 @@ class s_variable_recalculated(Summary):
     
     def summary_of_phylogeny(self, tree):
         pks={}
-        self.pks_function(tree, *self.args, pks=pks)
+        ad=self.pks_function(tree, *self.args, pks=pks)
         return pks[self.name]
     
 class s_posterior(Summary):
@@ -148,6 +148,22 @@ class s_posterior(Summary):
 
     def __call__(self, **kwargs):
         return sum(kwargs['posterior'])
+    
+class s_likelihood(Summary):
+    
+    def __init__(self, ):
+        super(s_likelihood, self).__init__('likelihood', output='double')
+
+    def __call__(self, **kwargs):
+        return kwargs['posterior'][0]
+    
+class s_prior(Summary):
+    
+    def __init__(self, ):
+        super(s_prior, self).__init__('prior', output='double')
+
+    def __call__(self, **kwargs):
+        return kwargs['posterior'][1]
     
     
 class s_tree_identifier(Summary):
