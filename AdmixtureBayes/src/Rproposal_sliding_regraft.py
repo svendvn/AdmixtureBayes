@@ -1,10 +1,12 @@
 from Rproposal_regraft import get_possible_regrafters, thin_out_sibling
-from Rtree_operations import remove_parent_attachment, get_all_branch_descendants_and_rest, get_parent_of_branch, move_node, pretty_string
+from Rtree_operations import remove_parent_attachment, get_all_branch_descendants_and_rest, get_parent_of_branch, move_node, pretty_string, get_branch_length, update_branch_length
 from nearest_branch_search import distanced_branch_lengths
 from scipy.stats import chi2
 from numpy.random import choice
 from copy import deepcopy
 from random import getrandbits
+from math import exp
+import exponential_F
 
 class sliding_regraft_class(object):
     
@@ -13,6 +15,13 @@ class sliding_regraft_class(object):
     
     def __call__(self,*args, **kwargs):
         return make_sliding_regraft(*args, **kwargs)
+    
+class sliding_regraft_class_resimulate(object):
+    new_nodes=1
+    proposal_name='sliding_regraft'
+    
+    def __call__(self,*args, **kwargs):
+        return make_sliding_regraft(*args, resimulate_moved_branch_length=True, **kwargs)
     
 def simulate_regraft_distance(param):
     return chi2.rvs(1)*param
@@ -45,17 +54,36 @@ def make_sliding_regraft(tree, new_node=None, param=0.1, resimulate_moved_branch
     forward_choices=len(thinned_pieces_forward)
     chosen_piece=thinned_pieces_forward[choice(len(thinned_pieces_forward),1)[0]]
     
-    #print regraft_key, regraft_branch, chosen_piece
+    print chosen_piece
     if new_node is None:
         new_node=str(getrandbits(68)).strip()
-    new_tree, _=move_node(new_tree, regraft_key, regraft_branch, parent_key, distance_to_regraft, chosen_piece, new_node_name=new_node)
+    new_tree =move_node(new_tree, regraft_key, regraft_branch, parent_key, distance_to_regraft, chosen_piece, new_node_name=new_node)
     
     parent_key= get_parent_of_branch(new_tree, regraft_key, regraft_branch)
     thinned_pieces_backward=get_thinned_pieces(new_tree, regraft_key, regraft_branch, distance_to_regraft, parent_key)
     
     backward_choices=len(thinned_pieces_backward)
     
-    return new_tree, 1.0/forward_choices, 1.0/backward_choices
+    
+    if resimulate_moved_branch_length:
+        new_tree, forward, backward= resimulate_moved_branch(new_tree, regraft_key, regraft_branch, chosen_piece.get_lattitude(distance_to_regraft))
+    else:
+        forward=1.0
+        backward=1.0
+    
+    return new_tree, forward/forward_choices, backward/backward_choices
+
+def resimulate_moved_branch(tree, key, branch, delta_L):
+    old_length= get_branch_length(tree, key, branch)
+    new_length= exponential_F.rvs(old_length, -delta_L)
+    logpdf=exponential_F.logpdf(new_length, old_length, -delta_L)
+    logpdf_back=exponential_F.logpdf(old_length, new_length, delta_L)
+    backward=exp(-logpdf+logpdf_back) #for stability, both forward and backward are put in backward. 
+    ratio= exp(logpdf-logpdf_back)
+    update_branch_length(tree, key, branch, new_length)
+    print 'resimulated', old_length, 'to', new_length, 'on branch', str((key,branch)), 'and change in lattitude at', delta_L, 'backward',  backward
+    return tree, 1.0, backward
+    
 
 if __name__=='__main__':
     
@@ -74,8 +102,10 @@ if __name__=='__main__':
     
     from Rcatalogue_of_trees import tree_good
     t=tree_good
-    for _ in xrange(1000):
-        t,f,b= make_sliding_regraft(t)
+    print pretty_string(t)
+    letters='ghijklmnopqrstuvwxyz'
+    for i in xrange(10):
+        t,f,b= make_sliding_regraft(t, new_node=letters[i] , resimulate_moved_branch_length=True)
         print 'forward', f
         print 'backward',b
         print 'tree'

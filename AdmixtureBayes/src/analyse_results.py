@@ -23,7 +23,7 @@ def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=
     
 def save_permuts_to_csv(list_of_permuts, filename='results-permuts.csv'):
     with open(filename, 'w') as f:
-        f.write('flip_number,'+','.join(map(str,range(len(list_of_permuts))))+'\n')
+        f.write('flip_number,'+','.join(map(str,range(len(list_of_permuts[0]))))+'\n')
         for n,permut in enumerate(list_of_permuts):
             f.write(str(n)+','+','.join(map(str,permut))+'\n')
     

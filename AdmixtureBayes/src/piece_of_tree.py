@@ -29,8 +29,16 @@ class piece(object):
     
     def get_leaf_and_root_sided_length(self, distance):
         if self.end_distance is None:
-            return distance-self.start_distance, None, self.start_lattitude+distance
+            return distance-self.start_distance, None
         if self.direction=='to_leaves':
-            return self.end_distance-distance, distance-self.start_distance, self.start_lattitude-distance
+            return self.end_distance-distance, distance-self.start_distance
         else:
-            return distance-self.start_distance, self.end_distance-distance, self.start_lattitude+distance
+            return distance-self.start_distance, self.end_distance-distance
+        
+    def get_lattitude(self, distance):
+        if self.end_distance is None:
+            return self.start_lattitude+distance
+        elif self.direction == 'to_leaves':
+            return self.start_lattitude-distance
+        else:
+            return self.start_lattitude+distance

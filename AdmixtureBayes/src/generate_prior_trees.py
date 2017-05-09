@@ -215,7 +215,7 @@ def _has_partner(index, indexes):
     return False
 
 
-def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_summaries=[], thinning_criteria=None):
+def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_summaries=[], thinning_criteria=None, skewed_admixture_prior=False):
     if admixes is None:
         admix_sim=True
     else:
@@ -224,7 +224,7 @@ def get_distribution_under_prior(leaves,admixes=None,sim_length=1000, list_of_su
     for _ in xrange(sim_length):
         if admix_sim:
             admixes=geom.rvs(p=0.5)-1
-        tree=generate_phylogeny(leaves, admixes)
+        tree=generate_phylogeny(leaves, admixes, skewed_admixture_prior=skewed_admixture_prior)
         if thinning_criteria is None or thinning_criteria(tree):
             for n, summary in enumerate(list_of_summaries):
                 res[summary.name].append(summary.summary_of_phylogeny(tree))

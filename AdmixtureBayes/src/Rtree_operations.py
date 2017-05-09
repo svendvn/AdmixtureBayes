@@ -140,6 +140,9 @@ def update_all_branches(tree, updater):
                 return None        
     return tree
 
+def update_branch_length(tree,key,branch, new_length):
+    tree[key][branch+3]=new_length
+
 def extend_branch(node, pkey, grand_parent_key, p_to_gp):
     #print node, pkey, grand_parent_key, p_to_gp
     if node[0]==pkey:
@@ -589,15 +592,15 @@ def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft
     if parent_key=='r':
         sister_key,sister_branch= _get_root_sibling(tree, regraft_key, regraft_branch)
         if chosen_piece.child_key=='r':
-            u1,_, lattitude_difference=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
             tree[sister_key][sister_branch+3]=tree[sister_key][sister_branch+3]+u1
         elif chosen_piece.child_key==sister_key and chosen_piece.child_branch==sister_branch:
-            u1,_, lattitude_difference=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
             tree[sister_key][sister_branch+3]=u1
         else:
             tree=rename_root(tree, sister_key)
             del tree[sister_key]
-            u1,u2, lattitude_difference=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            u1,u2 =chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
             if chosen_piece.parent_key == sister_key:
                 tree[new_node_name]=['r', None,None,u2,None,regraft_key,chosen_piece.child_key]
             else:
@@ -611,11 +614,11 @@ def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft
     else:
         if chosen_piece.child_key=='r':
             tree=materialize_root(tree, new_node_name)
-            u1,_, lattitude_difference=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            u1,_=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
             tree[new_node_name][3]=u1       
             tree[regraft_key][regraft_branch]='r'     
         else:
-            u1,u2, lattitude_difference=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
+            u1,u2=chosen_piece.get_leaf_and_root_sided_length(distance_to_regraft)
             #print u1,u2
             tree[new_node_name]=[chosen_piece.parent_key, None,None,u2,None,regraft_key,chosen_piece.child_key]
             if chosen_piece.parent_key=='r':
@@ -632,7 +635,7 @@ def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft
             tree[grandfather_key]=_rename_child(tree[grandfather_key], parent_key, sibling_key)
         del tree[parent_key]
     
-    return tree, lattitude_difference  
+    return tree
         
     
 
