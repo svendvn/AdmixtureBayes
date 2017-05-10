@@ -34,7 +34,7 @@ def get_thinned_pieces(tree,regraft_key, regraft_branch, distance_to_regraft, pa
     return thinned_pieces
     
     
-def make_sliding_regraft(tree, new_node=None, param=0.1, resimulate_moved_branch_length=False, pks={}):
+def make_sliding_regraft(tree, new_node=None, param=0.01, resimulate_moved_branch_length=False, pks={}):
     '''
     
     '''
