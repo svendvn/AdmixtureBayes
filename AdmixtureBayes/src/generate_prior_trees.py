@@ -58,7 +58,9 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
             tree=rename_root(tree,key)
     return tree
 
-def generate_phylogeny(size,admixes, leaf_nodes=None, skewed_admixture_prior=False):
+def generate_phylogeny(size,admixes=None, leaf_nodes=None, skewed_admixture_prior=False):
+    if admixes is None:
+        admixes=geom.rvs(p=0.5)-1
     tree=generate_admix_topology(size, admixes, leaf_nodes)
     for node in tree.values():
         node=_resimulate(node, skewed_admixture_prior)

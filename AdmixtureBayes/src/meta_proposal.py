@@ -1,7 +1,7 @@
 from Rproposal_admix import addadmix_class, deladmix_class
 from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
-from Rproposal_sliding_regraft import sliding_regraft_class
+from Rproposal_sliding_regraft import sliding_regraft_class, sliding_regraft_class_resimulate
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -162,8 +162,10 @@ class adaptive_proposal_no_admix(object):
 
 class adaptive_proposal(object):
     
-    def __init__(self):
+    def __init__(self, resimulate_regrafted_branch_length=False):
         self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
+        if resimulate_regrafted_branch_length:
+            self.props[2]=sliding_regraft_class_resimulate()
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         self.node_naming=new_node_naming_policy()

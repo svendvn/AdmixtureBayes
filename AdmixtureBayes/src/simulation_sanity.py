@@ -162,7 +162,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
 
 def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, 
                          admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, 
-                         wishart_df=None, sap_sim=False, sap_ana=False):
+                         wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -184,7 +184,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     posterior=initialize_posterior(m,wishart_df, use_skewed_distr = sap_ana)
     if summaries is None:
         summaries=[s_posterior(), s_variable('mhr'), s_no_admixes()]
-    proposal=adaptive_proposal()
+    proposal=adaptive_proposal(resimulate_regrafted_branch_length=resimulate_regrafted_branch_length)
     #proposal.props=proposal.props[2:] #a little hack under the hood
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}

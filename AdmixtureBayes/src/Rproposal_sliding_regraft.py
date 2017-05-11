@@ -7,6 +7,7 @@ from copy import deepcopy
 from random import getrandbits
 from math import exp
 import exponential_F
+import gamma_restricted
 
 class sliding_regraft_class(object):
     
@@ -34,7 +35,7 @@ def get_thinned_pieces(tree,regraft_key, regraft_branch, distance_to_regraft, pa
     return thinned_pieces
     
     
-def make_sliding_regraft(tree, new_node=None, param=0.01, resimulate_moved_branch_length=False, pks={}):
+def make_sliding_regraft(tree, new_node=None, param=0.1, resimulate_moved_branch_length=False, pks={}):
     '''
     
     '''
@@ -54,7 +55,7 @@ def make_sliding_regraft(tree, new_node=None, param=0.01, resimulate_moved_branc
     forward_choices=len(thinned_pieces_forward)
     chosen_piece=thinned_pieces_forward[choice(len(thinned_pieces_forward),1)[0]]
     
-    print chosen_piece
+    #print chosen_piece
     if new_node is None:
         new_node=str(getrandbits(68)).strip()
     new_tree =move_node(new_tree, regraft_key, regraft_branch, parent_key, distance_to_regraft, chosen_piece, new_node_name=new_node)
@@ -75,13 +76,13 @@ def make_sliding_regraft(tree, new_node=None, param=0.01, resimulate_moved_branc
 
 def resimulate_moved_branch(tree, key, branch, delta_L):
     old_length= get_branch_length(tree, key, branch)
-    new_length= exponential_F.rvs(old_length, -delta_L)
-    logpdf=exponential_F.logpdf(new_length, old_length, -delta_L)
-    logpdf_back=exponential_F.logpdf(old_length, new_length, delta_L)
+    new_length= gamma_restricted.rvs(old_length, -delta_L)
+    logpdf=gamma_restricted.logpdf(new_length, old_length, -delta_L)
+    logpdf_back=gamma_restricted.logpdf(old_length, new_length, delta_L)
     backward=exp(-logpdf+logpdf_back) #for stability, both forward and backward are put in backward. 
     ratio= exp(logpdf-logpdf_back)
     update_branch_length(tree, key, branch, new_length)
-    print 'resimulated', old_length, 'to', new_length, 'on branch', str((key,branch)), 'and change in lattitude at', delta_L, 'backward',  backward
+    #print 'resimulated', old_length, 'to', new_length, 'on branch', str((key,branch)), 'and change in lattitude at', delta_L, 'backward',  backward
     return tree, 1.0, backward
     
 
@@ -103,8 +104,8 @@ if __name__=='__main__':
     from Rcatalogue_of_trees import tree_good
     t=tree_good
     print pretty_string(t)
-    letters='ghijklmnopqrstuvwxyz'
-    for i in xrange(10):
+    letters=['n'+str(i) for i in xrange(100000)]
+    for i in xrange(100):
         t,f,b= make_sliding_regraft(t, new_node=letters[i] , resimulate_moved_branch_length=True)
         print 'forward', f
         print 'backward',b
