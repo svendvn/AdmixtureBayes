@@ -156,9 +156,9 @@ def pack_items(a,b,c):
 
                 
     
-def run_posterior_grid(tree_file, alpha, wishart_df):
-    s_tree=Rtree_operations.create_trivial_tree(no_leaves)
-    true_tree= tree_generation_laboratory.load_tree(tree_file)
+def run_posterior_grid(tree_files, alpha, wishart_df):
+    
+    #true_trees= [tree_generation_laboratory.load_tree(tree_file) for tree_file in tree_files]
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
                summary.s_no_admixes(), 
@@ -174,8 +174,18 @@ def run_posterior_grid(tree_file, alpha, wishart_df):
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_likelihood(),
                summary.s_prior()]
-    simulation_sanity.test_posterior_model(true_tree,s_tree, 1000000, summaries=summaries, thinning_coef=30, wishart_df= wishart_df, resimulate_regrafted_branch_length=alpha)
-    p=Pool
+    def f(x):
+        unsuffixed_filename='.'.join(x.split('.')[:-1])
+        true_tree=tree_generation_laboratory.identifier_to_tree_clean_wrapper(tree_generation_laboratory.load_tree(x))
+        s_tree=Rtree_operations.create_trivial_tree(Rtree_operations.get_no_leaves(true_tree))
+        simulation_sanity.test_posterior_model(true_tree,s_tree, 100, summaries=summaries, thinning_coef=30, 
+                                               wishart_df= wishart_df, resimulate_regrafted_branch_length=alpha, 
+                                               filename=unsuffixed_filename+'-results.csv')
+
+    from pathos.multiprocessing import Pool
+    p=Pool(len(tree_files))
+    p.map(f, tree_files)
+    
     
     
 def run_trivial():
@@ -190,8 +200,15 @@ def run_trivial():
     
 if __name__=='__main__':
     #run_posterior_multichain(true_tree_as_identifier='tree2.txt')
+    from argparse import ArgumentParser
+    parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
+    parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
+    parser.add_argument('--tree_files', nargs='+', default=['tree.txt'], type=str, help='tree files to be run in parallel')
+    parser.add_argument('--alpha',  default=0, help='the shape parameter of the gamma distribution of the resimulation of the regrafted branch')
+    #parser.add_argument('--result_file', type=str, default='', help='file to save results in')
+    options=parser.parse_args()
     
-    run_d()
+    run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
     import sys
     sys.exit()
     

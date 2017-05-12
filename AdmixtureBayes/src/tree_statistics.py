@@ -47,6 +47,42 @@ def generation_counts(tree):
             break
     return res
 
+def get_timing(tree):
+    '''
+    returns a list of tuples of the form (no_admixtures, no_waiting_coalescences, no_sudden_coalescences, no_awaited_coalescences).
+    '''
+    leaves, coalescences_nodes, admixture_nodes=get_categories(tree)
+    ready_lineages=[(key,0) for key in leaves]
+    coalescences_on_hold=[]
+    
+    res={key:0.0 for key in leaves}
+    count=1
+    while True:
+        sames, single_coalescences, admixtures=get_destination_of_lineages(tree, ready_lineages)
+        waiting_coalescences, awaited_coalescences, still_on_hold = matchmake(single_coalescences, coalescences_on_hold)
+        #print 'sames', sames
+        #print 'single_coalescences', single_coalescences
+        #print 'admixtures', admixtures
+        #print 'waiting_coalescences', waiting_coalescences
+        #print 'awaited_coalescences', awaited_coalescences
+        #print 'still_on_hold', still_on_hold
+    
+        #updating lineages
+        coalescences_on_hold=still_on_hold+waiting_coalescences.values()
+        ready_lineages=propagate_married(tree, awaited_coalescences)
+        ready_lineages.extend(propagate_married(tree, sames))
+        ready_lineages.extend(propagate_admixtures(tree, admixtures))
+        
+        res.update({key:count for key,_ in ready_lineages})
+        
+        count+=1
+        #stop criteria
+        if len(ready_lineages)==1 and ready_lineages[0][0]=='r':
+            res['r']=count
+            break
+    return res
+
+
 def order_previously_unseparable(hierarchy, events):
     '''
     This function returns a sequence of the position of each of the events. If no ordering can be put, they are given the same number.
@@ -343,6 +379,7 @@ if __name__=='__main__':
     from tree_plotting import pretty_string
     
     print generation_counts(tree_good)
+    print get_timing(tree_good)
     ad= unique_identifier_and_branch_lengths(tree_good)
     print pretty_string(tree_good)
     print 'identifier=',ad 

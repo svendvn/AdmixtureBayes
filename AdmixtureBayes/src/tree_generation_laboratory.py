@@ -27,6 +27,9 @@ def load_tree(filename):
         stree=f.readline().rstrip()
     return stree
 
+def identifier_to_tree_clean_wrapper(stree):
+    return identifier_to_tree_clean(stree)
+
 #addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False):
 def add_random_admix(stree, *kwargs):
     tree=identifier_to_tree_clean(stree)

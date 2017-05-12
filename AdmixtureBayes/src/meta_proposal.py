@@ -165,7 +165,7 @@ class adaptive_proposal(object):
     def __init__(self, resimulate_regrafted_branch_length=False):
         self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
         if resimulate_regrafted_branch_length:
-            self.props[2]=sliding_regraft_class_resimulate()
+            self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         self.node_naming=new_node_naming_policy()

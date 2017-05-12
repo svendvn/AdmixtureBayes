@@ -21,8 +21,11 @@ class sliding_regraft_class_resimulate(object):
     new_nodes=1
     proposal_name='sliding_regraft'
     
+    def __init__(self, param):
+        self.param=param
+    
     def __call__(self,*args, **kwargs):
-        return make_sliding_regraft(*args, resimulate_moved_branch_length=True, **kwargs)
+        return make_sliding_regraft(*args, resimulate_moved_branch_length=self.param, **kwargs)
     
 def simulate_regraft_distance(param):
     return chi2.rvs(1)*param
@@ -67,18 +70,18 @@ def make_sliding_regraft(tree, new_node=None, param=0.1, resimulate_moved_branch
     
     
     if resimulate_moved_branch_length:
-        new_tree, forward, backward= resimulate_moved_branch(new_tree, regraft_key, regraft_branch, chosen_piece.get_lattitude(distance_to_regraft))
+        new_tree, forward, backward= resimulate_moved_branch(new_tree, regraft_key, regraft_branch, chosen_piece.get_lattitude(distance_to_regraft), resimulate_moved_branch_length)
     else:
         forward=1.0
         backward=1.0
     
     return new_tree, forward/forward_choices, backward/backward_choices
 
-def resimulate_moved_branch(tree, key, branch, delta_L):
+def resimulate_moved_branch(tree, key, branch, delta_L, alpha):
     old_length= get_branch_length(tree, key, branch)
-    new_length= gamma_restricted.rvs(old_length, -delta_L)
-    logpdf=gamma_restricted.logpdf(new_length, old_length, -delta_L)
-    logpdf_back=gamma_restricted.logpdf(old_length, new_length, delta_L)
+    new_length= gamma_restricted.rvs(old_length, -delta_L, alpha)
+    logpdf=gamma_restricted.logpdf(new_length, old_length, -delta_L, alpha)
+    logpdf_back=gamma_restricted.logpdf(old_length, new_length, delta_L, alpha)
     backward=exp(-logpdf+logpdf_back) #for stability, both forward and backward are put in backward. 
     ratio= exp(logpdf-logpdf_back)
     update_branch_length(tree, key, branch, new_length)

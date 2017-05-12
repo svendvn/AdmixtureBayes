@@ -813,6 +813,18 @@ def get_real_children(node):
     cs=node[5:7]
     return [c for c in cs if c is not None]
 
+def get_real_children_root(tree, key):
+    if key=='r':
+        a,b=find_rooted_nodes(tree)
+        return [(a[0],a[1]), (b[0],b[1])]
+    else:
+        c_keys=get_real_children(tree[key])
+        res=[]
+        for c_key in c_keys:
+            res.append((c_key, mother_or_father(tree, c_key, key)))
+        return res
+        
+
 def get_other_parent(node, parent_key):
     if parent_key==node[0]:
         return node[1]
