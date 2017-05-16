@@ -13,15 +13,15 @@ def tree_to_data_perfect_model(tree, df):
     m=wishart.rvs(df=r*df-1, scale=m/(r*df))
     return m
 
-def tree_to_ms_command(rtree, sample_per_pop=20, nreps=1, 
-                       theta=500.0, sites=100000, recomb_rate=None):
+def tree_to_ms_command(rtree, sample_per_pop=100, nreps=1, 
+                       theta=0.1, sites=1000000, recomb_rate=None):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
     else:
         rec_part=' -r '+str(recomb_rate)+ ' '+str(sites)
     n=get_no_leaves(tree)
-    callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' #rec_part
+    callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
     tree=extend_branch_lengths(tree,times)
@@ -35,11 +35,12 @@ def extend_branch_lengths(tree, times):
             tree[key][3+n]=(tree[key][3+n], pseudo_time)
     return tree
 
+
+
 def construct_ej_en_es_string(tree, times, no_leaves):
     s_times=sorted(zip(times.values(),times.keys()))
     dic_of_lineages={(key,0):(n+1) for n,(time,key) in enumerate(s_times[:no_leaves])}
     population_count=len(dic_of_lineages)
-    print
     res_string=''
     for time,key in s_times:
         if key=='r':
@@ -77,7 +78,7 @@ def get_affected_populations(dic_of_lineages, children_branches):
     
 def calculate_pop_size(tup):
     drift, actual=tup
-    return drift/actual
+    return actual/drift/16
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:
@@ -110,7 +111,8 @@ def trace_from_root(tree, init_freq):
 
 if __name__=='__main__':
     from Rcatalogue_of_trees import *
-    
-    print call_ms_string(tree_to_ms_command(tree_good, recomb_rate=10.0), 'tmp.txt')
-    calculate_covariance_matrix('tmp.txt', 20)
-    print make_covariance(tree_good)
+    from Rtree_operations import create_trivial_tree
+    tree2=create_trivial_tree(3)
+    print call_ms_string(tree_to_ms_command(tree2, recomb_rate=500.0), 'tmp.txt')
+    calculate_covariance_matrix('tmp.txt', 100, 3)
+    print make_covariance(tree2)

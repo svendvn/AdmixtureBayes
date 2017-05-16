@@ -185,6 +185,132 @@ class generate_predefined_list(object):
     def __call__(self):
         return float(self.listi.pop(0))
     
+class bifacturing_tree(object):
+    
+    def __init__(self, string, trace_lineages):
+        self.string=string
+        self.trace_lineages=trace_lineages
+        self.counter=0
+        
+    def pop_symbol(self):
+        if self.string:
+            res=self.string[0]
+            if len(self.string)==1:
+                remover='-'
+            else:
+                remover=self.string[1]
+            self.string=self.string[2:]
+            if self.counter in self.trace_lineages:  
+                self.update_counter(remover)
+                return res
+            else:
+                self.update_counter(remover)
+                return False
+    
+    def update_counter(self, remover):
+        if remover=='.':
+            self.counter+=1
+        else:
+            self.counter=-1
+        
+    def lineage_in_tracer(self):
+        return (n+1 in self.trace_lineages)
+    
+    def update_tracer(self, key, new_value):
+        self.trace_lineages[key]=new_value
+        
+    def remove_value_from_tracer(self, key):
+        del self.trace_lineages[key]
+        
+    def get_value_of_tracer(self, key):
+        return self.trace_lineages[key]
+    
+    def finished(self):
+        return (not self.string)
+    
+    def get_res(self):
+        assert len(self.trace_lineages)==1
+        return self.trace_lineages.values()[0]
+    
+def identifier_to_newicks(identifier, leaves=None):
+    '''
+    Transforms a tree in the admixture identifier format into a list of newick trees.
+    '''      
+        
+    levels=identifier.split('-')
+    n_leaves=len(levels[0].split('.'))
+    
+    #initiate leaves
+    if leaves is None:
+        leaf_values=get_trivial_nodes(n_leaves)
+    else:
+        leaf_values=[leaves() for _ in range(n_leaves)]
+        
+    tracer={n:leaf_val for n,leaf_val in enumerate(leaf_values)}
+    b_trees=[bifacturing_tree(identifier, tracer)]
+    
+    for b_tree in b_trees:
+        val= b_tree.pop_symbol()
+        
+        
+        
+    for level in levels:
+        identifier_lineages=level.split('.')
+        next_states=[]
+        while states:
+            state=states.pop(0)
+            trace_lineages=state
+            assert len(trace_lineages)<=len(identifier_lineages), 'the number of traced lineages did not match the number of lineages in the identifier '+\
+                                                                   '\n\n'+'trace_lineages:'+'\n'+str(trace_lineages)+\
+                                                                   '\n\n'+'identifier_lineages:'+'\n'+str(identifier_lineages)
+            parent_index={}
+            indexes_to_be_removed=[]
+            for n,identifier_lineage in enumerate(identifier_lineages):
+                if n in trace_lineages: # 
+                    if identifier_lineage=='c':
+                        ##there is a coalecence for the n'th lineage, and it should be replaced by a new lineage
+                        old_key=trace_lineages[n]
+                        new_key=(old_key,None)
+                        trace_lineages[n]=new_key
+                    elif identifier_lineage=='w':
+                        pass
+                    elif identifier_lineage=='a':
+                        
+                        new_key=inner_nodes(admixture=True)
+                        old_key,old_branch=trace_lineages[n]
+                        new_branch_length=branch_lengths()
+                        tree=update_parent_and_branch_length(tree, old_key, old_branch, new_key, new_branch_length)
+                        new_admixture_proportion=admixture_proportions()
+                        tree[new_key]=[None,None,new_admixture_proportion,None,None]
+                        trace_lineages[n]=(new_key,0)
+                        trace_lineages.append((new_key,1))
+                    else:
+                        ##there is a coalescence but this lineage disappears
+                        try:
+                            new_key=parent_index[int(identifier_lineage)]
+                        except KeyError as e:
+                            print e
+                            print 'new_key', new_key
+                            print 'parent_index', parent_index
+                            print 'identifier_lineage', identifier_lineage
+                            print pretty_string(insert_children_in_tree(tree))
+                        
+                        old_key,old_branch=trace_lineages[n]
+                        new_branch_length=branch_lengths()
+                        tree=update_parent_and_branch_length(tree, old_key, old_branch, new_key, new_branch_length)
+                        indexes_to_be_removed.append(n)
+            
+            ##remove lineages
+            trace_lineages=[trace_lineage for n,trace_lineage in enumerate(trace_lineages) if n not in indexes_to_be_removed]
+    root_key=new_key
+    del tree[root_key]
+    tree=rename_root(tree, new_key)
+    
+    return insert_children_in_tree(tree)
+        
+    
+    
+    
 def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths=None, admixture_proportions=None):
     '''
     Transforms an identifier of the form qwert-uio-asdfg-jk into a dictionary tree using the generators of leaves, inner_nodes, branch_lengths and admixture_proportions.
