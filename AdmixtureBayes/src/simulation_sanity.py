@@ -181,7 +181,12 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         print m
         m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
         print m
-    posterior=initialize_posterior(m,wishart_df, use_skewed_distr = sap_ana)
+    posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana)
+    print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
+    post_=posterior(true_tree)
+    print 'likelihood(true_tree)', post_[0]
+    print 'prior(true_tree)', post_[1]
+    print 'posterior(true_tree)', sum(post_)
     if summaries is None:
         summaries=[s_posterior(), s_variable('mhr'), s_no_admixes()]
     proposal=adaptive_proposal(resimulate_regrafted_branch_length=resimulate_regrafted_branch_length)
@@ -240,7 +245,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     results,permuts= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
-               temperature_scheme=fixed_geometrical(100.0,no_chains), 
+               temperature_scheme=fixed_geometrical(40.0,no_chains), 
                printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
                iteration_scheme=sim_lengths, 
                overall_thinnings=int(thinning_coef+sum(sim_lengths)/60000), 

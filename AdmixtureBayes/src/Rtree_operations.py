@@ -393,6 +393,9 @@ def get_branch_length(tree,key,branch):
 def get_branch_length_from_parent(tree, child_key, parent_key):
     return tree[child_key][3+mother_or_father(tree, child_key, parent_key)]
 
+def get_admixture_proportion_from_key(tree, key):
+    return tree[key][2]
+
 def get_admixture_proportion(tree, child_key,child_branch):
     key=get_parent_of_branch(tree, child_key,child_branch)
     assert node_is_admixture(tree[key]), 'Tried to get the admixture proportion of a non-admixture node'
@@ -845,6 +848,18 @@ def halfbrother_is_uncle(tree, key, parent_key):
     grand_parent_key=tree[parent_key][0]
     return bonus_parent==grand_parent_key
 
+def remove_admixture(tree, key, branch):
+    parent_key=tree[key][branch]
+    
+    while parent_key!='r' and node_is_admixture(tree[parent_key]):
+        tree=remove_admixture(tree, parent_key, 1)
+        parent_key=tree[key][branch]
+        
+    return remove_admix2(tree, key,branch)[0]
+    
+        
+    
+
 def parent_is_spouse(tree, key, direction):
     '''
     key is an admixture node. This function checks if the parent in the direction of 'direction' also has a child with the admixture node.
@@ -866,7 +881,12 @@ def parent_is_sibling(tree, key, direction):
     return (parent_key=='r' or other_parent_key in get_real_parents(tree[parent_key]))
 
     
-    
+def get_admixture_branches(tree):
+    res=[]
+    for key,node in tree.items():
+        if node_is_admixture(node):
+            res.append((key,0))
+            res.append((key,1))
         
 
 def is_root(*keys):
@@ -1107,7 +1127,11 @@ if __name__=='__main__':
         
         from piece_of_tree import piece
         p=piece(0, None, 0, None, 'r', 0, None)
-        pretty_print(  move_node(tree_good, 'c', 1, 'd', 0.01, p, new_node_name='x')  )
+        #pretty_print(  move_node(tree_good, 'c', 1, 'd', 0.01, p, new_node_name='x')  )
+        
+        from Rcatalogue_of_trees import tree_good
+        pretty_print(remove_admixture(deepcopy(tree_good), 'a', 0))
+        pretty_print(remove_admixture(tree_good, 'a', 1))
 
         
         

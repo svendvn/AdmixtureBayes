@@ -62,6 +62,6 @@ if __name__=='__main__':
     #save_tree(s, 'tree3.txt')
     
     s=load_tree('tree3.txt')
-    see_covariance_matrix(s)
-    plot_string_tree(s)
+    #see_covariance_matrix(s)
+    #plot_string_tree(s)
     

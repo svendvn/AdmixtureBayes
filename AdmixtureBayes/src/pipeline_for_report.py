@@ -91,8 +91,9 @@ def run_c():
     analyse_results.generate_summary_csv(summaries)
     
 def run_d():
-    true_tree=tree_statistics.identifier_to_tree_clean('w.c.w.1-w.a.w-c.0.w.w-c.w.0-c.0;0.578-1.783-0.221-1.462-0.44-0.295-0.142-0.255-0.352;0.373')
-    s_tree=Rtree_operations.create_trivial_tree(4)
+    true_tree=generate_prior_trees.generate_phylogeny(8,2)
+    #tree_statistics.identifier_to_tree_clean('w.c.w.1-w.a.w-c.0.w.w-c.w.0-c.0;0.578-1.783-0.221-1.462-0.44-0.295-0.142-0.255-0.352;0.373')
+    s_tree=Rtree_operations.create_trivial_tree(8)
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
                summary.s_no_admixes(), 
@@ -104,11 +105,12 @@ def run_d():
                summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
+               summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param'),
                summary.s_variable('rescale_adap_param'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 30000, summaries=summaries, thinning_coef=20, wishart_df= 10000, resimulate_regrafted_branch_length=True, admixtures_of_true_tree=1, no_leaves_true_tree=4)
+    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 30000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=True, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -122,6 +124,7 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
         with open(true_tree_as_identifier, 'r') as f:
             s=f.readline().rstrip()
             true_tree=tree_statistics.identifier_to_tree_clean(s)
+    print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(true_tree)
     no_leaves=Rtree_operations.get_no_leaves(true_tree)
     s_tree=Rtree_operations.create_trivial_tree(no_leaves)
     summaries=[summary.s_posterior(), 
@@ -135,13 +138,14 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
+               summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_likelihood(),
                summary.s_prior(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*20000, summaries=summaries, thinning_coef=3, wishart_df=wishart_df, result_file=result_file)
+    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=30, wishart_df=wishart_df, result_file=result_file)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -200,17 +204,18 @@ def run_trivial():
     
 if __name__=='__main__':
     #run_posterior_multichain(true_tree_as_identifier='tree2.txt')
-    from argparse import ArgumentParser
-    parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
-    parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
-    parser.add_argument('--tree_files', nargs='+', default=['tree.txt'], type=str, help='tree files to be run in parallel')
-    parser.add_argument('--alpha',  default=0, help='the shape parameter of the gamma distribution of the resimulation of the regrafted branch')
+    #from argparse import ArgumentParser
+    #parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
+    #parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
+    #parser.add_argument('--tree_files', nargs='+', default=['tree.txt'], type=str, help='tree files to be run in parallel')
+    #parser.add_argument('--alpha',  default=0, help='the shape parameter of the gamma distribution of the resimulation of the regrafted branch')
     #parser.add_argument('--result_file', type=str, default='', help='file to save results in')
-    options=parser.parse_args()
+    #options=parser.parse_args()
     
-    run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
-    import sys
-    sys.exit()
+    #run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
+    #run_d()
+    #import sys
+    #sys.exit()
     
     from argparse import ArgumentParser
     
@@ -218,8 +223,8 @@ if __name__=='__main__':
     parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
     parser.add_argument('--sap_simulations', action='store_true',default=False, help='skewed admixture proportion prior in the simulated datasets')
     parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
-    parser.add_argument('--true_tree', type=str, default='', help='file with the true tree to use')
-    parser.add_argument('--result_file', type=str, default='', help='file to save results in')
+    parser.add_argument('--true_tree', type=str, default='tree3.txt', help='file with the true tree to use')
+    parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in')
     options=parser.parse_args()
     #run_e(options.df, options.result_file, sap_sim=options.sap_simulations, sap_ana=options.sap_analysis)
     
