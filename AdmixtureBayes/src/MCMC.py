@@ -56,7 +56,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     return x,post
 
 
-def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=True):
+def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=False):
     if proposal_update is not None:
         proposal.wear_exportable_state(proposal_update)
     
@@ -86,6 +86,8 @@ def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, 
             #print pretty_string(tree)
             check(tree, proposal_knowledge_scraper)
     
+    #print iteration_summary
+    #print zip(*iteration_summary)
     return tree, post, zip(*iteration_summary),proposal.get_exportable_state()
         
         
