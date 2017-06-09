@@ -6,6 +6,7 @@ from tree_operations import get_number_of_admixes_on_branch
 from itertools import izip
 
 from Rtree_operations import node_is_non_admixture, node_is_coalescence, get_leaf_keys
+from covariance_matrix_wrapper import Covariance_Matrix2
 
 class Population:
     
@@ -48,6 +49,7 @@ class Population:
                 yield ((s1,s2),w1*w2*branch_length)
                 #yield ((s1,s2),w1*w2*branch_length)
         #return list_of_res
+        
 
 class Covariance_Matrix():
     
@@ -65,6 +67,9 @@ class Covariance_Matrix():
         indices=self.get_indices(population.members)
         self.covmat[ix_(indices,indices)]+=self.get_addon(branch_length, population.weights)
         #self.covmat[ix_(indices,indices)]+=branch_length*outer(weights, weights)
+        
+    def get_matrix(self):
+        return self.covmat
 
 
 #node is p1key, p2key, adm_prop, p1length, p2length, 
@@ -138,7 +143,7 @@ def make_covariance(tree, node_keys=None):
         node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
-    covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
+    covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})
     waiting_nodes={}
     taken_nodes=[]
     while True:
@@ -156,7 +161,7 @@ def make_covariance(tree, node_keys=None):
         if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
             break
 
-    return covmat.covmat
+    return covmat.get_matrix()
                 
             
             
@@ -243,41 +248,43 @@ if __name__=="__main__":
     #print make_covariance(tree_one_admixture,['s1','s2','s3'])
     print 'two admixtures same direction consistent'
     pretty_print(tree_two_admixture)
-    plot_as_directed_graph(tree_two_admixture, drawing_name='h1.BMP')
+    #plot_as_directed_graph(tree_two_admixture, drawing_name='h1.BMP')
     print make_covariance(tree_two_admixture,['s1','s2','s3'])
     print 'two admixtures cross same direction'
     pretty_print(tree_illegal)
-    plot_as_directed_graph(tree_illegal, drawing_name='h2.BMP')
+    #plot_as_directed_graph(tree_illegal, drawing_name='h2.BMP')
     print make_covariance(tree_illegal,['s1','s2','s3'])
     print 'admixture-admixture coalescent'
-    plot_as_directed_graph(tree_on_the_border, drawing_name='h3.BMP')
+    #plot_as_directed_graph(tree_on_the_border, drawing_name='h3.BMP')
     pretty_print(tree_on_the_border)
     print make_covariance(tree_on_the_border,['s1','s2','s3'])
     print 'admixture on admixture'
-    plot_as_directed_graph(tree_on_the_border2, drawing_name='h4.BMP')
+    #plot_as_directed_graph(tree_on_the_border2, drawing_name='h4.BMP')
     pretty_print(tree_on_the_border2)
     print make_covariance(tree_on_the_border2,['s1','s2','s3','s4'])
     print 'admixture to higher in tree'
-    plot_as_directed_graph(tree_admix_to_child, drawing_name='h5.BMP')
+    #plot_as_directed_graph(tree_admix_to_child, drawing_name='h5.BMP')
     pretty_print(tree_admix_to_child)
     print make_covariance(tree_admix_to_child,['s1','s2','s3'])
     print 'two admixtures cross different directions'
-    plot_as_directed_graph(tree_two_admixture_cross, drawing_name='h6.BMP')
+    #plot_as_directed_graph(tree_two_admixture_cross, drawing_name='h6.BMP')
     pretty_print(tree_two_admixture_cross)
     print make_covariance(tree_two_admixture_cross,['s1','s2','s3'])
     
 
-    from Rtree_operations import create_trivial_tree
+    from Rtree_operations import create_burled_leaved_tree
     
     N=40
-    tree=create_trivial_tree(N)
+    tree=create_burled_leaved_tree(N,1)
     #print make_covariance(tree,['s'+str(i+1) for i in range(N)])
     def som():
-        for i in range(1000):
-            make_covariance(tree,['s'+str(i+1) for i in range(N)])
+        for _ in range(300):
+            r=make_covariance(tree,['s'+str(i+1) for i in range(N)])
+            print _
+        print r
     import cProfile
      
-    #print cProfile.run('som()')
+    print cProfile.run('som()')
     
     #print cProfile.run("likewise()")
     

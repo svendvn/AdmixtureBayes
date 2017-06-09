@@ -7,6 +7,7 @@ import generate_prior_trees
 import trivial_mcmc
 import tree_statistics
 import tree_generation_laboratory
+import load_data
 
 
 def run_a():
@@ -110,7 +111,7 @@ def run_d():
                summary.s_variable('sliding_regraft_adap_param'),
                summary.s_variable('rescale_adap_param'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 30000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=True, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 3000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -157,6 +158,27 @@ def pack_items(a,b,c):
                 res.append([ai,bi,ci])
     return res
 
+def analyse_data_single_chained(filename):
+    emp_cov=load_data.read_data(filename, nodes=['French', 'Han', 'Karitiana', 'Sardinian', 'Yoruba'], noss=True)
+    print emp_cov
+    df=100
+    summaries=[summary.s_posterior(), 
+               summary.s_variable('mhr'), 
+               summary.s_no_admixes(), 
+               summary.s_tree_identifier(),
+               summary.s_average_branch_length(),
+               summary.s_total_branch_length(),
+               summary.s_basic_tree_statistics(Rtree_operations.get_number_of_ghost_populations, 'ghost_pops', output='integer'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
+               summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
+               summary.s_variable('proposal_type', output='string'),
+               summary.s_variable('sliding_regraft_adap_param'),
+               summary.s_variable('rescale_adap_param'),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    r=simulation_sanity.test_posterior_model(None,None, 300000, summaries=summaries, thinning_coef=20, wishart_df= df, emp_cov=emp_cov, no_leaves_true_tree=5)
 
                 
     
@@ -213,9 +235,13 @@ if __name__=='__main__':
     #options=parser.parse_args()
     
     #run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
+    import cProfile
+     
+    print cProfile.run('run_d()')
     #run_d()
-    #import sys
-    #sys.exit()
+    #analyse_data_single_chained('example1.treemix_in.gz')
+    import sys
+    sys.exit()
     
     from argparse import ArgumentParser
     

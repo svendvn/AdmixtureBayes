@@ -5,6 +5,10 @@ from math import log, factorial,exp
 from scipy.special import binom 
 import linear_distribution
 
+def calculate_branch_prior(branches):
+    return -sum(branches)
+    #return sum(map(expon.logpdf, branches))
+
 def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
     admixtures=get_all_admixture_proportions(tree)
     if not all(prop>=0 and prop <=1 for prop in admixtures):
@@ -12,7 +16,7 @@ def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
     branches=get_all_branch_lengths(tree)
     if not all(branch>0 for branch in branches):
         return -float('inf')
-    branch_prior=sum(map(expon.logpdf, branches))
+    branch_prior=calculate_branch_prior(branches)
     no_admix_prior=no_admixes(p, len(admixtures))
     if use_skewed_distr:
         admix_prop_prior=linear_admixture_proportions(admixtures)

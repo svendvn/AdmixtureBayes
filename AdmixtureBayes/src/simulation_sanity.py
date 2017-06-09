@@ -162,7 +162,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
 
 def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, 
                          admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, 
-                         wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False):
+                         wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False, emp_cov=None):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -181,6 +181,8 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         print m
         m=wishart.rvs(df=r*wishart_df-1, scale=m/(r*wishart_df))
         print m
+    if emp_cov is not None:
+        m=emp_cov
     posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana)
     print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
     post_=posterior(true_tree)

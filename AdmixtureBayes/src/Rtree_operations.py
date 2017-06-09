@@ -653,6 +653,10 @@ def change_admixture(node):
     new_node=[node[1],node[0],1.0-node[2],node[4],node[3]]+node[5:]
     return new_node
 
+def readjust_length(node):
+    node[3]=node[3]/(1-node[2])**2
+    return node
+
 def get_number_of_admixes(tree):
     return sum((1 for node in tree.values() if node_is_admixture(node)))
 
@@ -816,6 +820,19 @@ def get_real_children(node):
     cs=node[5:7]
     return [c for c in cs if c is not None]
 
+def get_keys_and_branches_from_children(tree, key):
+    '''
+    the key has to be an admixture
+    '''
+    
+    child_keys=get_real_children(tree[key])
+    branches=[]
+    for child_key in child_keys:
+        branches.append(mother_or_father(tree, child_key, key))
+    return zip(child_keys, branches)
+    
+    
+
 def get_real_children_root(tree, key):
     if key=='r':
         a,b=find_rooted_nodes(tree)
@@ -856,8 +873,14 @@ def remove_admixture(tree, key, branch):
         parent_key=tree[key][branch]
         
     return remove_admix2(tree, key,branch)[0]
-    
-        
+
+def scale_tree(tree, factor):
+    for key,node in tree.items():
+        node[3]*=factor
+        if node_is_admixture(node):
+            node[4]*=factor
+        tree[key]=node
+    return tree        
     
 
 def parent_is_spouse(tree, key, direction):
@@ -1075,9 +1098,13 @@ if __name__=='__main__':
           's1s2':['r',None, None, 0.2,None],
           's3':['r',None, None, 0.4, None]}
         
+        print pretty_string(scale_tree(insert_children_in_tree(tree), 0.15))
+        
         print create_burled_leaved_tree(5,1.0)
         print pretty_string(create_burled_leaved_tree(5,1.0))
         print pretty_string(create_balanced_tree(15, 1.0))
+        
+        
         
         from copy import deepcopy
         from Rcatalogue_of_trees import *
@@ -1085,7 +1112,10 @@ if __name__=='__main__':
         tree2=insert_children_in_tree(tree_on_the_border2)
         print tree2
         print tree_on_the_border2_with_children
+        print get_keys_and_branches_from_children(tree2,'a')
         
+        import sys
+        sys.exit()
         #tree3=remove_parent_attachment(deepcopy(tree2), "s1")[0]
         #print tree3
         #print graft(tree3, 'f', 'r', 0.3, 'new_code', 0)

@@ -6,7 +6,8 @@ from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_a
                               make_consistency_checks, parent_is_spouse, halfbrother_is_uncle,
                               parent_is_sibling, other_branch, get_branch_length, change_admixture,
                               get_all_branches, get_all_branch_descendants_and_rest, remove_admix2,
-                              pretty_string)
+                              pretty_string, readjust_length,get_keys_and_branches_from_children,
+                              update_branch_length)
 from random import getrandbits
 from scipy.stats import expon
 #from tree_plotting import 
@@ -178,6 +179,8 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
     
+    tree[sink_name]=readjust_length(tree[sink_name])
+    
     new_branch=1
     if random()<0.5:
         new_branch=0
@@ -208,9 +211,12 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False):
         remove_key, remove_branch = fixed_remove
     pks['remove_key']=remove_key
     pks['remove_branch']=remove_branch
+    child_key, child_branch=get_keys_and_branches_from_children(tree, remove_key)[0]
+    branch_length_upto_admix=get_branch_length(tree, child_key, child_branch)
+    branch_length_upfrom_admix=get_branch_length(tree, child_key, 1-child_branch)
     #print 'remove', (remove_key, remove_branch)
     
-    new_tree, (t1,t2,t3,t4,t5), alpha  = remove_admix2(cop, remove_key, remove_branch, pks=pks)
+    new_tree, (t1,t2,t3,t4,t5), alpha = remove_admix2(cop, remove_key, remove_branch, pks=pks)
     #pks['sink_key']=sink_key
     #pks['sink_branch']=sink_branch
     #pks['removed_alpha']=alpha
@@ -228,6 +234,9 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False):
     pks['backward_choices']=backward_choices
     pks['forward_density']=forward_density
     pks['backward_density']=backward_density
+    
+    old_length=branch_length_upto_admix+(1.0-alpha)**2*branch_length_upfrom_admix
+    new_tree=update_branch_length(new_tree, child_key,child_branch, old_length)
     
     if check_opposite:
         pks2={}

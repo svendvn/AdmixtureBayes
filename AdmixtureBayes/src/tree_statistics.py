@@ -7,6 +7,7 @@ from copy import deepcopy
 from prior import matchmake
 import bidict
 import collections
+from bokeh.core.properties import value
 #from tree_plotting import plot_graph, plot_as_directed_graph
 
 
@@ -188,6 +189,14 @@ class generate_predefined_list(object):
         
     def __call__(self):
         return float(self.listi.pop(0))
+    
+class same_number(object):
+    
+    def __init__(self, value):
+        self.value=value
+    
+    def __call__(self):
+        return self.value
     
 class bifacturing_tree(object):
     
@@ -423,7 +432,6 @@ def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths
         def g():
             return 0.4
         admixture_proportions=g
-    print branch_lengths.listi
     for level in levels:
         identifier_lineages=level.split('.')
         assert len(trace_lineages)==len(identifier_lineages), 'the number of traced lineages did not match the number of lineages in the identifier '+\
@@ -481,6 +489,10 @@ def identifier_to_tree_clean(identifier):
     tree_good2= identifier_to_tree(ad2, 
                                    branch_lengths=string_to_generator(branch_lengths), 
                                    admixture_proportions=string_to_generator(admixture_proportions))
+    return tree_good2
+
+def topological_identifier_to_tree_clean(identifier):
+    tree_good2= identifier_to_tree(identifier)
     return tree_good2
 
 def unique_identifier_and_branch_lengths(tree):

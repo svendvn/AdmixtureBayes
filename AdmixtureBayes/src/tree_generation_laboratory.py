@@ -61,7 +61,9 @@ if __name__=='__main__':
     #plot_big_tree(s)
     #save_tree(s, 'tree3.txt')
     
-    s=load_tree('tree3.txt')
+    #s=load_tree('tree3.txt')
     #see_covariance_matrix(s)
     #plot_string_tree(s)
+    
+    plot_big_tree('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.4-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
     
