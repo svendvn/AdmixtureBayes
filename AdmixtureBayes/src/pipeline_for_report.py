@@ -235,13 +235,13 @@ if __name__=='__main__':
     #options=parser.parse_args()
     
     #run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
-    import cProfile
+    #import cProfile
      
-    print cProfile.run('run_d()')
+    #print cProfile.run('run_d()')
     #run_d()
     #analyse_data_single_chained('example1.treemix_in.gz')
-    import sys
-    sys.exit()
+    #import sys
+    #sys.exit()
     
     from argparse import ArgumentParser
     
