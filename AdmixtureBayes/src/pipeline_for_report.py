@@ -6,7 +6,7 @@ import summary
 import generate_prior_trees
 import trivial_mcmc
 import tree_statistics
-import tree_generation_laboratory
+#import tree_generation_laboratory
 import load_data
 
 
