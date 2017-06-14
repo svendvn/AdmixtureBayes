@@ -165,6 +165,7 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
             u1,q1 = new_to_root_length, get_root_branch_length(new_to_root_length)
     else:
         u1,q1=get_insertion_spot(length=get_branch_length(tree,source_key,source_branch))
+    t1=get_branch_length(tree,sink_key,sink_branch)
     u2,q2=get_insertion_spot(length=get_branch_length(tree,sink_key,sink_branch))
     if new_branch_length is not None:
         t4,q4= new_branch_length, get_admixture_branch_length(new_branch_length)
@@ -178,9 +179,11 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     tree=insert_admixture_node_halfly(tree, sink_key, sink_branch, u2, admix_b_length=t4, new_node_name=sink_name, admixture_proportion= u3)
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
-    
+
+    print 'old_t1', tree[sink_name][3]
     if preserve_root_distance:
         tree[sink_name]=readjust_length(tree[sink_name])
+    print 'new_t1', tree[sink_name][3]
     
     new_branch=1
     if random()<0.5:
@@ -228,6 +231,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
     if preserve_root_distance:
         old_length=t2+(1.0-alpha)**2*t1
         t1=old_length-t2
+        print old_length, t1,t2
         child_key, child_branch= get_keys_and_branches_from_children(tree, remove_key)[0]
         update_branch_length(new_tree, child_key, child_branch, old_length)
     backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
@@ -397,17 +401,21 @@ if __name__=="__main__":
     from Rcatalogue_of_trees import tree_good, tree_one_admixture
     pks={}
 
-    newt,forw,backw=addadmix(tree_good,pks=pks, check_opposite=True)
+    from Rtree_to_covariance_matrix import make_covariance
+    print make_covariance(tree_good)
+    newt,forw,backw=addadmix(tree_good,pks=pks, check_opposite=True, new_node_names=['g','h'], preserve_root_distance=True)
     print 'forw',forw
     print 'back',backw
     print 'pks',pks
     pretty_print(newt)
+    print make_covariance(newt)
     
     pks={}
-    newt,forw,backw=deladmix(newt,pks=pks, check_opposite=True)
+    newt,forw,backw=deladmix(newt,pks=pks, check_opposite=True, preserve_root_distance=True)
     print 'forw',forw
     print 'back',backw
     print 'pks',pks
     pretty_print(newt)
+    print make_covariance(newt)
     
     

@@ -729,8 +729,11 @@ def remove_admix2(tree, rkey, rbranch, pks={}):
     source_key= rnode[rbranch]
     t1= rnode[3+other_branch(rbranch)]
     t5= rnode[3+rbranch]
-    alpha=rnode[2]
-    
+    if rbranch == 0:
+        alpha=1-rnode[2]
+    else:
+        alpha=rnode[2]
+        
     tree[orphanota_key],t2=get_branch_length_and_reset(tree[orphanota_key], rkey, t1, add=True)
     tree[orphanota_key]=_update_parent(tree[orphanota_key], rkey, parent_key)
     orphanota_branch=_get_index_of_parent(tree[orphanota_key], parent_key)
