@@ -24,10 +24,10 @@ def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
         admix_prop_prior=0
     top_prior=topological_prior(tree)
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
-    pks['proposed_branch_prior']= branch_prior
-    pks['proposed_no_admix_prior']=no_admix_prior
-    pks['proposed_admix_prop_prior']=admix_prop_prior
-    pks['proposed_top_prior']= top_prior
+    pks['branch_prior']= branch_prior
+    pks['no_admix_prior']=no_admix_prior
+    pks['admix_prop_prior']=admix_prop_prior
+    pks['top_prior']= top_prior
     return logsum
 
 def linear_admixture_proportions(admixtures):

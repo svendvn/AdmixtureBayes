@@ -138,12 +138,14 @@ def make_newicks(tree, node_keys=None):
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
                 
-def make_covariance(tree, node_keys=None):
+def make_covariance(tree, node_keys=None, old_cov=False):
     if node_keys is None:
         node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
     covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})
+    if old_cov:
+        covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
     waiting_nodes={}
     taken_nodes=[]
     while True:
@@ -274,6 +276,36 @@ if __name__=="__main__":
 
     from Rtree_operations import create_burled_leaved_tree
     
+    from generate_prior_trees import generate_phylogeny
+    from numpy import array_equal
+    N=3
+    def arrays_equal(r1,r2):
+        same_shape= (r1.shape[0]==r2.shape[0]) and (r1.shape[1]==r2.shape[1])
+        if not same_shape:
+            return False
+        for i in range(r1.shape[0]):
+            for j in range(r2.shape[1]):
+                if abs(r1[i,j]-r2[i,j]) > 1e-4:
+                    print r1[i,j],r2[i,j],r1[i,j]-r2[i,j]
+                    return False
+        return True
+        
+        
+    for _ in xrange(300):
+        t=generate_phylogeny(N)
+        r1=make_covariance(t,['s'+str(i+1) for i in range(N)], old_cov = False)
+        r2=make_covariance(t,['s'+str(i+1) for i in range(N)], old_cov = True)
+        if arrays_equal(r1,r2):
+            print 'arrays equal'
+        else:
+            print 'arrays not equal'
+            print r1
+            print r2
+            break
+        
+    import sys
+    sys.exit()
+        
     N=40
     tree=create_burled_leaved_tree(N,1)
     #print make_covariance(tree,['s'+str(i+1) for i in range(N)])

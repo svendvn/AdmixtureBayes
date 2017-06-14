@@ -108,10 +108,10 @@ def run_d():
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
                summary.s_variable('proposal_type', output='string'),
-               summary.s_variable('sliding_regraft_adap_param'),
-               summary.s_variable('rescale_adap_param'),
-               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 3000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+               summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
+               summary.s_variable('rescale_adap_param', output='double_missing'),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 10000, summaries=summaries, thinning_coef=10, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -238,10 +238,10 @@ if __name__=='__main__':
     #import cProfile
      
     #print cProfile.run('run_d()')
-    #run_d()
+    run_d()
     #analyse_data_single_chained('example1.treemix_in.gz')
-    #import sys
-    #sys.exit()
+    import sys
+    sys.exit()
     
     from argparse import ArgumentParser
     

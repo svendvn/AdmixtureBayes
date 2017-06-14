@@ -13,7 +13,7 @@ from Rtree_operations import pretty_string
 
 
             
-def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
+def one_jump(x, post, temperature, posterior_function, proposal, pks={}, pks_old={}):
     
     newx,g1,g2,Jh,j1,j2=proposal(x,pks)
     pks['proposed_tree']=newx
@@ -28,7 +28,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     #print temperature
     likelihood_old, prior_old = post
-    likelihood_new,prior_new = post_new
+    likelihood_new, prior_new = post_new
     #print 'Posterior Matrix:'
     #print likelihood_old, prior_old
     #print likelihood_new, prior_new
