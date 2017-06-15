@@ -8,7 +8,7 @@ from time import sleep as wait
 from MCMC import basic_chain
 from MCMCMC import MCMCMC
 from temperature_scheme import fixed_geometrical
-from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior
+from posterior import initialize_prior_as_posterior, initialize_trivial_posterior, initialize_posterior, initialize_big_posterior
 from summary import s_no_admixes, s_total_branch_length, s_variable, s_posterior, s_average_branch_length, s_total_branch_length, s_basic_tree_statistics
 from meta_proposal import basic_meta_proposal, no_admix_proposal, adaptive_proposal, adaptive_proposal_no_admix
 from generate_prior_trees import generate_admix_topology, generate_phylogeny
@@ -162,7 +162,8 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
 
 def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, 
                          admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, 
-                         wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False, emp_cov=None):
+                         wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False, emp_cov=None,
+                         big_posterior=False):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -183,12 +184,15 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         print m
     if emp_cov is not None:
         m=emp_cov
-    posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana)
+    if big_posterior:
+        posterior=initialize_big_posterior(m, wishart_df, use_skewed_distr= sap_ana)
+    else:
+        posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana)
     print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
     post_=posterior(true_tree)
     print 'likelihood(true_tree)', post_[0]
     print 'prior(true_tree)', post_[1]
-    print 'posterior(true_tree)', sum(post_)
+    print 'posterior(true_tree)', sum(post_[:2])
     if summaries is None:
         summaries=[s_posterior(), s_variable('mhr'), s_no_admixes()]
     proposal=adaptive_proposal(resimulate_regrafted_branch_length=resimulate_regrafted_branch_length)

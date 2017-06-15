@@ -143,15 +143,15 @@ class s_variable_recalculated(Summary):
     
 class s_posterior(Summary):
     
-    def __init__(self, ):
+    def __init__(self):
         super(s_posterior, self).__init__('posterior', output='double')
 
     def __call__(self, **kwargs):
-        return sum(kwargs['posterior'])
+        return sum(kwargs['posterior'][:2])
     
 class s_likelihood(Summary):
     
-    def __init__(self, ):
+    def __init__(self):
         super(s_likelihood, self).__init__('likelihood', output='double')
 
     def __call__(self, **kwargs):
@@ -159,11 +159,34 @@ class s_likelihood(Summary):
     
 class s_prior(Summary):
     
-    def __init__(self, ):
+    def __init__(self):
         super(s_prior, self).__init__('prior', output='double')
 
     def __call__(self, **kwargs):
         return kwargs['posterior'][1]
+    
+def _id(x):
+    return x
+    
+class s_bposterior_difference(Summary):
+    
+    def __init__(self, summary=_id, summary_name=''):
+        super(s_bposterior_difference, self).__init__(summary_name, output='double')
+        self.summary=summary
+        self.summary_name=summary_name
+        
+    def __call__(self, **kwargs):
+        return self.summary(kwargs['proposed_posterior'])-self.summary(kwargs['old_post'])
+    
+class s_covariance_difference(Summary):
+    
+    def __init__(self, subset_of_matrix=_id, comparison=_id, summary_name=''):
+        super(s_bposterior_difference, self).__init__(summary_name, output='double')
+        self.subset_of_matrix=summary
+        self.comparison=comparison
+        
+    def __call__(self, **kwargs):
+        return self.comparison(self.subset_of_matrix(kwargs['proposed_posterior'][3]),self.subset_of_matrix(kwargs['old_post'][3]))
     
     
 class s_tree_identifier(Summary):

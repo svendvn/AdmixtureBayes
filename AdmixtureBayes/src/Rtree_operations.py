@@ -654,7 +654,7 @@ def change_admixture(node):
     return new_node
 
 def readjust_length(node):
-    node[3]=node[3]/(1-node[2])**2
+    node[3]=node[3]/((1.0-node[2])**2+node[2]**2)
     return node
 
 def get_number_of_admixes(tree):

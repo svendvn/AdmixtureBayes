@@ -16,8 +16,26 @@ def initialize_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
         pks['prior']=prior_value
         pks['likelihood']=likelihood_value
         #pks['posterior']=prior_value+likelihood_value
-        return likelihood_value,prior_value
+        return likelihood_value, prior_value
     return posterior
+
+def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
+    if M is None:
+        M=n_mark(emp_cov)
+    def posterior(x,pks={}):
+        #print tot_branch_length
+        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
+        if prior_value==-float('inf'):
+            return -float('inf'), prior_value
+        likelihood_value=likelihood(x, emp_cov,M=M, pks=pks)
+        pks['prior']=prior_value
+        pks['likelihood']=likelihood_value
+        prior_values=(pks['branch_prior'], pks['no_admix_prior'], pks['admix_prop_prior'], pks['top_prior'])
+        covariance=pks['covariance']
+        #pks['posterior']=prior_value+likelihood_value
+        return likelihood_value, prior_value, prior_values, covariance
+    return posterior
+        
 
 def initialize_prior_as_posterior():
     def posterior(x,pks={}):

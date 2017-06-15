@@ -13,11 +13,12 @@ def n_mark(cov_mat):
     return (m-1)*S**2 / ( (m+1)*USS-S**2 )
     
 
-def likelihood(tree, emp_cov, nodes=None, M=12):
+def likelihood(tree, emp_cov, nodes=None, M=12, pks={}):
     r=emp_cov.shape[0]
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
+    pks['covariance']=par_cov
     if par_cov is None:
         return -float('inf')
     try:

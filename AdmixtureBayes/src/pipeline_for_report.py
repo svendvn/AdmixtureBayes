@@ -8,6 +8,7 @@ import trivial_mcmc
 import tree_statistics
 #import tree_generation_laboratory
 import load_data
+from numpy import diag
 
 
 def run_a():
@@ -92,8 +93,8 @@ def run_c():
     analyse_results.generate_summary_csv(summaries)
     
 def run_d():
-    true_tree=generate_prior_trees.generate_phylogeny(8,2)
-    #tree_statistics.identifier_to_tree_clean('w.c.w.1-w.a.w-c.0.w.w-c.w.0-c.0;0.578-1.783-0.221-1.462-0.44-0.295-0.142-0.255-0.352;0.373')
+    #true_tree=generate_prior_trees.generate_phylogeny(8,2)
+    true_tree=tree_statistics.identifier_to_tree_clean('w.w.c.w.w.w.2.w-w.w.a.w.w.w.w-w.c.1.w.c.w.w.4-w.c.1.w.w.w-w.c.1.w.w-c.0.w.w-c.w.0-a.w-c.0.w-c.0;0.091-1.665-0.263-0.821-0.058-0.501-0.141-0.868-5.064-0.153-0.372-3.715-1.234-0.913-2.186-0.168-0.542-0.056-2.558-0.324;0.367-0.451')
     s_tree=Rtree_operations.create_trivial_tree(8)
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
@@ -111,9 +112,44 @@ def run_d():
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 10000, summaries=summaries, thinning_coef=10, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=2, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
+
+    
+
+def run_analysis_of_proposals():
+    #true_tree=generate_prior_trees.generate_phylogeny(8,2)
+    true_tree=tree_statistics.identifier_to_tree_clean('w.w.c.w.w.w.2.w-w.w.a.w.w.w.w-w.c.1.w.c.w.w.4-w.c.1.w.w.w-w.c.1.w.w-c.0.w.w-c.w.0-a.w-c.0.w-c.0;0.091-1.665-0.263-0.821-0.058-0.501-0.141-0.868-5.064-0.153-0.372-3.715-1.234-0.913-2.186-0.168-0.542-0.056-2.558-0.324;0.367-0.451')
+    s_tree=Rtree_operations.create_trivial_tree(8)
+    summaries=[summary.s_posterior(), 
+               summary.s_variable('mhr'), 
+               summary.s_no_admixes(), 
+               summary.s_tree_identifier(),
+               summary.s_average_branch_length(),
+               summary.s_total_branch_length(),
+               summary.s_basic_tree_statistics(Rtree_operations.get_number_of_ghost_populations, 'ghost_pops', output='integer'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
+               summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
+               summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
+               summary.s_bposterior_difference(lambda x: x[0], 'likelihood_difference'),
+               summary.s_bposterior_difference(lambda x: x[1], 'prior_difference'),
+               summary.s_bposterior_difference(lambda x: x[2][0], 'branch_prior_difference'),
+               summary.s_bposterior_difference(lambda x: x[2][1], 'no_admix_prior_difference'),
+               summary.s_bposterior_difference(lambda x: x[2][2], 'adix_prop_prior_difference'),
+               summary.s_bposterior_difference(lambda x: x[2][3], 'top_prior_difference'),
+               summary.s_covariance_difference(lambda x: diag(x), lambda x,y: max([abs(xi-yi)])),
+               summary.s_variable('proposal_type', output='string'),
+               summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
+               summary.s_variable('rescale_adap_param', output='double_missing'),
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=2, wishart_df= 1000, resimulate_regrafted_branch_length=False, 
+                                             admixtures_of_true_tree=2, no_leaves_true_tree=8, big_posterior=True)
+    print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
+    analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
+
     
 def run_e(df, out, sap_sim, sap_ana):
     simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out, sap_sim=sap_sim, sap_ana=sap_ana)
@@ -238,10 +274,10 @@ if __name__=='__main__':
     #import cProfile
      
     #print cProfile.run('run_d()')
-    run_d()
+    #run_analysis_of_proposals()
     #analyse_data_single_chained('example1.treemix_in.gz')
-    import sys
-    sys.exit()
+    #import sys
+    #sys.exit()
     
     from argparse import ArgumentParser
     

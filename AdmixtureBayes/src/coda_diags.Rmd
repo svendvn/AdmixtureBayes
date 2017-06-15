@@ -151,7 +151,7 @@ Analysing each proposal type with respect to mhr.
 if('proposal_type' %in% colnames(df)){
   barplot(table(df$proposal_type))
   if( 'mhr' %in% colnames(df)){
-    rmf=function(x,n=50){
+    rmf=function(x,n=750){
       x=sapply(x, function(x){min(as.numeric(x),1)})
       return((cumsum(x)[(n+1):length(x)]-cumsum(x[1:(length(x)-n)]))/n)
     }
@@ -166,3 +166,27 @@ if('proposal_type' %in% colnames(df)){
   }
 }
 ```
+```{r}
+x1=subset(df, proposal_type=='deladmix')$mhr
+x2=subset(df, proposal_type=='addadmix')$mhr
+y1=sapply(x1, function(x){min(as.numeric(x),1)})
+y2=sapply(x2, function(x){min(as.numeric(x),1)})
+c(mean(y1), mean(y2))
+```
+
+```{r}
+df_deladmix=subset(df, proposal_type=='deladmix')
+df_addadmix=subset(df, proposal_type=='addadmix')
+df_rescale= subset(df, proposal_type=='rescale')
+df_regraft= subset(df, proposal_type=='sliding_regraft')
+
+list_of_dfs=list(df_deladmix, df_addadmix, df_regraft, df_rescale)
+
+for(df_ in list_of_dfs){
+  print(nrow(df_))
+  print(summary(lm(mhr ~ likelihood_difference+ branch_prior_difference+ no_admix_prior_difference+adix_prop_prior_difference+top_prior_difference, data = df_)))
+}
+
+
+```
+

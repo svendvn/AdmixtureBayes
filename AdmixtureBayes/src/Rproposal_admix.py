@@ -180,10 +180,10 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     #print 'tree after inserting admixture', tree
     tree=graft(tree, sink_name, source_key, u1, source_name, source_branch, remove_branch=1)
 
-    print 'old_t1', tree[sink_name][3]
+    #print 'old_t1', tree[sink_name][3]
     if preserve_root_distance:
         tree[sink_name]=readjust_length(tree[sink_name])
-    print 'new_t1', tree[sink_name][3]
+    #print 'new_t1', tree[sink_name][3]
     
     new_branch=1
     if random()<0.5:
@@ -229,9 +229,10 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
     pks['t5']=t5
     
     if preserve_root_distance:
-        old_length=t2+(1.0-alpha)**2*t1
+        #print t1
+        old_length=t2+(alpha**2+(1.0-alpha)**2)*t1
         t1=old_length-t2
-        print old_length, t1,t2
+        #print old_length, t1,t2
         child_key, child_branch= get_keys_and_branches_from_children(tree, remove_key)[0]
         update_branch_length(new_tree, child_key, child_branch, old_length)
     backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
