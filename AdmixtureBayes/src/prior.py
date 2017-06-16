@@ -33,7 +33,7 @@ def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
 def linear_admixture_proportions(admixtures):
     return sum((linear_distribution.logpdf(admixture) for admixture in admixtures))
 
-def no_admixes(p, admixes, hard_cutoff=50):
+def no_admixes(p, admixes, hard_cutoff=30):
     if hard_cutoff is None:
         return geom.logpmf(admixes+1, 1.0-p)
     if admixes>hard_cutoff:
