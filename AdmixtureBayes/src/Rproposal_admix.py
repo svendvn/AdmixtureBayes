@@ -55,7 +55,7 @@ class deladmix_class(object):
 def float_equal(x,y):
     return float((x-y)**2)<1e-5
 
-def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True):
+def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=False):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -91,11 +91,11 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch
     #print 'source', (source_key,source_branch)
     #print 'new_tree',new_tree
     if fixed_sink_source is not None:
-        new_tree, forward_density, backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, new_branch_length=new_branch_length, new_to_root_length=new_to_root_length, preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, new_branch_length=new_branch_length, new_to_root_length=new_to_root_length, preserve_root_distance=preserve_root_distance)
     elif new_node_names is None:
-        new_tree, forward_density, backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, preserve_root_distance=preserve_root_distance)
     else:
-        new_tree, forward_density ,backward_density= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, source_name=new_node_names[0], sink_name=new_node_names[1], preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density ,backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, source_name=new_node_names[0], sink_name=new_node_names[1], preserve_root_distance=preserve_root_distance)
     
     
     
@@ -131,7 +131,7 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch
                 print key, ': ', val
             assert False
 
-    return new_tree,forward_density/choices_forward, backward_density/choices_backward
+    return new_tree,forward_density/choices_forward, backward_density/choices_backward*multip 
 
     
 def get_admixture_branch_length(x=None):
@@ -157,7 +157,7 @@ def get_insertion_spot(x=None, length=1.0):
         return 1.0/length
     
 
-def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=True):
+def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=False):
     #print "new branch", new_branch_length
     if source_key=='r':
         u1,q1=get_root_branch_length()
@@ -182,7 +182,9 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
 
     #print 'old_t1', tree[sink_name][3]
     if preserve_root_distance:
-        tree[sink_name]=readjust_length(tree[sink_name])
+        tree[sink_name], multip=readjust_length(tree[sink_name])
+    else:
+        multip=1.0
     #print 'new_t1', tree[sink_name][3]
     
     new_branch=1
@@ -194,10 +196,10 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     pks['sink_new_name']=sink_name
     pks['sink_new_branch']=new_branch    
     #print 'tree after grafting', tree
-    return tree,q1*q2*q3*q4,1
+    return tree,q1*q2*q3*q4,1, multip
 
 
-def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True):
+def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=False):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''
@@ -230,11 +232,14 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
     
     if preserve_root_distance:
         #print t1
-        old_length=t2+(alpha**2+(1.0-alpha)**2)*t1
+        multip=(alpha**2+(1.0-alpha)**2)
+        old_length=t2+multip*t1
         t1=old_length-t2
         #print old_length, t1,t2
         child_key, child_branch= get_keys_and_branches_from_children(tree, remove_key)[0]
         update_branch_length(new_tree, child_key, child_branch, old_length)
+    else:
+        multip=1.0
     backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
     forward_density= 1.0
     
@@ -281,7 +286,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
                 print key, ': ', val
             assert False
     
-    return new_tree, forward_density/forward_choices, backward_density/backward_choices
+    return new_tree, forward_density/forward_choices, backward_density/backward_choices*multip
 
 
 
