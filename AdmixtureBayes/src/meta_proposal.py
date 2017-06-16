@@ -2,6 +2,7 @@ from Rproposal_admix import addadmix_class, deladmix_class
 from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
 from Rproposal_sliding_regraft import sliding_regraft_class, sliding_regraft_class_resimulate
+from Rproposal_rescale_marginally import rescale_marginally_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -26,22 +27,22 @@ class new_node_naming_policy(object):
 class basic_meta_proposal(object):
     
     def __init__(self):
-        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class()]
-        self.params=[None, None, None, [0.1]]
+        self.props=[addadmix_class(), deladmix_class(), regraft_class(), rescale_class(), rescale_marginally_class()]
+        self.params=[None, None, None, [0.1], [0.1]]
         self.node_naming=new_node_naming_policy()
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
         if get_number_of_admixes(tree)==0 and index<=1:
             index=0
-            backj=0.25
-            forwj=0.5
+            backj=0.2
+            forwj=0.4
         elif get_number_of_admixes(tree)==1 and index==1:
-            backj=0.5
-            forwj=0.25
+            backj=0.4
+            forwj=0.2
         else:
-            backj=0.25
-            forwj=0.25
+            backj=0.2
+            forwj=0.2
         
         names=self.node_naming.next_nodes(self.props[index].new_nodes)
         pks['proposal_type']= self.props[index].proposal_name
@@ -163,11 +164,12 @@ class adaptive_proposal_no_admix(object):
 class adaptive_proposal(object):
     
     def __init__(self, resimulate_regrafted_branch_length=False):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), rescale_marginally_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
+        start_value_of_marginal_sigma=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
         self.regraft_count=10
@@ -175,20 +177,20 @@ class adaptive_proposal(object):
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_marginal_sigma]]
         
     def __call__(self, tree, pks={}):
         index=choice(len(self.props),1)[0]
         if get_number_of_admixes(tree)==0 and index<=1:
             index=0
-            backj=0.25
-            forwj=0.5
+            backj=1.0/len(self.props)
+            forwj=2.0/len(self.props)
         elif get_number_of_admixes(tree)==1 and index==1:
-            backj=0.5
-            forwj=0.25
+            backj=2.0/len(self.props)
+            forwj=1.0/len(self.props)
         else:
-            backj=0.25
-            forwj=0.25
+            backj=1.0/len(self.props)
+            forwj=1.0/len(self.props)
         
         names=self.node_naming.next_nodes(self.props[index].new_nodes)
         pks['proposal_type']= self.props[index].proposal_name
@@ -223,6 +225,18 @@ class adaptive_proposal(object):
                                                          name='regraft_slider',
                                                          max_val=15.0)
             self.params[2]=[new_val]
+            
+        if self.recently_called_type=='rescale_marginally':
+            new_val, self.regraft_count= standard_update(self.regraft_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[4][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='regraft_slider',
+                                                         max_val=15.0)
+            self.params[4]=[new_val]
             
             
     
@@ -263,5 +277,5 @@ if __name__=='__main__':
     from tree_plotting import pretty_string
     tree=tree_good
     for _ in xrange(50):
-        tree=bmp(tree_good)[0]
+        tree=bmp(tree)[0]
     print pretty_string(tree)

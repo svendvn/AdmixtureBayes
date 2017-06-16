@@ -55,7 +55,7 @@ class deladmix_class(object):
 def float_equal(x,y):
     return float((x-y)**2)<1e-5
 
-def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=False):
+def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -199,7 +199,7 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     return tree,q1*q2*q3*q4,1, multip
 
 
-def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=False):
+def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''

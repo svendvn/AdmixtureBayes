@@ -8,7 +8,7 @@ import trivial_mcmc
 import tree_statistics
 #import tree_generation_laboratory
 import load_data
-from numpy import diag
+from numpy import diag, ndarray
 
 
 def run_a():
@@ -112,11 +112,13 @@ def run_d():
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=2, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
 
-    
+def max_dist(x,y):
+    signed_diffs= [(abs(xi-yi), xi-yi) for xi,yi in zip(x,y)]
+    return sorted(signed_diffs)[-1][1]
 
 def run_analysis_of_proposals():
     #true_tree=generate_prior_trees.generate_phylogeny(8,2)
@@ -276,8 +278,10 @@ if __name__=='__main__':
     #print cProfile.run('run_d()')
     #run_analysis_of_proposals()
     #analyse_data_single_chained('example1.treemix_in.gz')
-    run_a()
-    
+    #run_a()
+    from numpy import array
+    print max_dist(array([[4,3,2]]),array([[9,3,1]]))
+    run_d()
     import sys
     sys.exit()
     
