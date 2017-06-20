@@ -2,12 +2,11 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               propagate_admixtures, get_branch_length,update_parent_and_branch_length, 
                               get_trivial_nodes, pretty_string, insert_children_in_tree, rename_root,
                               get_admixture_proportion, remove_admixture, get_admixture_proportion_from_key,
-                              pretty_print)
+                              pretty_print, get_admixture_keys_and_proportions)
 from copy import deepcopy
 from prior import matchmake
 import bidict
 import collections
-from bokeh.core.properties import value
 #from tree_plotting import plot_graph, plot_as_directed_graph
 
 
@@ -80,11 +79,13 @@ def get_timing(tree):
         
         res.update({key:count for key,_ in ready_lineages})
         
-        count+=1
+        
         #stop criteria
         if len(ready_lineages)==1 and ready_lineages[0][0]=='r':
             res['r']=count
             break
+        
+        count+=1
     return res
 
 
@@ -594,8 +595,9 @@ def update_lineages(lists, new, gone, lineages, tree):
     lists.append(new)
     return lists, gone, lineages
 
-            
-    
+def get_admixture_proportion_string(tree):
+    keys, props= get_admixture_keys_and_proportions(tree)
+    return '-'.join(keys)+';'+_list_double_to_string(props)
 
 if __name__=='__main__':
     

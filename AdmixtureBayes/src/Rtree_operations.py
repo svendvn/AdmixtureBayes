@@ -421,6 +421,16 @@ def update_parent_and_branch_length(tree, child_key, child_branch, new_parent, n
     tree[child_key][child_branch]=new_parent
     tree[child_key][child_branch+3]=new_branch_length
     return tree
+
+def get_admixture_keys_and_proportions(tree):
+    keys=[]
+    props=[]
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            keys.append(key)
+            props.append(node[2])
+    return keys, props
+            
     
 
 

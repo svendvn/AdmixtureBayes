@@ -106,13 +106,14 @@ def run_d():
                summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(tree_statistics.get_admixture_proportion_string, 'admixtures', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 200000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
 
