@@ -15,6 +15,19 @@ def tree_to_data_perfect_model(tree, df):
     m=wishart.rvs(df=r*df-1, scale=m/(r*df))
     return m
 
+def supplementary_text_ms_string():
+    return 'ms 400 10 -t 200 -r 200 500000 -I 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 \
+20 20 20 20 20 -en 0.00270 20 0.025 -ej 0.00275 20 19 -en 0.00545 19 0.025 -ej 0.00550 \
+19 18 -en 0.00820 18 0.025 -ej 0.00825 18 17 -en 0.01095 17 0.025 -ej 0.011 17 16 -en \
+0.01370 16 0.025 -ej 0.01375 16 15 -en 0.01645 15 0.025 -ej 0.01650 15 14 -en 0.01920 \
+14 0.025 -ej 0.01925 14 13 -en 0.02195 13 0.025 -ej 0.02200 13 12 -en 0.02470 12 0.025 \
+-ej 0.02475 12 11 -en 0.02745 11 0.025 -ej 0.02750 11 10 -en 0.03020 10 0.025 -ej 0.03025 \
+10 9 -en 0.03295 9 0.025 -ej 0.03300 9 8 -en 0.03570 8 0.025 -ej 0.03575 8 7 -en 0.03845 \
+7 0.025 -ej 0.03850 7 6 -en 0.04120 6 0.025 -ej 0.04125 6 5 -en 0.04395 5 0.025 -ej \
+0.04400 5 4 -en 0.04670 4 0.025 -ej 0.04675 4 3 -en 0.04945 3 0.025 -ej 0.04950 3 2 \
+-en 0.05220 2 0.025 -ej 0.05225 2 1'
+
+
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
                        theta=20000, sites=100000, recomb_rate=None):
     tree=deepcopy(rtree)
@@ -121,6 +134,49 @@ def calculate_covariance_matrix(file='tmp.txt', samples_per_pop=20, no_pops=4, n
 def reduce_covariance(covmat, subtracted_population_index):
     reducer=insert(identity(covmat.shape[0]-1), subtracted_population_index, -1, axis=1)
     return reducer.dot(covmat).dot(reducer.T)
+
+def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
+    with open(filename, 'r') as f:
+        with open(filename2, 'w') as e:
+            pop_count=0
+            rep_count=0
+            count=0
+            data=[]
+            s_vecs=[]
+            for r in f.readlines():
+                
+                data.append(map(int,list(r.rstrip())))
+                count+=1
+                
+                if count==samples_per_pop:
+                    
+                    count=0
+                    pop_count+=1
+                    
+                    s_vec=sum(array(data), axis=0)
+                    s_vecs.append(s_vec)
+                    
+                    data=[]
+                    
+                    print rep_count, pop_count
+                    
+                    if pop_count==no_pops:
+                        
+                        pop_count=0
+                        rep_count+=1
+                        
+                        for s in zip(*s_vecs):
+                            e.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
+                        
+                        s_vecs=[]
+                
+        
+        f.write(' '.join(get_trivial_nodes(no_pops))+'\n')
+        for s_vec in zip(*sums):
+            f.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
+    filename2_gz=filename2+'.gz'
+    subprocess.call(['gzip','-f','-k', filename2])
+    return read_data(filename2_gz, blocksize=4 ,outgroup='s3', noss=True)
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     data=[]
@@ -156,14 +212,14 @@ if __name__=='__main__':
     from Rtree_operations import create_trivial_tree, scale_tree
     tree2=scale_tree(create_trivial_tree(5),0.01)
     print pretty_string(tree2)
-    print tree_to_ms_command(tree2, nreps=20)
-    print call_ms_string(tree_to_ms_command(tree2, nreps = 20), 'tmp.txt')
-    cov= ms_to_treemix('tmp.txt', 50, 5,20)
-    cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
+    print supplementary_text_ms_string()
+    #print call_ms_string(supplementary_text_ms_string(), 'tmp.txt')
+    cov= ms_to_treemix2('tmp.txt', 20, 20,10)
+    #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
-    print cov2
+    #print cov2
     print make_covariance(tree2)
     print reduce_covariance(cov, 0)
-    print reduce_covariance(cov2, 0)
+    #print reduce_covariance(cov2, 0)
     print reduce_covariance(make_covariance(tree2),0)
     

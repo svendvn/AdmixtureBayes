@@ -5,8 +5,8 @@ from copy import deepcopy
 
 class sliding_rescale_class(object):
     
-    new_nodes=1
-    proposal_name='sliding_regraft'
+    new_nodes=0
+    proposal_name='sliding_rescale'
     
     def __call__(self,*args, **kwargs):
         return make_sliding_rescale(*args, **kwargs)
@@ -56,10 +56,10 @@ def make_sliding_rescale(tree, param=0.1,pks={}):
     parent_key= get_parent_of_branch(tree, rescale_key, rescale_branch)
     thinned_pieces_forward=get_thinned_pieces(tree, rescale_key, rescale_branch, cutoff_distance, parent_key)
     
-    print 'cutoff_distance', cutoff_distance
-    print 'pieces:'
-    for tp in thinned_pieces_forward:
-        print tp
+#     print 'cutoff_distance', cutoff_distance
+#     print 'pieces:'
+#     for tp in thinned_pieces_forward:
+#         print tp
     
     new_tree=resimulate_pieces(new_tree, thinned_pieces_forward, cutoff_distance, param)
 

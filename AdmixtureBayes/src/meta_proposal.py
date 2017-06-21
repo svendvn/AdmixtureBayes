@@ -3,6 +3,7 @@ from Rproposal_regraft import regraft_class
 from Rproposal_rescale import rescale_class
 from Rproposal_sliding_regraft import sliding_regraft_class, sliding_regraft_class_resimulate
 from Rproposal_rescale_marginally import rescale_marginally_class
+from Rproposal_sliding_rescale import sliding_rescale_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -164,7 +165,7 @@ class adaptive_proposal_no_admix(object):
 class adaptive_proposal(object):
     
     def __init__(self, resimulate_regrafted_branch_length=False):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), rescale_marginally_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
@@ -226,7 +227,7 @@ class adaptive_proposal(object):
                                                          max_val=15.0)
             self.params[2]=[new_val]
             
-        if self.recently_called_type=='rescale_marginally':
+        if self.recently_called_type=='sliding_rescale':
             new_val, self.regraft_count= standard_update(self.regraft_count, 
                                                          self.multiplier, 
                                                          self.alpha, 
@@ -234,7 +235,7 @@ class adaptive_proposal(object):
                                                          mhr, 
                                                          desired_mhr=self.desired_mhr, 
                                                          verbose=False,
-                                                         name='regraft_slider',
+                                                         name='sliding_rescale',
                                                          max_val=15.0)
             self.params[4]=[new_val]
             
