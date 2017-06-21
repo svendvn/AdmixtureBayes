@@ -5,7 +5,7 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               pretty_print, get_admixture_keys_and_proportions)
 from copy import deepcopy
 from prior import matchmake
-import bidict
+#import bidict
 import collections
 #from tree_plotting import plot_graph, plot_as_directed_graph
 
