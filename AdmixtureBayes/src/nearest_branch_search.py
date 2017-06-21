@@ -2,11 +2,18 @@ from Rtree_operations import find_rooted_nodes, get_real_children, get_real_pare
 from piece_of_tree import piece
 
 
+def topological_branch_length(*args, **kwargs):
+    return 1
+    
 
 class lineage(object):
     
-    def __init__(self, key,  distance=0, lattitude=0):
+    def __init__(self, key,  distance=0, lattitude=0, topological_distance=False):
         self.key,self.distance, self.lattitude= key, distance, lattitude
+        if topological_distance:
+            self.get_branch_length=topological_branch_length
+        else:
+            self.get_branch_length=get_branch_length()
         
     def follow(self, tree, visited_keys=[]):
         node=tree[self.key]
@@ -59,7 +66,8 @@ def distanced_branch_lengths(tree, start_key, visited_keys=[], upper_cap=float('
     
 if __name__=='__main__':
     from Rcatalogue_of_trees import tree_good
-    ad=distanced_branch_lengths(tree_good, 'a', upper_cap=0.12)
+    pretty_print(tree_good)
+    ad=distanced_branch_lengths(tree_good, 'a', upper_cap=0.12, visited_keys=[])
     for e in ad:
         print e
     

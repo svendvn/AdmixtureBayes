@@ -16,7 +16,7 @@ def tree_to_data_perfect_model(tree, df):
     return m
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=20000, sites=1000000, recomb_rate=None):
+                       theta=20000, sites=100000, recomb_rate=None):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
@@ -83,7 +83,7 @@ def get_affected_populations(dic_of_lineages, children_branches):
     
 def calculate_pop_size(tup):
     drift, actual=tup
-    return actual/drift
+    return actual/drift/2
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:
@@ -149,18 +149,21 @@ def trace_from_root(tree, init_freq):
     (child_key1, child_branch1, branch_length1),(child_key1, child_branch1, branch_length1)=find_rooted_nodes(tree)
 
 if __name__=='__main__':
+    
     #print reduce_covariance(identity(10), 5)
+    
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
-    tree2=scale_tree(create_trivial_tree(3),0.01)
+    tree2=scale_tree(create_trivial_tree(5),0.01)
     print pretty_string(tree2)
     print tree_to_ms_command(tree2, nreps=20)
     print call_ms_string(tree_to_ms_command(tree2, nreps = 20), 'tmp.txt')
-    cov= ms_to_treemix('tmp.txt', 5, 3,20)
-    cov2=calculate_covariance_matrix('tmp.txt', 5, 3,20)
+    cov= ms_to_treemix('tmp.txt', 50, 5,20)
+    cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
     print cov2
     print make_covariance(tree2)
     print reduce_covariance(cov, 0)
     print reduce_covariance(cov2, 0)
     print reduce_covariance(make_covariance(tree2),0)
+    

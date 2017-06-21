@@ -140,10 +140,10 @@ def update_all_branches(tree, updater):
                 return None        
     return tree
 
-def update_node(tree, key, updater):
+def update_node(tree, key, updater, admixture_proportion_multiplier=1.0):
     node=tree[key]
     if node_is_admixture(node):
-        node[2]+=updater()
+        node[2]+=updater()*admixture_proportion_multiplier
         node[3]+=updater()
         node[4]+=updater()
         if node[2]<0 or node[2]>1 or node[3]<0 or node[4]<0:
@@ -153,7 +153,12 @@ def update_node(tree, key, updater):
         if node[3]<0:
             return None 
     tree[key]=node       
-    return tree    
+    return tree
+
+def update_branch(tree, key, branch, updater):
+    tree[key][branch+3]+= updater()
+    return tree
+
 
 def update_branch_length(tree,key,branch, new_length):
     tree[key][branch+3]=new_length

@@ -27,6 +27,12 @@ class piece(object):
             return distance>=self.start_distance
         return distance<=self.end_distance and distance>=self.start_distance
     
+    def within_distance(self, distance):
+        return self.start_distance>distance
+    
+    def get_start_distance(self):
+        return self.start_distance
+    
     def get_leaf_and_root_sided_length(self, distance):
         if self.end_distance is None:
             return distance-self.start_distance, None
