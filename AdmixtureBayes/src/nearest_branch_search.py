@@ -13,7 +13,7 @@ class lineage(object):
         if topological_distance:
             self.get_branch_length=topological_branch_length
         else:
-            self.get_branch_length=get_branch_length()
+            self.get_branch_length=get_branch_length
         
     def follow(self, tree, visited_keys=[]):
         node=tree[self.key]

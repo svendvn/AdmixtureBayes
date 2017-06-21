@@ -28,7 +28,7 @@ class piece(object):
         return distance<=self.end_distance and distance>=self.start_distance
     
     def within_distance(self, distance):
-        return self.start_distance>distance
+        return self.start_distance<=distance
     
     def get_start_distance(self):
         return self.start_distance
