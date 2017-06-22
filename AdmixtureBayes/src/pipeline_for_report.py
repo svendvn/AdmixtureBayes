@@ -143,7 +143,6 @@ def run_analysis_of_proposals():
                summary.s_bposterior_difference(lambda x: x[2][1], 'no_admix_prior_difference'),
                summary.s_bposterior_difference(lambda x: x[2][2], 'adix_prop_prior_difference'),
                summary.s_bposterior_difference(lambda x: x[2][3], 'top_prior_difference'),
-               summary.s_covariance_difference(lambda x: diag(x), lambda x,y: max([abs(xi-yi)])),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
@@ -157,7 +156,7 @@ def run_analysis_of_proposals():
 def run_e(df, out, sap_sim, sap_ana):
     simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out, sap_sim=sap_sim, sap_ana=sap_ana)
     
-def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv'):
+def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv', emp_cov=False):
     if true_tree_as_identifier is None:
         true_tree=Rcatalogue_of_trees.tree_good
     else:
@@ -185,7 +184,7 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_likelihood(),
                summary.s_prior(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file)
+    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     

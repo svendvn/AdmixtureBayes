@@ -1,9 +1,9 @@
-from Rtree_to_covariance_matrix import make_covariance
+#from Rtree_to_covariance_matrix import make_covariance
 from scipy.stats import wishart
 from Rtree_operations import find_rooted_nodes, get_real_parents, pretty_string, get_no_leaves, node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, get_real_children_root, get_trivial_nodes
 from tree_statistics import get_timing
 import subprocess
-from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit
+from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin
 from numpy.linalg import det
 from copy import deepcopy
 from load_data import read_data
@@ -13,6 +13,23 @@ def tree_to_data_perfect_model(tree, df):
     m=make_covariance(tree)
     r=m.shape[0]
     m=wishart.rvs(df=r*df-1, scale=m/(r*df))
+    return m
+
+def normalise(m):
+    return m-max(0,amin(m))
+
+def file_to_emp_cov(filename, reduce_column=None):
+    
+    dat=[]
+    with open(filename, 'r') as f:
+        f.readline()
+        for l in f.readlines():
+            print l
+            dat.append(map(float, l.split()[1:]))
+    m=array(dat)
+    if reduce_column is not None:
+        m=reduce_covariance(m, reduce_column)
+        m=normalise(m)
     return m
 
 def supplementary_text_ms_string():
@@ -207,6 +224,12 @@ def trace_from_root(tree, init_freq):
 if __name__=='__main__':
     
     #print reduce_covariance(identity(10), 5)
+    
+    print file_to_emp_cov('out_stem.cov',4)
+    
+    from sys import exit
+    
+    exit()
     
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree

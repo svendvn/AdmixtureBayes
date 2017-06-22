@@ -25,7 +25,6 @@ def updater(param):
 
 def resimulate_pieces(tree, pieces, max_distance, param, admixture_multiplier=1.0):
     visited_keys=[]
-    upd=updater(param)
     for piece in pieces:
         if piece.child_key!='r':
             visited_keys.append(piece.parent_key)
@@ -33,8 +32,8 @@ def resimulate_pieces(tree, pieces, max_distance, param, admixture_multiplier=1.
             d=(max_distance-distance)/max_distance
     
             if piece.child_branch==1:
-                tree[piece.child_key][2]+= normal()*param*admixture_multiplier
-            tree[piece.child_key][3+piece.child_branch]+= normal()*param
+                tree[piece.child_key][2]+= normal()*param*admixture_multiplier*d
+            tree[piece.child_key][3+piece.child_branch]+= normal()*param*d
     return tree
                 
         
