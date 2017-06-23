@@ -9,7 +9,7 @@ import tree_statistics
 #import tree_generation_laboratory
 import load_data
 from numpy import diag, ndarray
-
+import tree_to_data
 
 def run_a():
     n=4
@@ -156,7 +156,7 @@ def run_analysis_of_proposals():
 def run_e(df, out, sap_sim, sap_ana):
     simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out, sap_sim=sap_sim, sap_ana=sap_ana)
     
-def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv', emp_cov=False):
+def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv', emp_cov_file=None, emp_remove=-1):
     if true_tree_as_identifier is None:
         true_tree=Rcatalogue_of_trees.tree_good
     else:
@@ -184,6 +184,13 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_likelihood(),
                summary.s_prior(),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+    if emp_cov_file is not None:
+        if emp_remove<0:
+            emp_cov=tree_to_data.file_to_emp_cov(emp_cov_file)
+        else:
+            emp_cov=tree_to_data.file_to_emp_cov(emp_cov_file, emp_remove)
+    else:
+        emp_cov=None
     r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
@@ -279,21 +286,26 @@ if __name__=='__main__':
     #run_analysis_of_proposals()
     #analyse_data_single_chained('example1.treemix_in.gz')
     #run_a()
-    from numpy import array
-    print max_dist(array([[4,3,2]]),array([[9,3,1]]))
-    run_d()
-    import sys
-    sys.exit()
+#     from numpy import array
+#     print max_dist(array([[4,3,2]]),array([[9,3,1]]))
+#     run_d()
+#     import sys
+#     sys.exit()
     
     from argparse import ArgumentParser
     
     parser = ArgumentParser(usage='pipeline for admixturebayes', version='0.0.1')
-    parser.add_argument('--df', type=float, default=1000.0, help='degrees of freedom to run under')
+    parser.add_argument('--df', type=float, default=10.0, help='degrees of freedom to run under')
     parser.add_argument('--sap_simulations', action='store_true',default=False, help='skewed admixture proportion prior in the simulated datasets')
     parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
     parser.add_argument('--true_tree', type=str, default='tree3.txt', help='file with the true tree to use')
     parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in')
+    parser.add_argument('--emp_cov', type= str, default='out_stem.cov', help = 'file where the empirical covariance matrix is saved')
+    parser.add_argument('--remove_population', type=int, default= 4, help= 'index of the population that should be the root')
     options=parser.parse_args()
     #run_e(options.df, options.result_file, sap_sim=options.sap_simulations, sap_ana=options.sap_analysis)
     
-    run_posterior_multichain(options.df, options.true_tree, options.result_file)
+    if options.emp_cov:
+        run_posterior_multichain(options.df, None, options.result_file, options.emp_cov, options.remove_population)
+    else:
+        run_posterior_multichain(options.df, options.true_tree, options.result_file)

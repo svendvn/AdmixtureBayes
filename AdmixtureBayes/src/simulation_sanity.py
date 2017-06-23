@@ -210,7 +210,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     return true_tree
 
 def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, 
-                                    wishart_df=None, sim_from_wishart=False, no_chains=8, result_file='results_mc3.csv', emp_cov=None):
+                                    wishart_df=None, sim_from_wishart=False, no_chains=8, result_file='results_mc3.csv', emp_cov=None, emp_remove=-1):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1

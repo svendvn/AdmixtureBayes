@@ -1,4 +1,4 @@
-#from Rtree_to_covariance_matrix import make_covariance
+from Rtree_to_covariance_matrix import make_covariance
 from scipy.stats import wishart
 from Rtree_operations import find_rooted_nodes, get_real_parents, pretty_string, get_no_leaves, node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, get_real_children_root, get_trivial_nodes
 from tree_statistics import get_timing
@@ -46,7 +46,7 @@ def supplementary_text_ms_string():
 
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=20000, sites=100000, recomb_rate=None):
+                       theta=100, sites=100000, recomb_rate=50):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
@@ -56,7 +56,7 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
-    times={k:v/100.0 for k,v in times.items()}
+    times={k:v for k,v in times.items()}
     print times
     tree=extend_branch_lengths(tree,times)
     print pretty_string(tree)
@@ -155,6 +155,7 @@ def reduce_covariance(covmat, subtracted_population_index):
 def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     with open(filename, 'r') as f:
         with open(filename2, 'w') as e:
+            e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
             pop_count=0
             rep_count=0
             count=0
@@ -183,17 +184,16 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                         rep_count+=1
                         
                         for s in zip(*s_vecs):
-                            e.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
+                            e.write(' '.join([str(a)+','+str(samples_per_pop-a) for a in s])+'\n')
                         
                         s_vecs=[]
-                
-        
-        f.write(' '.join(get_trivial_nodes(no_pops))+'\n')
-        for s_vec in zip(*sums):
-            f.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
+                        
+                        if rep_count>n_reps:
+                            break
+
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
-    return read_data(filename2_gz, blocksize=4 ,outgroup='s3', noss=True)
+    return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True, nodes=get_trivial_nodes(no_pops))
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     data=[]
@@ -216,7 +216,7 @@ def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, f
             f.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
-    return read_data(filename2_gz, blocksize=4 ,outgroup='s3', noss=True)
+    return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True)
 
 def trace_from_root(tree, init_freq):
     (child_key1, child_branch1, branch_length1),(child_key1, child_branch1, branch_length1)=find_rooted_nodes(tree)
@@ -225,19 +225,21 @@ if __name__=='__main__':
     
     #print reduce_covariance(identity(10), 5)
     
-    print file_to_emp_cov('out_stem.cov',4)
+    #print file_to_emp_cov('out_stem.cov',4)
     
-    from sys import exit
+    #from sys import exit
     
-    exit()
+    #exit()
     
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
     tree2=scale_tree(create_trivial_tree(5),0.01)
     print pretty_string(tree2)
     print supplementary_text_ms_string()
+    print tree_to_ms_command(tree2, 50)
     #print call_ms_string(supplementary_text_ms_string(), 'tmp.txt')
-    cov= ms_to_treemix2('tmp.txt', 20, 20,10)
+    print call_ms_string(tree_to_ms_command(tree2, 50,10), 'tmp.txt')
+    cov= ms_to_treemix2('tmp.txt', 50, 5,10)
     #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
     #print cov2
