@@ -46,7 +46,7 @@ def supplementary_text_ms_string():
 
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=100, sites=100000, recomb_rate=50):
+                       theta=1000, sites=100000, recomb_rate=None):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
@@ -56,7 +56,7 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
-    times={k:v for k,v in times.items()}
+    times={k:v/50.0 for k,v in times.items()}
     print times
     tree=extend_branch_lengths(tree,times)
     print pretty_string(tree)
@@ -113,7 +113,7 @@ def get_affected_populations(dic_of_lineages, children_branches):
     
 def calculate_pop_size(tup):
     drift, actual=tup
-    return actual/drift/2
+    return actual/drift*2
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:
@@ -193,7 +193,7 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
 
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
-    return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True, nodes=get_trivial_nodes(no_pops))
+    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=True, nodes=get_trivial_nodes(no_pops))
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     data=[]
