@@ -4,6 +4,7 @@ from Rproposal_rescale import rescale_class
 from Rproposal_sliding_regraft import sliding_regraft_class, sliding_regraft_class_resimulate
 from Rproposal_rescale_marginally import rescale_marginally_class
 from Rproposal_sliding_rescale import sliding_rescale_class
+from Rproposal_rescale_add import rescale_add_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -32,7 +33,8 @@ class basic_meta_proposal(object):
         self.params=[None, None, None, [0.1], [0.1]]
         self.node_naming=new_node_naming_policy()
         
-    def __call__(self, tree, pks={}):
+    def __call__(self, x, pks={}):
+        tree, add=x
         index=choice(len(self.props),1)[0]
         if get_number_of_admixes(tree)==0 and index<=1:
             index=0
@@ -162,47 +164,65 @@ class adaptive_proposal_no_admix(object):
         self.node_naming.n=information['n']
         #self.params=information['params']
 
+def get_random_proposal_without_deleting_empty(no_props, no_admixes):
+    index=choice(no_props,1)[0]
+    if no_admixes==0 and index<=1:
+        index=0
+        backj=1.0/no_props
+        forwj=2.0/no_props
+    elif no_admixes==1 and index==1:
+        backj=2.0/no_props
+        forwj=1.0/no_props
+    else:
+        backj=1.0/no_props
+        forwj=1.0/no_props
+    return index,backj, forwj
+
+def get_args(names, params):
+    args=[]
+    if names:
+        args.append(names)
+    if params is not None:
+        args.extend(params)
+    return args
+
 class adaptive_proposal(object):
     
     def __init__(self, resimulate_regrafted_branch_length=False):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class(), rescale_add_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         start_value_of_marginal_sigma=0.1
+        start_value_of_sigma_add=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
         self.regraft_count=10
         self.rescale_count=10
+        self.sliding_rescale_count=10
+        self.rescale_add_count=10
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_marginal_sigma]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_marginal_sigma], [start_value_of_sigma_add]]
         
-    def __call__(self, tree, pks={}):
-        index=choice(len(self.props),1)[0]
-        if get_number_of_admixes(tree)==0 and index<=1:
-            index=0
-            backj=1.0/len(self.props)
-            forwj=2.0/len(self.props)
-        elif get_number_of_admixes(tree)==1 and index==1:
-            backj=2.0/len(self.props)
-            forwj=1.0/len(self.props)
-        else:
-            backj=1.0/len(self.props)
-            forwj=1.0/len(self.props)
+    def __call__(self, x, pks={}):
+        tree, add=x
+        index, backj, forwj = get_random_proposal_without_deleting_empty(len(self.props), get_number_of_admixes(tree))
+        
         
         names=self.node_naming.next_nodes(self.props[index].new_nodes)
         pks['proposal_type']= self.props[index].proposal_name
         self.recently_called_type=self.props[index].proposal_name
-        args=[]
-        if names:
-            args.append(names)
-        if self.params[index] is not None:
-            args.extend(self.params[index])
-        new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
-        return new_tree,forward,backward,1,forwj,backj
+        args=get_args(names, self.params[index])
+        
+        if self.recently_called_type[-3:] == 'add':
+            new_add, forward, backward =self.props[index](add, *args, pks=pks)
+            return (tree,new_add),forward,backward,1,forwj,backj
+        else:
+            new_tree, forward, backward =self.props[index](tree, *args, pks=pks)
+            return (new_tree,add),forward,backward,1,forwj,backj
 
     def adapt(self, mhr, u, post_new, post, temperature):
         if self.recently_called_type=='rescale':
@@ -228,7 +248,7 @@ class adaptive_proposal(object):
             self.params[2]=[new_val]
             
         if self.recently_called_type=='sliding_rescale':
-            new_val, self.regraft_count= standard_update(self.regraft_count, 
+            new_val, self.sliding_rescale_count= standard_update(self.sliding_rescale_count, 
                                                          self.multiplier, 
                                                          self.alpha, 
                                                          self.params[4][0], 
@@ -238,6 +258,17 @@ class adaptive_proposal(object):
                                                          name='sliding_rescale',
                                                          max_val=15.0)
             self.params[4]=[new_val]
+        if self.recently_called_type == 'rescale_add':
+            new_val, self.rescale_add_count= standard_update(self.rescale_add_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[5][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='rescale_add',
+                                                         max_val=15.0)
+            self.params[5]=[new_val]
             
             
     

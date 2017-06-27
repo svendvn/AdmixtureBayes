@@ -41,7 +41,7 @@ class basic_chain_class(object):
             
             
     def run_chain(self, p):
-        start_tree, post, N, sample_verbose_scheme, overall_thinning, i_start_from, temperature, proposal_update = p
+        start_tree, post, N, sample_verbose_scheme, overall_thinning, i_start_from, temperature, proposal_update, multiplier = p
         #print 'run_chain proposal.node_naming.n', self.proposal.node_naming.n
         return basic_chain(start_tree,
                            self.summaries, 
@@ -53,7 +53,8 @@ class basic_chain_class(object):
                            overall_thinning, 
                            i_start_from, 
                            temperature, 
-                           proposal_update)
+                           proposal_update,
+                           multiplier)
         
         
 class basic_chain_pool(object):

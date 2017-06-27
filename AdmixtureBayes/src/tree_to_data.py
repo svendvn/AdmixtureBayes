@@ -33,7 +33,7 @@ def file_to_emp_cov(filename, reduce_column=None):
     return m
 
 def supplementary_text_ms_string():
-    return 'ms 400 10 -t 200 -r 200 500000 -I 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 \
+    return 'ms 400 400 -t 200 -r 200 500000 -I 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 \
 20 20 20 20 20 -en 0.00270 20 0.025 -ej 0.00275 20 19 -en 0.00545 19 0.025 -ej 0.00550 \
 19 18 -en 0.00820 18 0.025 -ej 0.00825 18 17 -en 0.01095 17 0.025 -ej 0.011 17 16 -en \
 0.01370 16 0.025 -ej 0.01375 16 15 -en 0.01645 15 0.025 -ej 0.01650 15 14 -en 0.01920 \
@@ -46,7 +46,7 @@ def supplementary_text_ms_string():
 
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=1000, sites=100000, recomb_rate=None):
+                       theta=0.4, sites=500000, recomb_rate=1):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
@@ -56,7 +56,8 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
-    times={k:v/50.0 for k,v in times.items()}
+    max_v=max(times.values())
+    times={k:v for k,v in times.items()}
     print times
     tree=extend_branch_lengths(tree,times)
     print pretty_string(tree)
@@ -113,7 +114,7 @@ def get_affected_populations(dic_of_lineages, children_branches):
     
 def calculate_pop_size(tup):
     drift, actual=tup
-    return actual/drift*2
+    return actual/drift
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:
@@ -188,12 +189,12 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                         
                         s_vecs=[]
                         
-                        if rep_count>n_reps:
+                        if rep_count>=n_reps:
                             break
 
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
-    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=True, nodes=get_trivial_nodes(no_pops))
+    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops))
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     data=[]
@@ -230,16 +231,17 @@ if __name__=='__main__':
     #from sys import exit
     
     #exit()
-    
+    from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
-    tree2=scale_tree(create_trivial_tree(5),0.01)
+    tree2=scale_tree(generate_phylogeny(5,1),0.01)
     print pretty_string(tree2)
     print supplementary_text_ms_string()
     print tree_to_ms_command(tree2, 50)
-    #print call_ms_string(supplementary_text_ms_string(), 'tmp.txt')
-    print call_ms_string(tree_to_ms_command(tree2, 50,10), 'tmp.txt')
-    cov= ms_to_treemix2('tmp.txt', 50, 5,10)
+    #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
+    print call_ms_string(tree_to_ms_command(tree2, 50,50), 'tmp.txt')
+    #cov= ms_to_treemix2('supp.txt', 20, 20,400)
+    cov= ms_to_treemix2('tmp.txt', 50, 5,50)
     #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
     #print cov2

@@ -2,7 +2,7 @@ from Rproposal_admix import addadmix, deladmix
 from Rproposal_regraft import make_regraft
 from Rproposal_rescale import rescale
 from Rtree_operations import (create_trivial_tree, make_consistency_checks, get_number_of_admixes, get_trivial_nodes, convert_to_vector,pretty_print, pretty_string,
-                              get_number_of_ghost_populations, get_max_distance_to_root, get_min_distance_to_root, get_average_distance_to_root, get_no_leaves)
+                              get_number_of_ghost_populations, get_max_distance_to_root, get_min_distance_to_root, get_average_distance_to_root, get_no_leaves, scale_tree_copy)
 from numpy.random import choice
 from time import sleep as wait
 from MCMC import basic_chain
@@ -163,7 +163,7 @@ def test_prior_model_no_admixes(start_tree, sim_length=100000, summaries=None, t
 def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, summaries=None, thinning_coef=19, 
                          admixtures_of_true_tree=None, no_leaves_true_tree=4, filename='results.csv', sim_from_wishart=False, 
                          wishart_df=None, sap_sim=False, sap_ana=False, resimulate_regrafted_branch_length=False, emp_cov=None,
-                         big_posterior=False):
+                         big_posterior=False, rescale_empirical_cov=False):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -172,9 +172,13 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
         no_leaves_true_tree=get_no_leaves(true_tree)
         admixtures_of_true_tree=get_number_of_admixes(true_tree)
         
+    true_x=(true_tree, 0)
+        
     m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
         start_tree=true_tree
+        
+    start_x=(start_tree,0)
     if wishart_df is None:
         wishart_df=n_mark(m)
     if sim_from_wishart:
@@ -187,9 +191,9 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     if big_posterior:
         posterior=initialize_big_posterior(m, wishart_df, use_skewed_distr= sap_ana)
     else:
-        posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana)
+        posterior=initialize_posterior(m,wishart_df, use_skewed_distr=sap_ana, rescale=rescale_empirical_cov)
     print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
-    post_=posterior(true_tree)
+    post_=posterior(true_x)
     print 'likelihood(true_tree)', post_[0]
     print 'prior(true_tree)', post_[1]
     print 'posterior(true_tree)', sum(post_[:2])
@@ -200,7 +204,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme['posterior']=(1,1)
-    final_tree,final_posterior, results,_= basic_chain(start_tree, summaries, posterior, 
+    final_tree,final_posterior, results,_= basic_chain(start_x, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
                 overall_thinning=int(max(thinning_coef,sim_length/60000)), i_start_from=0, 
@@ -210,7 +214,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     return true_tree
 
 def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths=[250]*800, summaries=None, thinning_coef=1, admixtures_of_true_tree=None, no_leaves_true_tree=4, 
-                                    wishart_df=None, sim_from_wishart=False, no_chains=8, result_file='results_mc3.csv', emp_cov=None, emp_remove=-1):
+                                    wishart_df=None, sim_from_wishart=False, no_chains=8, result_file='results_mc3.csv', emp_cov=None, emp_remove=-1, rescale_empirical_cov=False):
     if true_tree is None:
         if admixtures_of_true_tree is None:
             admixtures_of_true_tree=geom.rvs(p=0.5)-1
@@ -218,10 +222,13 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     else:
         no_leaves_true_tree=get_no_leaves(true_tree)
         admixtures_of_true_tree=get_number_of_admixes(true_tree)
+    true_x=(true_tree, 0)
         
     m=make_covariance(true_tree, get_trivial_nodes(no_leaves_true_tree))
     if start_tree is None:
         start_tree=true_tree
+        
+    start_x=(start_tree, 0)
     if wishart_df is None:
         wishart_df=n_mark(m)
     if sim_from_wishart:
@@ -231,9 +238,16 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
         print m
     if emp_cov is not None:
         m=emp_cov
-    posterior=initialize_posterior(m,wishart_df, use_skewed_distr=True)
+    if rescale_empirical_cov:
+        posterior, multiplier= initialize_posterior(m,wishart_df, use_skewed_distr=True, rescale= rescale_empirical_cov)
+    else:
+        posterior = initialize_posterior(m,wishart_df, use_skewed_distr=True, rescale= rescale_empirical_cov)
+        multiplier = None
     print 'true_tree=', unique_identifier_and_branch_lengths(true_tree)
-    post_=posterior(true_tree)
+    if rescale_empirical_cov:
+        post_=posterior((scale_tree_copy(true_x[0], 1.0/multiplier), true_x[1]/multiplier))
+    else:
+        post_=posterior(true_x)
     print 'likelihood(true_tree)', post_[0]
     print 'prior(true_tree)', post_[1]
     print 'posterior(true_tree)', sum(post_)
@@ -250,16 +264,17 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     #if 'likelihood' in sample_verbose_scheme:
         #sample_verbose_scheme_first['likelihood']=(1,1)
     print sample_verbose_scheme_first
-    results,permuts= MCMCMC(starting_trees=[deepcopy(start_tree) for _ in range(no_chains)], 
+    results,permuts= MCMCMC(starting_trees=[deepcopy(start_x) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
-               temperature_scheme=fixed_geometrical(40.0,no_chains), 
+               temperature_scheme=fixed_geometrical(800.0,no_chains), 
                printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
                iteration_scheme=sim_lengths, 
                overall_thinnings=int(thinning_coef+sum(sim_lengths)/60000), 
                proposal_scheme= [adaptive_proposal() for _ in range(no_chains)], 
                cores=no_chains, 
-               no_chains=no_chains)
+               no_chains=no_chains,
+               multiplier=multiplier)
     print 'finished MC3'
     save_pandas_dataframe_to_csv(results, result_file)
     save_permuts_to_csv(permuts, get_permut_filename(result_file))

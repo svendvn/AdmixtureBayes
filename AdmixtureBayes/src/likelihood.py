@@ -1,7 +1,7 @@
 from Rtree_to_covariance_matrix import make_covariance
 
 from scipy.stats import wishart
-from numpy.linalg import eig
+from numpy.linalg import eig, LinAlgError
 
 def n_mark(cov_mat):
     m=cov_mat.shape[0]
@@ -13,18 +13,22 @@ def n_mark(cov_mat):
     return (m-1)*S**2 / ( (m+1)*USS-S**2 )
     
 
-def likelihood(tree, emp_cov, nodes=None, M=12, pks={}):
+def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
+    tree, add= x
     r=emp_cov.shape[0]
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
-    pks['covariance']=par_cov
+    pks['covariance']=par_cov-add
     if par_cov is None:
         return -float('inf')
     try:
-        d=wishart.logpdf(r*M*emp_cov, df=r*M-1, scale= par_cov)
-    except ValueError:
-        print "illegal par_cov matrix"
+        #print emp_cov-add
+        #print add
+        #print par_cov
+        d=wishart.logpdf(r*M*(emp_cov-add), df=r*M-1, scale= par_cov)
+    except (ValueError, LinAlgError) as e:
+        #print "illegal par_cov matrix or to large add"
         return -float("inf")
     return d
         

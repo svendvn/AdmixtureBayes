@@ -9,7 +9,8 @@ def calculate_branch_prior(branches):
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
-def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
+def prior(x, p=0.5, use_skewed_distr=False, pks={}):
+    tree, add=x
     admixtures=get_all_admixture_proportions(tree)
     if not all(prop>=0 and prop <=1 for prop in admixtures):
         return -float('inf')
@@ -23,7 +24,7 @@ def prior(tree, p=0.5, use_skewed_distr=False, pks={}):
     else:
         admix_prop_prior=0
     top_prior=topological_prior(tree)
-    logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior
+    logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior-add
     pks['branch_prior']= branch_prior
     pks['no_admix_prior']=no_admix_prior
     pks['admix_prop_prior']=admix_prop_prior

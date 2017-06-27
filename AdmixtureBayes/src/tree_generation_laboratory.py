@@ -5,7 +5,6 @@ from scipy.stats import geom
 from Rproposal_admix import addadmix
 from Rtree_to_covariance_matrix import make_covariance
 
-
 def plot_string_tree(stree):
     plot_graph(identifier_to_tree_clean(stree))
     
@@ -41,6 +40,23 @@ def see_covariance_matrix(stree):
     
 def print_tree(stree):
     pretty_print(identifier_to_tree_clean(stree))
+
+def get_number_of_zeros(row):
+    return len([x for x in row if x>-1e-6 and x<1e-6])
+    
+def autogenerate_tree(no_leaves, no_admixtures, minimum_number_of_nonzeros=1, minimum_number_of_zeros=1):
+    while True:
+        tree= generate_phylogeny(no_leaves, no_admixtures)
+        cov=make_covariance(tree)
+        zeros=[get_number_of_zeros(row) for row in cov]
+        no_non_zeros=cov.shape[0]-max(zeros)
+        if no_non_zeros>=minimum_number_of_nonzeros and max(zeros)>=minimum_number_of_zeros:
+            break
+        
+    print cov
+    plot_as_directed_graph(tree)
+    return tree
+    
         
     
     
@@ -64,6 +80,7 @@ if __name__=='__main__':
     #s=load_tree('tree3.txt')
     #see_covariance_matrix(s)
     #plot_string_tree(s)
-    
-    plot_big_tree('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.4-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
+    autogenerate_tree(5,1,3,2)
+    #s_tree='c.c.1.0-c.0;0.001-0.017-0.028-0.001-0.01-0.002;'
+    #print_tree(s_tree)
     

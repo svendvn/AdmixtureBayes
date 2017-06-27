@@ -1,12 +1,16 @@
 from prior import prior
 from likelihood import likelihood, n_mark
 from scipy.stats import norm, multivariate_normal
+from math import log
 
 
 
-def initialize_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
+def initialize_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5, rescale=False):
     if M is None:
         M=n_mark(emp_cov)
+    if rescale:
+        emp_cov, multiplier = rescale_empirical_covariance(emp_cov)
+        print 'multiplier is', multiplier
     def posterior(x,pks={}):
         #print tot_branch_length
         prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
@@ -17,6 +21,8 @@ def initialize_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
         pks['likelihood']=likelihood_value
         #pks['posterior']=prior_value+likelihood_value
         return likelihood_value, prior_value
+    if rescale:
+        return posterior, multiplier
     return posterior
 
 def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
@@ -70,6 +76,18 @@ def call_post(posterior_function,tree, posterior_function_name='posterior', tree
     pks={}
     print posterior_function_name+'('+tree_name+')=', posterior_function(tree, pks=pks)
     print_pks(pks)
+    
+def rescale_empirical_covariance(m):
+    '''
+    It is allowed to rescale the empirical covariance matrix such that the inferred covariance matrix takes values that are closer to the mean of the prior.
+    '''
+    
+    n=m.shape[0]
+    actual_trace=m.trace()
+    expected_trace=log(n)/log(2)*n
+    multiplier= expected_trace/actual_trace
+    return m*multiplier, multiplier
+
 
 if __name__=='__main__':
     import Rcatalogue_of_trees

@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 def create_trivial_tree(size, total_height=1.0):
     '''
     constructs tree of the form (..((s1,s2),s3),s4)...)
@@ -914,8 +916,16 @@ def scale_tree(tree, factor):
         if node_is_admixture(node):
             node[4]*=factor
         tree[key]=node
-    return tree        
-    
+    return tree
+
+def scale_tree_copy(tree, factor):        
+    cop=deepcopy(tree)
+    for key,node in cop.items():
+        node[3]*=factor
+        if node_is_admixture(node):
+            node[4]*=factor
+        cop[key]=node
+    return cop
 
 def parent_is_spouse(tree, key, direction):
     '''

@@ -95,9 +95,10 @@ def run_c():
 def run_d():
     #true_tree=generate_prior_trees.generate_phylogeny(8,2)
     true_tree=tree_statistics.identifier_to_tree_clean('w.w.c.w.w.w.2.w-w.w.a.w.w.w.w-w.c.1.w.c.w.w.4-w.c.1.w.w.w-w.c.1.w.w-c.0.w.w-c.w.0-a.w-c.0.w-c.0;0.091-1.665-0.263-0.821-0.058-0.501-0.141-0.868-5.064-0.153-0.372-3.715-1.234-0.913-2.186-0.168-0.542-0.056-2.558-0.324;0.367-0.451')
-    s_tree=Rtree_operations.create_trivial_tree(8)
+    true_tree=Rcatalogue_of_trees.tree_good
+    s_tree=Rtree_operations.create_trivial_tree(4)
     summaries=[summary.s_posterior(), 
-               summary.s_variable('mhr'), 
+               summary.s_variable('mhr', output='double_missing'), 
                summary.s_no_admixes(), 
                summary.s_tree_identifier(),
                summary.s_average_branch_length(),
@@ -109,11 +110,13 @@ def run_d():
                summary.s_basic_tree_statistics(tree_statistics.get_admixture_proportion_string, 'admixtures', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
+               summary.s_variable('add', output='double'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 200000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, admixtures_of_true_tree=2, no_leaves_true_tree=8)
+    r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=20, wishart_df= 1000, resimulate_regrafted_branch_length=False, 
+                                             admixtures_of_true_tree=2, no_leaves_true_tree=8, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
 
@@ -124,7 +127,8 @@ def max_dist(x,y):
 def run_analysis_of_proposals():
     #true_tree=generate_prior_trees.generate_phylogeny(8,2)
     true_tree=tree_statistics.identifier_to_tree_clean('w.w.c.w.w.w.2.w-w.w.a.w.w.w.w-w.c.1.w.c.w.w.4-w.c.1.w.w.w-w.c.1.w.w-c.0.w.w-c.w.0-a.w-c.0.w-c.0;0.091-1.665-0.263-0.821-0.058-0.501-0.141-0.868-5.064-0.153-0.372-3.715-1.234-0.913-2.186-0.168-0.542-0.056-2.558-0.324;0.367-0.451')
-    s_tree=Rtree_operations.create_trivial_tree(8)
+    true_tree=Rcatalogue_of_trees.tree_good
+    s_tree=Rtree_operations.create_trivial_tree(4)
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
                summary.s_no_admixes(), 
@@ -148,7 +152,7 @@ def run_analysis_of_proposals():
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
     r=simulation_sanity.test_posterior_model(true_tree,true_tree, 20000, summaries=summaries, thinning_coef=2, wishart_df= 1000, resimulate_regrafted_branch_length=False, 
-                                             admixtures_of_true_tree=2, no_leaves_true_tree=8, big_posterior=True)
+                                             admixtures_of_true_tree=2, no_leaves_true_tree=4, big_posterior=True, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
 
@@ -178,12 +182,13 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
                summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
+               summary.s_variable('add', output='double'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_likelihood(),
                summary.s_prior(),
-               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
     if emp_cov_file is not None:
         if emp_remove<0:
             emp_cov=tree_to_data.file_to_emp_cov(emp_cov_file)
@@ -191,7 +196,7 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
             emp_cov=tree_to_data.file_to_emp_cov(emp_cov_file, emp_remove)
     else:
         emp_cov=None
-    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov)
+    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -222,7 +227,7 @@ def analyse_data_single_chained(filename):
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param'),
                summary.s_variable('rescale_adap_param'),
-               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
+               summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
     r=simulation_sanity.test_posterior_model(None,None, 300000, summaries=summaries, thinning_coef=20, wishart_df= df, emp_cov=emp_cov, no_leaves_true_tree=5)
 
                 
@@ -231,7 +236,7 @@ def run_posterior_grid(tree_files, alpha, wishart_df):
     
     #true_trees= [tree_generation_laboratory.load_tree(tree_file) for tree_file in tree_files]
     summaries=[summary.s_posterior(), 
-               summary.s_variable('mhr'), 
+               summary.s_variable('mhr', output='double_missing'), 
                summary.s_no_admixes(), 
                summary.s_average_branch_length(),
                summary.s_total_branch_length(),
@@ -286,11 +291,11 @@ if __name__=='__main__':
     #run_analysis_of_proposals()
     #analyse_data_single_chained('example1.treemix_in.gz')
     #run_a()
-#     from numpy import array
-#     print max_dist(array([[4,3,2]]),array([[9,3,1]]))
-#     run_d()
-#     import sys
-#     sys.exit()
+    #from numpy import array
+    #print max_dist(array([[4,3,2]]),array([[9,3,1]]))
+    #run_d()
+    #import sys
+    #sys.exit()
     
     from argparse import ArgumentParser
     
@@ -300,7 +305,7 @@ if __name__=='__main__':
     parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
     parser.add_argument('--true_tree', type=str, default='tree3.txt', help='file with the true tree to use')
     parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in')
-    parser.add_argument('--emp_cov', type= str, default='out_stem.cov', help = 'file where the empirical covariance matrix is saved')
+    parser.add_argument('--emp_cov', type= str, default='', help = 'file where the empirical covariance matrix is saved')
     parser.add_argument('--remove_population', type=int, default= 4, help= 'index of the population that should be the root')
     options=parser.parse_args()
     #run_e(options.df, options.result_file, sap_sim=options.sap_simulations, sap_ana=options.sap_analysis)

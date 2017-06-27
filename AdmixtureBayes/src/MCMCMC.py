@@ -23,12 +23,13 @@ def MCMCMC(starting_trees,
            proposal_scheme, 
            cores=4,
            no_chains=None,
-           numpy_seeds=None):
+           numpy_seeds=None,
+           multiplier= None):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
-        posterior_function: one 'initialised'(see MCMC.py) unnormalized posterior function, that should be simulated from.
-        summaries: a list of instances of realistition of concrete classes of the superclass Summary. It is closely linked to printing_scheme, 
+        posterior_function: one 'initialized'(see MCMC.py) unnormalized posterior function, that should be simulated from.
+        summaries: a list of instances of realization of concrete classes of the superclass Summary. It is closely linked to printing_scheme, 
                    because they are only meaningful if specified in that.
         temperature_scheme: one instance of a class that has the functions:
                                     - get_temp(i): returns the the temperature for the i'th chain
@@ -67,23 +68,23 @@ def MCMCMC(starting_trees,
     pool = basic_chain_pool(summaries, posterior_function, proposal_scheme, numpy_seeds)
         
     
-    trees = starting_trees
-    posteriors = [posterior_function(tree) for tree in trees]
+    xs = starting_trees
+    posteriors = [posterior_function(x) for x in xs]
     proposal_updates=[proposal.get_exportable_state() for proposal in proposal_scheme]
     
     cum_iterations=0
     for no_iterations in iteration_scheme:
         #letting each chain run for no_iterations:
-        iteration_object=_pack_everything(trees, posteriors, temperature_scheme, printing_schemes, overall_thinnings, no_iterations, cum_iterations, proposal_updates)
+        iteration_object=_pack_everything(xs, posteriors, temperature_scheme, printing_schemes, overall_thinnings, no_iterations, cum_iterations, proposal_updates, multiplier)
         if no_chains==1:#debugging purposes
             new_state=[_basic_chain_unpacker(iteration_object.next())]
         else:
             new_state = pool.order_calculation(iteration_object)
-        trees, posteriors, df_add,proposal_updates = unpack_everything(new_state, summaries, total_permutation)
+        xs, posteriors, df_add,proposal_updates = unpack_everything(new_state, summaries, total_permutation)
         df_result=_update_results(df_result, df_add)
         
         #making the mc3 flips and updating:
-        trees, posteriors, permut, proposal_updates=flipping(trees, posteriors, temperature_scheme, proposal_updates) #trees, posteriors, range(len(trees)),[None]*len(trees)#
+        xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates) #trees, posteriors, range(len(trees)),[None]*len(trees)#
         permuts.append(permut)
         temperature_scheme.update_temps(permut)
         #proposal_updates=_handle_flipping_of_proposals(proposal_updates, permut)
@@ -97,8 +98,8 @@ def MCMCMC(starting_trees,
 def _update_permutation(config, permut):
     return [config[n] for n in permut]
     
-def flipping(trees, posteriors, temperature_scheme, proposal_updates):
-    n=len(trees)
+def flipping(xs, posteriors, temperature_scheme, proposal_updates):
+    n=len(xs)
     step_permutation=range(n)
     count=0
     for _ in xrange(40):
@@ -115,10 +116,10 @@ def flipping(trees, posteriors, temperature_scheme, proposal_updates):
                 #print temp_j, post_j
             step_permutation[i],step_permutation[j]=step_permutation[j],step_permutation[i]
             posteriors[j],posteriors[i]=post_i,post_j
-            trees[i],trees[j]=trees[j],trees[i]
+            xs[i],xs[j]=xs[j],xs[i]
             proposal_updates[i],proposal_updates[j]=proposal_updates[j],proposal_updates[i]
     #print step_permutation
-    return trees, posteriors, step_permutation, proposal_updates
+    return xs, posteriors, step_permutation, proposal_updates
 
 def _update_results(df_result, df_add):
     if df_result is None:
@@ -128,18 +129,19 @@ def _update_results(df_result, df_add):
     return df_result
 
 ##should match basic_chain_class.run_chain(start_tree, post, N, sample_verbose_scheme, overall_thinning, i_start_from, temperature, proposal_update)
-def _pack_everything(trees, posteriors, temperature_scheme,printing_schemes,overall_thinnings,no_iterations,cum_iterations, proposal_updates=None):
-    return ([tree, 
+def _pack_everything(xs, posteriors, temperature_scheme,printing_schemes,overall_thinnings,no_iterations,cum_iterations, proposal_updates=None, multiplier=None):
+    return ([x, 
              posterior,
              no_iterations,
              printing_scheme,
              overall_thinnings,
              cum_iterations,
              temperature_scheme.get_temp(i),
-             proposal_update] for i,(tree,posterior,printing_scheme,proposal_update) in enumerate(zip(trees,posteriors,printing_schemes,proposal_updates)))
+             proposal_update,
+             multiplier] for i,(x,posterior,printing_scheme,proposal_update) in enumerate(zip(xs,posteriors,printing_schemes,proposal_updates)))
 
 def unpack_everything(new_state, summaries, total_permutation):
-    trees,posteriors, summs, proposal_updates = zip(*new_state)
+    xs,posteriors, summs, proposal_updates = zip(*new_state)
     list_of_smaller_data_frames=[]
     for summ_data, n, i in zip(summs, total_permutation, range(len(total_permutation))):
         iter_chain=chain((('iteration', summ_data[0]),),
@@ -149,7 +151,7 @@ def unpack_everything(new_state, summaries, total_permutation):
         df['layer']=i
         list_of_smaller_data_frames.append(df)
     df=pd.concat(list_of_smaller_data_frames)
-    return list(trees), list(posteriors), df, list(proposal_updates)
+    return list(xs), list(posteriors), df, list(proposal_updates)
 
 def _handle_flipping_of_proposals(proposal_scheme, permut):
     if permut==range(len(permut)):

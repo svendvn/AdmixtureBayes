@@ -8,7 +8,7 @@ from summary import *
 from multiprocessing import Queue, Process
 from prior import prior
 from tree_warner import check
-from Rtree_operations import pretty_string
+from Rtree_operations import pretty_string, scale_tree_copy
 
 
 
@@ -16,7 +16,7 @@ from Rtree_operations import pretty_string
 def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     newx,g1,g2,Jh,j1,j2=proposal(x,pks)
-    pks['proposed_tree']=newx
+    pks['proposed_tree']=newx[0]
     pks['g1']=g1
     pks['g2']=g2
     pks['Jh']=Jh
@@ -56,39 +56,50 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     return x,post
 
 
-def basic_chain(start_tree, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, check_trees=False):
+def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, multiplier=None, check_trees=False):
     if proposal_update is not None:
         proposal.wear_exportable_state(proposal_update)
     
-    tree=start_tree
+    x=start_x
     if check_trees:
-        check(tree)
+        check(x[0])
     if post is None:
-        post=posterior_function(tree)
+        post=posterior_function(x)
     
     iteration_summary=[]
     #print 'random', random()
         
     for i in range(i_start_from,i_start_from+N):
         proposal_knowledge_scraper={}
-        new_tree,new_post=one_jump(tree, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
+        new_x,new_post=one_jump(x, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
         if overall_thinning!=0 and i%overall_thinning==0:
-            iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,
+            if multiplier is None:
+                iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,
                                                                summaries,
-                                                               tree=new_tree,
+                                                               tree=new_x[0],
+                                                               add=new_x[1],
                                                                posterior=new_post,
                                                                old_post=post,
-                                                               old_tree=tree,
+                                                               old_tree=x[0],
                                                                iteration_number=i,**proposal_knowledge_scraper))
-        tree=new_tree
+            else:
+                iteration_summary.append(_calc_and_print_summaries(sample_verbose_scheme,
+                                                               summaries,
+                                                               tree=scale_tree_copy(new_x[0], 1.0/multiplier),
+                                                               add=new_x[1],
+                                                               posterior=new_post,
+                                                               old_post=post,
+                                                               old_tree=scale_tree_copy(x[0],1.0/multiplier),
+                                                               iteration_number=i,**proposal_knowledge_scraper))
+        x=new_x
         post=new_post
         if check_trees:
             #print pretty_string(tree)
-            check(tree, proposal_knowledge_scraper)
+            check(x[0], proposal_knowledge_scraper)
     
     #print iteration_summary
     #print zip(*iteration_summary)
-    return tree, post, zip(*iteration_summary),proposal.get_exportable_state()
+    return x, post, zip(*iteration_summary),proposal.get_exportable_state()
         
         
         
