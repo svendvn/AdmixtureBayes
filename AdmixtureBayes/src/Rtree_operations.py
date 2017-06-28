@@ -39,6 +39,55 @@ def create_trivial_equibranched_tree(size, height=1.0):
     del tree[new_inner_node]
     return rename_root(tree, new_inner_node)
 
+def add_outgroup(tree, inner_node_name='new', to_new_root_length=0.5, to_outgroup_length=0.5, outgroup_name=None):
+    (child_key1, child_branch1,_),(child_key2, child_branch2, _)=find_rooted_nodes(tree)
+    tree[inner_node_name]=['r', None, None, to_new_root_length, None, child_key1, child_key2]
+    tree[child_key1][child_branch1]=inner_node_name
+    tree[child_key2][child_branch2]=inner_node_name
+    if outgroup_name is None:
+        n=get_number_of_leaves(tree)
+        outgroup_name='s'+str(n+1)
+    tree[outgroup_name]=['r', None, None,to_outgroup_length, None, None, None]
+    return tree
+
+
+
+def rename_key(tree, old_key_name, new_key_name):
+    node=tree[old_key_name]
+    tree[new_key_name]=node
+    ps= get_real_parents(node)
+    for p in ps:
+        tree[p]=_rename_child(tree[p], old_key_name, new_key_name)
+    cs=get_real_children(node)
+    for c in cs:
+        tree[c]=rename_parent(tree[c], old_key_name, new_key_name)
+    del tree[old_key_name]
+    return tree
+
+def remove_outgroup(tree, remove_key='s1'):
+    (child_key1, child_branch1,_),(child_key2, child_branch2, _)=find_rooted_nodes(tree)
+    if remove_key==child_key1:
+        root_key=child_key2
+    elif remove_key== child_key2:
+        root_key= child_key1
+    else:
+        assert remove_key==child_key1 or remove_key==child_key2, 'the removed key is not an outgroup'
+    del tree[remove_key]
+    del tree[root_key]
+    tree= rename_root(tree, root_key)
+    return tree
+
+def simple_reorder_the_leaves_after_removal_of_s1(tree):
+    no_leaves=get_number_of_leaves(tree)
+    for n in range(no_leaves):
+        tree=rename_key(tree, 's'+str(n+2), 's'+str(n+1))
+    return tree
+        
+    
+    
+    
+    
+
 def find_children(tree, parent_key):
     res=[]
     for key,node in tree.items():
@@ -1142,7 +1191,10 @@ if __name__=='__main__':
           's1s2':['r',None, None, 0.2,None],
           's3':['r',None, None, 0.4, None]}
         
-        print pretty_string(scale_tree(insert_children_in_tree(tree), 0.15))
+        tree=insert_children_in_tree(tree)
+        print pretty_string(scale_tree(tree, 0.15))
+        
+        print pretty_string(add_outgroup(tree, 'new', 0.234, 1.96))
         
         print create_burled_leaved_tree(5,1.0)
         print pretty_string(create_burled_leaved_tree(5,1.0))

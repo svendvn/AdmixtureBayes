@@ -21,6 +21,8 @@ def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False):
             res.append(numbers)
             
     mapping={val:key for key, val in enumerate(cats)}
+    print nodes
+    print mapping
     new_order=[mapping[node] for node in nodes]
     res=array(res)
     res=res[:, new_order][new_order]

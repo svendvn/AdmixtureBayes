@@ -80,7 +80,7 @@ def MCMCMC(starting_trees,
             new_state=[_basic_chain_unpacker(iteration_object.next())]
         else:
             new_state = pool.order_calculation(iteration_object)
-        xs, posteriors, df_add,proposal_updates = unpack_everything(new_state, summaries, total_permutation)
+        xs, posteriors, df_add,proposal_updates = _unpack_everything(new_state, summaries, total_permutation)
         df_result=_update_results(df_result, df_add)
         
         #making the mc3 flips and updating:
@@ -140,7 +140,7 @@ def _pack_everything(xs, posteriors, temperature_scheme,printing_schemes,overall
              proposal_update,
              multiplier] for i,(x,posterior,printing_scheme,proposal_update) in enumerate(zip(xs,posteriors,printing_schemes,proposal_updates)))
 
-def unpack_everything(new_state, summaries, total_permutation):
+def _unpack_everything(new_state, summaries, total_permutation):
     xs,posteriors, summs, proposal_updates = zip(*new_state)
     list_of_smaller_data_frames=[]
     for summ_data, n, i in zip(summs, total_permutation, range(len(total_permutation))):

@@ -19,8 +19,9 @@ def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
-    pks['covariance']=par_cov-add
+    pks['covariance']=par_cov
     if par_cov is None:
+        print 'illegal tree'
         return -float('inf')
     try:
         #print emp_cov-add

@@ -1,7 +1,9 @@
 from Rtree_to_covariance_matrix import make_covariance
 from scipy.stats import wishart
-from Rtree_operations import find_rooted_nodes, get_real_parents, pretty_string, get_no_leaves, node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, get_real_children_root, get_trivial_nodes
-from tree_statistics import get_timing
+from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
+                              node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
+                              get_real_children_root, get_trivial_nodes, scale_tree_copy)
+from tree_statistics import get_timing, identifier_to_tree_clean
 import subprocess
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin
 from numpy.linalg import det
@@ -31,6 +33,16 @@ def file_to_emp_cov(filename, reduce_column=None):
         m=reduce_covariance(m, reduce_column)
         m=normalise(m)
     return m
+
+def emp_cov_to_file(m, filename='emp_cov.txt', nodes=None):
+    if nodes is None:
+        n=m.shape[0]
+        nodes=get_trivial_nodes(n)
+    with open(filename, 'w') as f:
+        f.write(' '.join(nodes)+'\n')
+        for i, node in enumerate(nodes):
+            f.write(node+ ' '+ ' '.join(map(str, m[i]))+'\n')
+    print 'wrote matrix to file', filename
 
 def supplementary_text_ms_string():
     return 'ms 400 400 -t 200 -r 200 500000 -I 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 \
@@ -221,6 +233,17 @@ def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, f
 
 def trace_from_root(tree, init_freq):
     (child_key1, child_branch1, branch_length1),(child_key1, child_branch1, branch_length1)=find_rooted_nodes(tree)
+
+def empirical_covariance_from_tree(tree, scaling=0.01, pop_size=20, reps=400):
+    pass
+
+def get_empirical_matrix(stree, factor=1.0, pop_size=20, reps=400):   
+    tree= identifier_to_tree_clean(stree)
+    ms_command=tree_to_ms_command(scale_tree_copy(tree, factor), pop_size, reps)
+    print ms_command
+    call_ms_string(ms_command, 'tmp.txt')
+    empirical_covariance=ms_to_treemix2(filename='tmp.txt', samples_per_pop=pop_size, no_pops=get_number_of_leaves(tree), n_reps=reps, filename2='tmp.treemix_in')
+    return reduce_covariance(empirical_covariance,0)
 
 if __name__=='__main__':
     

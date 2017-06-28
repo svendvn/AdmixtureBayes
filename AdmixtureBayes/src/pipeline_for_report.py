@@ -160,16 +160,23 @@ def run_analysis_of_proposals():
 def run_e(df, out, sap_sim, sap_ana):
     simulation_sanity.marginalize_out_data_in_posterior(4, no_trees=250, nsim=200000, wishart_df=df, prefix='df,'+str(int(df)), dest_folder=out, sap_sim=sap_sim, sap_ana=sap_ana)
     
-def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv', emp_cov_file=None, emp_remove=-1):
+def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, result_file='result_mc3.csv', emp_cov_file=None, emp_remove=-1, remove_outgroup=False, make_emp_cov_file=True):
     if true_tree_as_identifier is None:
         true_tree=Rcatalogue_of_trees.tree_good
     else:
         with open(true_tree_as_identifier, 'r') as f:
             s=f.readline().rstrip()
             true_tree=tree_statistics.identifier_to_tree_clean(s)
+    if remove_outgroup:
+        true_tree=Rtree_operations.remove_outgroup(true_tree)
+        true_tree=Rtree_operations.simple_reorder_the_leaves_after_removal_of_s1(true_tree)
+    if make_emp_cov_file:
+        cov=tree_to_data.get_empirical_matrix(s, factor=0.01, reps=400)
+        tree_to_data.emp_cov_to_file(cov, filename=emp_cov_file)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(true_tree)
     no_leaves=Rtree_operations.get_no_leaves(true_tree)
     s_tree=Rtree_operations.create_trivial_tree(no_leaves)
+    print 'no_leaves', no_leaves
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
                summary.s_no_admixes(), 
@@ -196,7 +203,8 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
             emp_cov=tree_to_data.file_to_emp_cov(emp_cov_file, emp_remove)
     else:
         emp_cov=None
-    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*2000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov, rescale_empirical_cov=True)
+    print 'emp_cov', emp_cov
+    r=simulation_sanity.test_posterior_model_multichain(true_tree, s_tree, [50]*40000, summaries=summaries, thinning_coef=24, wishart_df=wishart_df, result_file=result_file, emp_cov=emp_cov, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
     
@@ -303,14 +311,14 @@ if __name__=='__main__':
     parser.add_argument('--df', type=float, default=10.0, help='degrees of freedom to run under')
     parser.add_argument('--sap_simulations', action='store_true',default=False, help='skewed admixture proportion prior in the simulated datasets')
     parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
-    parser.add_argument('--true_tree', type=str, default='tree3.txt', help='file with the true tree to use')
+    parser.add_argument('--true_tree', type=str, default='tree_10_0_3_3.txt', help='file with the true tree to use')
     parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in')
-    parser.add_argument('--emp_cov', type= str, default='', help = 'file where the empirical covariance matrix is saved')
-    parser.add_argument('--remove_population', type=int, default= 4, help= 'index of the population that should be the root')
+    parser.add_argument('--emp_cov', type= str, default='emp_cov_10_0_3_3b.txt', help = 'file where the empirical covariance matrix is saved')
+    parser.add_argument('--remove_population', type=int, default= -1, help= 'index of the population that should be the root')
     options=parser.parse_args()
     #run_e(options.df, options.result_file, sap_sim=options.sap_simulations, sap_ana=options.sap_analysis)
     
     if options.emp_cov:
-        run_posterior_multichain(options.df, None, options.result_file, options.emp_cov, options.remove_population)
+        run_posterior_multichain(options.df, options.true_tree, options.result_file, options.emp_cov, options.remove_population, remove_outgroup=True)
     else:
         run_posterior_multichain(options.df, options.true_tree, options.result_file)

@@ -270,7 +270,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
                temperature_scheme=fixed_geometrical(800.0,no_chains), 
                printing_schemes=[sample_verbose_scheme_first]+[sample_verbose_scheme for _ in range(no_chains-1)], 
                iteration_scheme=sim_lengths, 
-               overall_thinnings=int(thinning_coef+sum(sim_lengths)/60000), 
+               overall_thinnings=int(thinning_coef), 
                proposal_scheme= [adaptive_proposal() for _ in range(no_chains)], 
                cores=no_chains, 
                no_chains=no_chains,
