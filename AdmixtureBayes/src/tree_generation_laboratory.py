@@ -87,15 +87,15 @@ if __name__=='__main__':
     #s=load_tree('tree3.txt')
     #see_covariance_matrix(s)
     #plot_string_tree(s)
-    s, suffix=autogenerate_tree(5,2,3,1)
-    save_tree(s, 'tree'+'_'+suffix+'.txt')
+    #s, suffix=autogenerate_tree(5,2,3,1)
+    #save_tree(s, 'tree'+'_'+suffix+'.txt')
     
-    #s=load_tree('tree_10_0_3_3.txt')
-    #print_tree(s)
-    #plot_big_tree(s)
+    s=load_tree('tree_10_2_4_2.txt')
+    print_tree(s)
+    plot_big_tree(s)
     #cov= get_empirical_matrix(s, 0.01, 20, 400)
     #print cov
-    #see_covariance_matrix(s,0, 0.01)
+    see_covariance_matrix(s,0, 0.01)
     #emp_cov_to_file(cov, 'emp_cov_10_0_3_3.txt')
     #s_tree='w.c.1.c.c.4.w.w.3.w-w.c.c.1.w.2.w-c.w.0.w.w-c.w.w.0-c.w.0-c.0;0.001-0.001-0.001-0.0-0.003-0.003-0.003-0.002-0.001-0.0-0.002-0.002-0.001-0.003-0.0-0.001-0.001-0.001;'
     #print_tree(s_tree)

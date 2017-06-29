@@ -26,6 +26,7 @@ def initialize_posterior(emp_cov=None,
                          nodes=None,
                          simulate_true_tree_with_skewed_prior=False,
                          reduce_cov=None,
+                         add_outgroup_to_true_tree=False,
                          reduce_true_tree=False):
     
     if not isinstance(model_choice, basestring):
@@ -53,10 +54,8 @@ def initialize_posterior(emp_cov=None,
                     true_tree_s=f.readline().rstrip()
                 true_tree=identifier_to_tree_clean(true_tree_s)
         
-        if reduce
-        if reduce_true_tree is not None:
-            true_tree=Rtree_operations.remove_outgroup(true_tree, reduce_true_tree)
-            if reduce_true_tree=='s1' or reduce_true_tree==0:
+        
+        
                 
         true_tree=Rtree_operations.simple_reorder_the_leaves_after_removal_of_s1(true_tree)
                 
@@ -69,7 +68,10 @@ def initialize_posterior(emp_cov=None,
         cov=make_covariance(true_tree)
         
         if reduce_cov is not None:
-             
+            
+        if reduce_true_tree is not None:
+            true_tree=Rtree_operations.remove_outgroup(true_tree, reduce_true_tree)
+            if reduce_true_tree=='s1' or reduce_true_tree==0:
         
         if emp_cov is not None:
             if isinstance(emp_cov, basestring):
@@ -112,10 +114,10 @@ def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     return posterior
         
 
-def initialize_prior_as_posterior():
+def initialize_prior_as_posterior(p=0.5):
     def posterior(x,pks={}):
         #print tot_branch_length
-        prior_value=prior(x,pks=pks)
+        prior_value=prior(x,p=p,pks=pks)
         if prior_value==-float('inf'):
             return prior_value
         pks['prior']=prior_value

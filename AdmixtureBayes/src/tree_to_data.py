@@ -3,7 +3,7 @@ from scipy.stats import wishart
 from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
                               node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
                               get_real_children_root, get_trivial_nodes, scale_tree_copy)
-from tree_statistics import get_timing, identifier_to_tree_clean
+from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin
 from numpy.linalg import det
@@ -257,14 +257,15 @@ if __name__=='__main__':
     from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
-    tree2=scale_tree(generate_phylogeny(5,1),0.01)
+    tree2=scale_tree(generate_phylogeny(12,0),0.9)
     print pretty_string(tree2)
+    print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()
-    print tree_to_ms_command(tree2, 50)
+    #print tree_to_ms_command(tree2, 50)
     #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
-    print call_ms_string(tree_to_ms_command(tree2, 50,50), 'tmp.txt')
+    #print call_ms_string(tree_to_ms_command(tree2, 50,10), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
-    cov= ms_to_treemix2('tmp.txt', 50, 5,50)
+    cov= ms_to_treemix2('tmp.txt', 50, 5,10)
     #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
     #print cov2
