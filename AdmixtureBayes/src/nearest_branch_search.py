@@ -14,6 +14,7 @@ class lineage(object):
             self.get_branch_length=topological_branch_length
         else:
             self.get_branch_length=get_branch_length
+        self.topological_distance=topological_distance
         
     def follow(self, tree, visited_keys=[]):
         node=tree[self.key]
@@ -25,13 +26,13 @@ class lineage(object):
                 branch=mother_or_father(tree, child_key=key, parent_key=self.key)
                 l=get_branch_length(tree, key, branch)
                 pieces.append(piece(self.lattitude, self.lattitude-l, self.distance, self.distance+l, key, branch, self.key))
-                new_lineages.append(lineage(key,self.distance+l, self.lattitude-l))
+                new_lineages.append(lineage(key,self.distance+l, self.lattitude-l, topological_distance=self.topological_distance))
         for key in get_real_parents(tree[self.key]):
             if key not in visited_keys:
                 branch=mother_or_father(tree, child_key=self.key, parent_key=key)
                 l=get_branch_length(tree, self.key, branch)
                 pieces.append(piece(self.lattitude, self.lattitude+l, self.distance, self.distance+l, self.key, branch, key))
-                new_lineages.append(lineage(key,self.distance+l, self.lattitude+l))
+                new_lineages.append(lineage(key,self.distance+l, self.lattitude+l, topological_distance=self.topological_distance))
         if self.key=='r':#add the very long piece
             pieces.append(piece(self.lattitude, None, self.distance, None,'r',0,None))
         return new_lineages, pieces
@@ -48,10 +49,10 @@ def remove_root_from_tree(tree):
     del tree['r']
     
 
-def distanced_branch_lengths(tree, start_key, visited_keys=[], upper_cap=float('inf')):
+def distanced_branch_lengths(tree, start_key, visited_keys=[], upper_cap=float('inf'), topological_distance=False):
     insert_root_in_tree(tree)
     pieces=[]
-    lineages=[lineage(start_key, 0, 0)]
+    lineages=[lineage(start_key, 0, 0, topological_distance=topological_distance)]
     while lineages:
         lineages.sort(key=lambda x: x.distance)
         lin=lineages.pop(0)

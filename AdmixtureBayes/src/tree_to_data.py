@@ -257,15 +257,15 @@ if __name__=='__main__':
     from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
-    tree2=scale_tree(generate_phylogeny(12,0),0.9)
+    tree2=scale_tree(generate_phylogeny(5,0),0.05)
     print pretty_string(tree2)
     print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()
-    #print tree_to_ms_command(tree2, 50)
+    print tree_to_ms_command(tree2, 50,20)
     #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
-    #print call_ms_string(tree_to_ms_command(tree2, 50,10), 'tmp.txt')
+    print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
-    cov= ms_to_treemix2('tmp.txt', 50, 5,10)
+    cov= ms_to_treemix2('tmp.txt', 50, 5,20)
     #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
     print cov
     #print cov2

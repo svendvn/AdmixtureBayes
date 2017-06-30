@@ -24,7 +24,9 @@ def MCMCMC(starting_trees,
            cores=4,
            no_chains=None,
            numpy_seeds=None,
-           multiplier= None):
+           multiplier= None,
+           result_file=None,
+           store_permuts=False):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
@@ -82,21 +84,38 @@ def MCMCMC(starting_trees,
             new_state = pool.order_calculation(iteration_object)
         xs, posteriors, df_add,proposal_updates = _unpack_everything(new_state, summaries, total_permutation)
         df_result=_update_results(df_result, df_add)
-        
+        if result_file is not None:
+            if cum_iterations==0:
+                start_data_frame(df_result, result_file)
+            elif df_result.shape[0]>1000:
+                add_to_data_frame(df_result, result_file)
+                df_result=df_result[0:0]
         #making the mc3 flips and updating:
         xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates) #trees, posteriors, range(len(trees)),[None]*len(trees)#
-        permuts.append(permut)
+        if store_permuts:
+            permuts.append(permut)
         temperature_scheme.update_temps(permut)
         #proposal_updates=_handle_flipping_of_proposals(proposal_updates, permut)
         total_permutation=_update_permutation(total_permutation, permut)
         cum_iterations+=no_iterations
         
     pool.terminate()
-        
-    return df_result, permuts
+    if result_file is None and store_permuts:
+        return df_result, permuts
+    elif result_file is None:
+        return df_result
+    elif store_permuts:
+        return permuts
         
 def _update_permutation(config, permut):
     return [config[n] for n in permut]
+
+def start_data_frame(df, result_file):
+    df.to_csv(result_file, header=True)
+
+def add_to_data_frame(df_add, result_file):
+    with open(result_file, 'a') as f:
+        df_add.to_csv(f, header=False)
     
 def flipping(xs, posteriors, temperature_scheme, proposal_updates):
     n=len(xs)

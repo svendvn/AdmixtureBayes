@@ -188,13 +188,13 @@ def get_args(names, params):
 
 class adaptive_proposal(object):
     
-    def __init__(self, resimulate_regrafted_branch_length=False):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class(), rescale_add_class()]
+    def __init__(self, resimulate_regrafted_branch_length=False, no_sliding_rescales):
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class(no_sliding_rescales=no_sliding_rescales), rescale_add_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
-        start_value_of_marginal_sigma=0.1
+        start_value_of_sliding_rescales=0.1
         start_value_of_sigma_add=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
@@ -205,7 +205,7 @@ class adaptive_proposal(object):
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_marginal_sigma], [start_value_of_sigma_add]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_sliding_rescales], [start_value_of_sigma_add]]
         
     def __call__(self, x, pks={}):
         tree, add=x

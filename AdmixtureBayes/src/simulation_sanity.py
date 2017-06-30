@@ -264,7 +264,7 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
     #if 'likelihood' in sample_verbose_scheme:
         #sample_verbose_scheme_first['likelihood']=(1,1)
     print sample_verbose_scheme_first
-    results,permuts= MCMCMC(starting_trees=[deepcopy(start_x) for _ in range(no_chains)], 
+    MCMCMC(starting_trees=[deepcopy(start_x) for _ in range(no_chains)], 
                posterior_function= posterior,
                summaries=summaries, 
                temperature_scheme=fixed_geometrical(800.0,no_chains), 
@@ -274,10 +274,12 @@ def test_posterior_model_multichain(true_tree=None, start_tree=None, sim_lengths
                proposal_scheme= [adaptive_proposal() for _ in range(no_chains)], 
                cores=no_chains, 
                no_chains=no_chains,
-               multiplier=multiplier)
+               multiplier=multiplier,
+               result_file=result_file,
+               store_permuts=False)
     print 'finished MC3'
-    save_pandas_dataframe_to_csv(results, result_file)
-    save_permuts_to_csv(permuts, get_permut_filename(result_file))
+    #save_pandas_dataframe_to_csv(results, result_file)
+    #save_permuts_to_csv(permuts, get_permut_filename(result_file))
     return true_tree
 
 def get_permut_filename(filename):

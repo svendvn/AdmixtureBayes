@@ -9,7 +9,7 @@ from tree_to_data import reduce_covariance
 from Rtree_to_covariance_matrix import make_covariance
 
 
-def initialize_posterior(emp_cov=None, 
+def initialize_posterior2(emp_cov=None, 
                          true_tree=None, 
                          M=None, 
                          use_skewed_distr=False, 
@@ -68,15 +68,35 @@ def initialize_posterior(emp_cov=None,
         cov=make_covariance(true_tree)
         
         if reduce_cov is not None:
-            
+            pass 
         if reduce_true_tree is not None:
             true_tree=Rtree_operations.remove_outgroup(true_tree, reduce_true_tree)
             if reduce_true_tree=='s1' or reduce_true_tree==0:
-        
+                pass
         if emp_cov is not None:
             if isinstance(emp_cov, basestring):
-                
+                pass
     
+    if M is None:
+        M=n_mark(emp_cov)
+    if rescale:
+        emp_cov, multiplier = rescale_empirical_covariance(emp_cov)
+        print 'multiplier is', multiplier
+    def posterior(x,pks={}):
+        #print tot_branch_length
+        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
+        if prior_value==-float('inf'):
+            return -float('inf'), prior_value
+        likelihood_value=likelihood(x, emp_cov,M=M)
+        pks['prior']=prior_value
+        pks['likelihood']=likelihood_value
+        #pks['posterior']=prior_value+likelihood_value
+        return likelihood_value, prior_value
+    if rescale:
+        return posterior, multiplier
+    return posterior
+
+def initialize_posterior(emp_cov, M=None, p=0.5, use_skewed_distr=False, rescale=False):
     if M is None:
         M=n_mark(emp_cov)
     if rescale:

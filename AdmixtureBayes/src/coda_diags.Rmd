@@ -7,7 +7,7 @@ Read in data
 
 ```{r}
 df=read.csv('results.csv', header=T)
-df=df[10000:nrow(df),]
+df=df[2:nrow(df),]
 sim_df=read.csv('sim_prior2.csv', header =T)
 summs_df=read.csv('summaries.csv', header = T)
 summaries_in_dataframe=sapply(summs_df$summary, function(x){ return(x%in%colnames(df)) })

@@ -26,8 +26,8 @@ posterior_f=initialize_big_posterior(true_cov, M=10000)
 nt, f,b=deladmix(t,pks=pks, fixed_remove=('a1',1))
 plot_as_directed_graph(nt)
 
-new_likelihood_value, new_prior_value, (new_branch_prior, new_no_admix_prior, new_admix_prop_prior, new_top_prior), new_covariance= posterior_f(nt)
-old_likelihood_value, old_prior_value, (old_branch_prior, old_no_admix_prior, old_admix_prop_prior, old_top_prior), old_covariance= posterior_f(t)
+new_likelihood_value, new_prior_value, (new_branch_prior, new_no_admix_prior, new_admix_prop_prior, new_top_prior), new_covariance= posterior_f((nt,0))
+old_likelihood_value, old_prior_value, (old_branch_prior, old_no_admix_prior, old_admix_prop_prior, old_top_prior), old_covariance= posterior_f((t,0))
 
 print new_likelihood_value, old_likelihood_value, new_likelihood_value-old_likelihood_value
 from numpy import get_printoptions, set_printoptions

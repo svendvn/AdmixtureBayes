@@ -114,7 +114,7 @@ def finish_tree_with_coalescences(tree, keys_to_finish, height=1.0):
         tree[key2]=[new_key,None,None,height,None]+find_children(tree,key2)
         keys_to_finish=keys_to_finish[2:]
         keys_to_finish.append(new_key)
-        print len(keys_to_finish)
+        #print len(keys_to_finish)
     return tree
         
 

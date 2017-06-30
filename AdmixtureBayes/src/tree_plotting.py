@@ -21,6 +21,7 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
         img=Image.open(drawing_name)
         img.show()
         
+        
 def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.BMP', popup=True):
 
     leaves, admixture_nodes, coalescence_nodes, root, edges= to_networkx_format(tree)

@@ -7,11 +7,12 @@ Read in data
 
 ```{r}
 df=read.csv('result_mc3.csv', header=T)
-df=df[10000:nrow(df),]
+#df=df[1000:nrow(df),]
 #sim_df=read.csv('sim_prior.csv', header =T)
 summs_df=read.csv('summaries.csv', header = T)
 summaries_in_dataframe=sapply(summs_df$summary, function(x){ return(x%in%colnames(df)) })
 summs_df=summs_df[summaries_in_dataframe,]
+#summs_df=summs_df[1:(nrow(summs_df)-4),]
 library('coda')
 ```
 
@@ -41,7 +42,7 @@ all_plots=function(df){
   crosscorr.plot(mcmcobj)
   for(i in 1:ncol(df)){
     v=colnames(df)[i]
-    df2=as.data.frame(df[floor(nrow(df)/2):nrow(df),v])
+    df2=as.data.frame(df[floor(nrow(df)/10):nrow(df),v])
     #print(df2)
     colnames(df2) <- c(v)
     mcmcobj=mcmc(df2)
@@ -169,23 +170,24 @@ c(mean(y1), mean(y2))
 
 ```{r}
 branch_lengths=function(x, pattern){
-  identifier_branch_props=strsplit(x, split=';')[[1]]
+  identifier_branch_props=strsplit(x, split=';', fixed =T)[[1]]
   identifier=identifier_branch_props[1]
   if(identifier==pattern){
-    branch_strings=strsplit(identifier_branch_props[2], '-')[[1]]
+    branch_strings=strsplit(identifier_branch_props[2], '-', fixed= T)[[1]]
     return(as.numeric(branch_strings))
   }
   return(numeric(0))
 }
 
-pat='c.c.0.1-c.0'
-res=matrix(0, nrow=0, ncol=4)
-for(i in 1:nrow){
-  ad=branch_lengths(res[i,], pat)
+pat='c.c.1.0-c.0'
+res=matrix(0, nrow=0, ncol=6)
+for(i in 1:nrow(dfa)){
+  ad=branch_lengths(as.character(dfa$tree[i]), pat)
   if(length(ad)>0){
+    #print(ad)
     res=rbind(res,ad)
   }
 }
-
+apply(res,2,quantile, p=c(0.025,0.5,0.975))
 ```
 
