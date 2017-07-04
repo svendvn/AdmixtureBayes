@@ -188,8 +188,8 @@ def get_args(names, params):
 
 class adaptive_proposal(object):
     
-    def __init__(self, resimulate_regrafted_branch_length=False, no_sliding_rescales):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class(no_sliding_rescales=no_sliding_rescales), rescale_add_class()]
+    def __init__(self, resimulate_regrafted_branch_length=False):
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_class(), sliding_rescale_class(), rescale_add_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1

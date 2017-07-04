@@ -92,13 +92,20 @@ def run_c():
     analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
     analyse_results.generate_summary_csv(summaries)
     
-def run_d():
+def run_d(true_tree_as_file='tree2.txt'):
     #true_tree=generate_prior_trees.generate_phylogeny(8,2)
-    true_tree=tree_statistics.identifier_to_tree_clean('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
-    #true_tree=Rcatalogue_of_trees.tree_good
-    s_tree=tree_statistics.identifier_to_tree_clean('w.w.a.w.w.a.a.a.w-c.w.c.c.w.w.c.0.w.w.6.3.2-c.w.w.0.w.c.5.w.w-c.w.0.c.3.w.w-c.w.c.2.0-w.c.1-c.0;0.828-0.21-0.197-0.247-0.568-1.06-0.799-1.162-2.632-2.001-0.45-1.048-0.834-0.469-0.191-2.759-0.871-1.896-0.473-0.019-1.236-0.287-0.179-0.981-0.456-0.91-2.114-3.368;0.655-0.506-0.389-0.23')
-    print Rtree_operations.pretty_string(s_tree)
-    print Rtree_operations.pretty_string(true_tree)
+    if true_tree_as_file is None:
+        true_tree=tree_statistics.identifier_to_tree_clean('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
+        #true_tree=Rcatalogue_of_trees.tree_good
+        s_tree=tree_statistics.identifier_to_tree_clean('w.w.a.w.w.a.a.a.w-c.w.c.c.w.w.c.0.w.w.6.3.2-c.w.w.0.w.c.5.w.w-c.w.0.c.3.w.w-c.w.c.2.0-w.c.1-c.0;0.828-0.21-0.197-0.247-0.568-1.06-0.799-1.162-2.632-2.001-0.45-1.048-0.834-0.469-0.191-2.759-0.871-1.896-0.473-0.019-1.236-0.287-0.179-0.981-0.456-0.91-2.114-3.368;0.655-0.506-0.389-0.23')
+        print Rtree_operations.pretty_string(s_tree)
+        print Rtree_operations.pretty_string(true_tree)
+    else:
+        with open(true_tree_as_file, 'r') as f:
+            s=f.readline().rstrip()
+            true_tree=tree_statistics.identifier_to_tree_clean(s)
+            no_leaves= Rtree_operations.get_number_of_leaves(true_tree)
+            s_tree= Rtree_operations.create_trivial_tree(no_leaves)
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr', output='double_missing'), 
                summary.s_no_admixes(), 
@@ -113,11 +120,14 @@ def run_d():
                summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'),
                summary.s_basic_tree_statistics(tree_statistics.majority_tree, 'majority_tree', output='string'),
                summary.s_variable('add', output='double'),
+               summary.s_variable('sliding_rescale_adap_param', output= 'double_missing'),
+               summary.s_variable('cutoff_distance', output= 'double_missing'),
+               summary.s_variable('number_of_pieces', output= 'double_missing'),
                summary.s_variable('proposal_type', output='string'),
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 400000, summaries=summaries, thinning_coef=20, wishart_df= 10000, resimulate_regrafted_branch_length=False)#, 
+    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 200000, summaries=summaries, thinning_coef=20, wishart_df= 10000, resimulate_regrafted_branch_length=False)#, 
                                              #admixtures_of_true_tree=2, no_leaves_true_tree=8, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)

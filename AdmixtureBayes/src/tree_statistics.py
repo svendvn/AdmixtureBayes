@@ -603,7 +603,7 @@ if __name__=='__main__':
     
     tree='w.w.w.w.w.w.a.a.w-w.w.w.c.w.c.5.a.w.3.a-c.w.c.w.c.4.w.w.0.2.a-w.w.w.w.c.c.4.7.w-c.c.w.w.1.0.w-c.w.w.0.w-c.w.0.w-a.w.w-c.w.0.w-c.w.0-c.0;0.387-0.087-0.806-0.082-2.062-0.803-0.122-0.544-0.061-0.733-0.474-1.342-0.871-0.798-0.753-0.288-0.024-0.174-0.754-0.282-0.45-0.924-0.416-1.081-0.467-1.296-1.171-0.54-1.944-0.258-8.813-0.76-0.073-3.416;0.388-0.467-0.098-0.185-0.019-0.44'
     
-    print identifier_to_tree_clean(tree)
+    print unique_identifier_and_branch_lengths(tree)
     from Rcatalogue_of_trees import *
     from tree_plotting import pretty_string
     from Rtree_operations import create_burled_leaved_tree

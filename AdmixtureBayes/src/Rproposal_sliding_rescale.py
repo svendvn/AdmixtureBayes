@@ -8,8 +8,7 @@ class sliding_rescale_class(object):
     new_nodes=0
     proposal_name='sliding_rescale'
     
-    def __init__(self, no_sliding_rescales):
-        self.no_sliding_rescales=no_sliding_rescales
+    def __init__(self):
         self.recently_called_number=None
     
     def __call__(self,*args, **kwargs):
@@ -29,7 +28,7 @@ def updater(param):
     def upd():
         return normal()*param
 
-def resimulate_pieces(tree, pieces, max_distance, param, admixture_multiplier=1.0):
+def resimulate_pieces(tree, pieces, max_distance, param, admixture_multiplier=1.0, pks={}):
     visited_keys=[]
     for piece in pieces:
         if piece.child_key!='r':
@@ -47,7 +46,7 @@ def resimulate_pieces(tree, pieces, max_distance, param, admixture_multiplier=1.
                 
         
     
-def make_sliding_rescale(tree, param=[0.1,0.1,0.1],pks={}):
+def make_sliding_rescale(tree, param=0.1,pks={}):
     '''
     
     '''
@@ -58,18 +57,21 @@ def make_sliding_rescale(tree, param=[0.1,0.1,0.1],pks={}):
     rescale_key, rescale_branch= possible_branches[choice(len(possible_branches), 1)[0]]
     pks['rescale_key']=rescale_key
     pks['rescale_branch']=rescale_branch
-    pks['sliding_regraft_adap_param']= param
+    pks['sliding_rescale_adap_param']= param
     
-    cutoff_distance= simulate_regraft_distance(len(param)-1)
+    cutoff_distance= simulate_regraft_distance(3-1)
     parent_key= get_parent_of_branch(tree, rescale_key, rescale_branch)
     thinned_pieces_forward=get_thinned_pieces(tree, rescale_key, rescale_branch, cutoff_distance, parent_key)
+    
+    pks['cutoff_distance']= cutoff_distance
+    pks['number_of_pieces']=len(thinned_pieces_forward)
     
 #     print 'cutoff_distance', cutoff_distance
 #     print 'pieces:'
 #     for tp in thinned_pieces_forward:
 #         print tp
     
-    new_tree=resimulate_pieces(new_tree, thinned_pieces_forward, cutoff_distance, param[cutoff_distance])
+    new_tree=resimulate_pieces(new_tree, thinned_pieces_forward, cutoff_distance, param, pks=pks)
 
     
     forward=1.0
