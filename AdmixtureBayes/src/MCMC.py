@@ -56,7 +56,10 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     return x,post
 
 
-def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=10000, sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, temperature=1.0, proposal_update=None, multiplier=None, check_trees=False):
+def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=10000, 
+                sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, 
+                temperature=1.0, proposal_update=None, multiplier=None, check_trees=False, 
+                appending_result_file=None, appending_result_frequency=10):
     if proposal_update is not None:
         proposal.wear_exportable_state(proposal_update)
     
@@ -68,7 +71,7 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
     
     iteration_summary=[]
     #print 'random', random()
-        
+    count=0
     for i in range(i_start_from,i_start_from+N):
         proposal_knowledge_scraper={}
         new_x,new_post=one_jump(x, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
@@ -91,6 +94,9 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
                                                                old_post=post,
                                                                old_tree=scale_tree_copy(x[0],1.0/multiplier),
                                                                iteration_number=i,**proposal_knowledge_scraper))
+            if appending_result_file is not None:
+                count+=1
+                ###NOT IMPLEMENTED
         x=new_x
         post=new_post
         if check_trees:

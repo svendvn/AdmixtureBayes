@@ -7,15 +7,32 @@ from scipy.linalg import svd
 
 class Coefficient_Matrix():
     
-    def __init__(self, nodes_to_index, branch_to_index):
+    def __init__(self, nodes_to_index, branch_to_index, custom_list={}):
         self.ni=nodes_to_index
         self.bi=branch_to_index
-        self.cofmat=zeros((len(nodes_to_index), len(branch_to_index)))
+        self.custom_list=custom_list
+        if custom_list:
+            self.cofmat=zeros((len(custom_list), len(branch_to_index)))
+        else:
+            self.cofmat=zeros((len(nodes_to_index), len(branch_to_index)))
         
     def update(self, branch, population):
         j=self.bi[branch]
-        for pop, w in zip(population.members, population.weights):
-            self.cofmat[self.ni[pop],j]=w**2
+        if self.custom_list:
+            for pop1_index in range(len(population.members)):
+                for pop2_index in range(pop1_index, len(population.members)):
+                    pop1=population.members[pop1_index]
+                    pop2=population.members[pop2_index]
+                    key=None
+                    if (pop1,pop2) in self.custom_list:
+                        key=(pop1,pop2)
+                    elif (pop2,pop1) in self.custom_list:
+                        key=(pop2,pop1)
+                    if key is not None:
+                        self.cofmat[self.custom_list[key],j]=population.weights[pop1_index]*population.weights[pop2_index]
+        else:
+            for pop, w in zip(population.members, population.weights):
+                self.cofmat[self.ni[pop],j]=w**2
     
     def get_matrix(self):
         return self.cofmat
@@ -31,7 +48,7 @@ def nullspace(A, atol=1e-13, rtol=0):
 def get_orthogonal_branch_space(tree):
     cof,_, bi= make_coefficient_matrix(tree)
     ad=nullspace(cof)
-    return ad, bi
+    return ad, bi, cof.T
     
     
     
@@ -52,7 +69,7 @@ def make_coefficient_matrix(tree, node_keys=None, branch_keys=None):
     ready_nodes=zip(node_keys,pops)
     ni={node_key:n for n,node_key in enumerate(node_keys)}
     bi={branch:n for n,branch in enumerate(branch_keys)}
-    cofmat=Coefficient_Matrix(ni,bi)
+    cofmat=Coefficient_Matrix(ni,bi, get_all_pairs(node_keys))
     waiting_nodes={}
     taken_nodes=[]
     while True:
@@ -84,6 +101,17 @@ def follow_branch(parent_key, branch, population, cofmat, dependent="none"):
     cofmat.update(branch, population)
     return parent_key, population, dependent
 
+def get_all_pairs(nodes):
+    all_nodes={}
+    count=0
+    for node_index in range(len(nodes)):
+        for node_index2 in range(node_index, len(nodes)):
+            node1=nodes[node_index]
+            node2=nodes[node_index2]
+            all_nodes[(node1, node2)]=count
+            count+=1
+    return all_nodes
+
 if __name__=='__main__':
     from Rcatalogue_of_trees import *
     from Rtree_operations import pretty_string, create_trivial_tree, get_specific_branch_lengths, update_specific_branch_lengths
@@ -105,7 +133,7 @@ if __name__=='__main__':
     from numpy.random import normal
     print make_covariance(tree_good, node_keys= nodes_determined)
     
-    org, bi= get_orthogonal_branch_space(tree_good)
+    org, bi,_= get_orthogonal_branch_space(tree_good)
     branches_determined=[None]*len(bi) 
     for b,i in bi.items():
         branches_determined[i]=b

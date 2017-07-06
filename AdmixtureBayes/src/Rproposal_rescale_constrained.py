@@ -2,14 +2,8 @@ from Rtree_operations import pretty_string, create_trivial_tree, get_specific_br
 from copy import deepcopy
 from numpy.random import normal
 from Rtree_to_coefficient_matrix import get_orthogonal_branch_space
+from numpy.linalg import norm
 
-class updater(object):
-    
-    def __init__(self, sigma):
-        self.sigma=sigma
-
-    def __call__(self):
-        return normal(scale=self.sigma)
     
 def reverse_dic_to_list(dic):
     l_determined=[None]*len(dic)
@@ -23,7 +17,8 @@ def get_added_branch_pieces(org, param):
 def rescale(tree, sigma=0.01, pks={}):
     pks['rescale_constrained_adap_param']=sigma
     new_tree=deepcopy(tree)
-    orgs, bi= get_orthogonal_branch_space(new_tree)
+    orgs, bi,_= get_orthogonal_branch_space(new_tree)
+    #print norm(orgs, axis=0)
     branches=reverse_dic_to_list(bi)
     branch_pieces= get_added_branch_pieces(orgs, sigma)
     new_tree= update_specific_branch_lengths(new_tree, branches, branch_pieces, add=True)

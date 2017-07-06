@@ -111,7 +111,7 @@ class adaptive_proposal_no_admix(object):
         self.regraft_count=10
         self.rescale_count=10
         self.multiplier=10
-        self.desired_mhr=0.234
+        self.desired_mhr=0.0534
         self.alpha=0.9
         self.params=[[start_value_of_slider], [start_value_of_sigma]]
 

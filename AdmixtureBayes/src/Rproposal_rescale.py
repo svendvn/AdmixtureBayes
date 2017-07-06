@@ -1,6 +1,7 @@
-from Rtree_operations import update_all_branches
+from Rtree_operations import update_all_branches, get_number_of_leaves, get_number_of_admixes
 from copy import deepcopy
 from numpy.random import normal
+from math import sqrt
 
 class updater(object):
     
@@ -11,9 +12,11 @@ class updater(object):
         return normal(scale=self.sigma)
 
 def rescale(tree, sigma=0.01, pks={}):
+    n=get_number_of_leaves(tree)
+    k=get_number_of_admixes(tree)
     pks['rescale_adap_param']=sigma
     new_tree=deepcopy(tree)
-    updat=updater(sigma)
+    updat=updater(sigma/sqrt(2*n-2+4*k))
     new_tree=update_all_branches(new_tree, updat)
     if new_tree is None:
         return tree,1,0 #rejecting by setting backward jump probability to 0.

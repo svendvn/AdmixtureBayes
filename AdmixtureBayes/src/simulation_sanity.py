@@ -204,6 +204,7 @@ def test_posterior_model(true_tree=None, start_tree=None, sim_length=100000, sum
     #proposal.params=proposal.params[2:] #a little hack under the hood.
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme['posterior']=(1,1)
+    sample_verbose_scheme['no_admixes']=(1,1)
     final_tree,final_posterior, results,_= basic_chain(start_x, summaries, posterior, 
                 proposal, post=None, N=sim_length, 
                 sample_verbose_scheme=sample_verbose_scheme, 
