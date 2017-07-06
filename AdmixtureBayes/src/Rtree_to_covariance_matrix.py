@@ -51,6 +51,8 @@ class Population:
         #return list_of_res
         
 
+
+       
 class Covariance_Matrix():
     
     def __init__(self, nodes_to_index):
@@ -164,7 +166,8 @@ def make_covariance(tree, node_keys=None, old_cov=False):
             break
 
     return covmat.get_matrix()
-                
+
+                 
             
             
             

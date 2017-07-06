@@ -92,7 +92,7 @@ def run_c():
     analyse_results.save_to_csv([tuple(range(nsim))]+[tuple(prior_distribution[summ.name]) for summ in list_of_summaries], list_of_summaries, filename='sim_prior.csv', origin_layer=None)
     analyse_results.generate_summary_csv(summaries)
     
-def run_d(true_tree_as_file='tree2.txt'):
+def run_d(true_tree_as_file=None):
     #true_tree=generate_prior_trees.generate_phylogeny(8,2)
     if true_tree_as_file is None:
         true_tree=tree_statistics.identifier_to_tree_clean('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
@@ -127,7 +127,7 @@ def run_d(true_tree_as_file='tree2.txt'):
                summary.s_variable('sliding_regraft_adap_param', output='double_missing'),
                summary.s_variable('rescale_adap_param', output='double_missing'),
                summary.s_tree_identifier_new_tree()]+[summary.s_variable(s,output='double_missing') for s in ['prior','branch_prior','no_admix_prior','top_prior']]
-    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 200000, summaries=summaries, thinning_coef=20, wishart_df= 10000, resimulate_regrafted_branch_length=False)#, 
+    r=simulation_sanity.test_posterior_model(true_tree,s_tree, 20000, summaries=summaries, thinning_coef=20, wishart_df= 10000, resimulate_regrafted_branch_length=False)#, 
                                              #admixtures_of_true_tree=2, no_leaves_true_tree=8, rescale_empirical_cov=True)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(r)
     analyse_results.generate_summary_csv(summaries, reference_tree=true_tree)
@@ -305,15 +305,15 @@ if __name__=='__main__':
     #options=parser.parse_args()
     
     #run_posterior_grid(['tree2.txt', 'tree3.txt'], 2, 10000)
-    #import cProfile
+    import cProfile
      
-    #print cProfile.run('run_d()')
+    print cProfile.run('run_d()')
     #run_analysis_of_proposals()
     #analyse_data_single_chained('example1.treemix_in.gz')
     #run_a()
     #from numpy import array
     #print max_dist(array([[4,3,2]]),array([[9,3,1]]))
-    run_d()
+    #run_d()
     import sys
     sys.exit()
     

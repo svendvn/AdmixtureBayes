@@ -83,10 +83,7 @@ def simple_reorder_the_leaves_after_removal_of_s1(tree):
         tree=rename_key(tree, 's'+str(n+2), 's'+str(n+1))
     return tree
         
-    
-    
-    
-    
+
 
 def find_children(tree, parent_key):
     res=[]
@@ -382,6 +379,26 @@ def get_all_branches(tree):
         else:
             res.append((key,0))
     return res
+
+def get_specific_branch_lengths(tree, branches):
+    res=[]
+    for key, branch in branches:
+        res.append(tree[key][branch+3])
+    return res
+
+def update_specific_branch_lengths(tree, branches, new_lengths, add=False):
+    if add:
+        for (key, branch), new_length in zip(branches,new_lengths):
+            tree[key][branch+3]+=new_length
+            if tree[key][branch+3]<0:
+                return None
+    else:
+        for (key, branch), new_length in zip(branches,new_lengths):
+            tree[key][branch+3]=new_length
+            if tree[key][branch+3]<0:
+                return None
+    return tree
+        
 
 def get_all_branch_descendants_and_rest(tree, key,branch):
     all_branches=get_all_branches(tree)
@@ -713,7 +730,7 @@ def move_node(tree, regraft_key, regraft_branch, parent_key, distance_to_regraft
             tree[regraft_key][regraft_branch]=new_node_name
         sibling_key=get_other_children(tree[parent_key], regraft_key)[0]
         grandfather_key=tree[parent_key][0]
-        _=get_branch_length_and_reset(tree[sibling_key],parent_key, tree[parent_key][3], add=True)
+        _=get_branch_length_and_reset(tree[sibling_key], parent_key, tree[parent_key][3], add=True)
         tree[sibling_key]=rename_parent(tree[sibling_key], parent_key, grandfather_key)
         if grandfather_key!='r':
             tree[grandfather_key]=_rename_child(tree[grandfather_key], parent_key, sibling_key)
