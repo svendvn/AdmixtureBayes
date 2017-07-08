@@ -188,6 +188,14 @@ def update_all_branches(tree, updater):
                 return None        
     return tree
 
+def update_all_admixtures(tree, updater):
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            node[2]+=updater()
+            if node[2]<0 or node[2]>1:
+                return None  
+    return tree
+
 def update_node(tree, key, updater, admixture_proportion_multiplier=1.0):
     node=tree[key]
     if node_is_admixture(node):

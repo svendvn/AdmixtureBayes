@@ -6,6 +6,7 @@ from Rproposal_rescale_marginally import rescale_marginally_class
 from Rproposal_sliding_rescale import sliding_rescale_class
 from Rproposal_rescale_add import rescale_add_class
 from Rproposal_rescale_constrained import rescale_constrained_class
+from Rproposal_rescale_admix import rescale_admixtures_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -190,23 +191,25 @@ def get_args(names, params):
 class adaptive_proposal(object):
     
     def __init__(self, resimulate_regrafted_branch_length=False):
-        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_constrained_class(), sliding_rescale_class(), rescale_add_class()]
+        self.props=[addadmix_class(), deladmix_class(), sliding_regraft_class(), rescale_constrained_class(), sliding_rescale_class(), rescale_add_class(), rescale_admixtures_class()]
         if resimulate_regrafted_branch_length:
             self.props[2]=sliding_regraft_class_resimulate(resimulate_regrafted_branch_length)
         start_value_of_sigma=0.1
         start_value_of_slider=0.1
         start_value_of_sliding_rescales=0.1
         start_value_of_sigma_add=0.1
+        start_value_admix_rescale=0.1
         self.node_naming=new_node_naming_policy()
         self.recently_called_type=None
         self.regraft_count=10
         self.rescale_count=10
         self.sliding_rescale_count=10
+        self.admix_rescale_count=10
         self.rescale_add_count=10
         self.multiplier=10
         self.desired_mhr=0.234
         self.alpha=0.9
-        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_sliding_rescales], [start_value_of_sigma_add]]
+        self.params=[None, None, [start_value_of_slider], [start_value_of_sigma], [start_value_of_sliding_rescales], [start_value_of_sigma_add], [start_value_admix_rescale]]
         
     def __call__(self, x, pks={}):
         tree, add=x
@@ -270,6 +273,17 @@ class adaptive_proposal(object):
                                                          name='rescale_add',
                                                          max_val=15.0)
             self.params[5]=[new_val]
+        if self.recently_called_type == 'rescale_admixtures':
+            new_val, self.rescale_add_count= standard_update(self.admix_rescale_count, 
+                                                         self.multiplier, 
+                                                         self.alpha, 
+                                                         self.params[6][0], 
+                                                         mhr, 
+                                                         desired_mhr=self.desired_mhr, 
+                                                         verbose=False,
+                                                         name='rescale_admix',
+                                                         max_val=15.0)
+            self.params[6]=[new_val]
             
             
     

@@ -8,6 +8,7 @@ from multiprocessing_helpers import basic_chain_pool
 from numpy.random import choice, random
 from math import exp
 from itertools import chain
+#from guppy import hpy
 
 
 def _basic_chain_unpacker(args):
@@ -49,6 +50,8 @@ def MCMCMC(starting_trees,
                                     
     '''
     
+    #h=hpy()
+    
     if no_chains is None:
         no_chains=cores
 
@@ -77,6 +80,7 @@ def MCMCMC(starting_trees,
     cum_iterations=0
     for no_iterations in iteration_scheme:
         #letting each chain run for no_iterations:
+        #print h.heap()
         iteration_object=_pack_everything(xs, posteriors, temperature_scheme, printing_schemes, overall_thinnings, no_iterations, cum_iterations, proposal_updates, multiplier)
         if no_chains==1:#debugging purposes
             new_state=[_basic_chain_unpacker(iteration_object.next())]

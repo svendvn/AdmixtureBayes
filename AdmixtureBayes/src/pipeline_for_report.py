@@ -177,9 +177,11 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
     if true_tree_as_identifier is None:
         true_tree=Rcatalogue_of_trees.tree_good
     else:
-        with open(true_tree_as_identifier, 'r') as f:
-            s=f.readline().rstrip()
-            true_tree=tree_statistics.identifier_to_tree_clean(s)
+        true_tree=tree_statistics.identifier_to_tree_clean('w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485')
+
+        #with open(true_tree_as_identifier, 'r') as f:
+        #    s=f.readline().rstrip()
+        #    true_tree=tree_statistics.identifier_to_tree_clean(s)
     if remove_outgroup:
         true_tree=Rtree_operations.remove_outgroup(true_tree)
         true_tree=Rtree_operations.simple_reorder_the_leaves_after_removal_of_s1(true_tree)
@@ -188,7 +190,8 @@ def run_posterior_multichain(wishart_df=1000, true_tree_as_identifier=None, resu
         tree_to_data.emp_cov_to_file(cov, filename=emp_cov_file)
     print 'true_tree', tree_statistics.unique_identifier_and_branch_lengths(true_tree)
     no_leaves=Rtree_operations.get_no_leaves(true_tree)
-    s_tree=tree_statistics.identifier_to_tree_clean('w.w.a.w.w.a.a.a.w-c.w.c.c.w.w.c.0.w.w.6.3.2-c.w.w.0.w.c.5.w.w-c.w.0.c.3.w.w-c.w.c.2.0-w.c.1-c.0;0.828-0.21-0.197-0.247-0.568-1.06-0.799-1.162-2.632-2.001-0.45-1.048-0.834-0.469-0.191-2.759-0.871-1.896-0.473-0.019-1.236-0.287-0.179-0.981-0.456-0.91-2.114-3.368;0.655-0.506-0.389-0.23')
+    #s_tree=tree_statistics.identifier_to_tree_clean('w.w.a.w.w.a.a.a.w-c.w.c.c.w.w.c.0.w.w.6.3.2-c.w.w.0.w.c.5.w.w-c.w.0.c.3.w.w-c.w.c.2.0-w.c.1-c.0;0.828-0.21-0.197-0.247-0.568-1.06-0.799-1.162-2.632-2.001-0.45-1.048-0.834-0.469-0.191-2.759-0.871-1.896-0.473-0.019-1.236-0.287-0.179-0.981-0.456-0.91-2.114-3.368;0.655-0.506-0.389-0.23')
+    s_tree=Rtree_operations.create_burled_leaved_tree(no_leaves, 1.0)
     print 'no_leaves', no_leaves
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
@@ -314,9 +317,9 @@ if __name__=='__main__':
     #run_a()
     #from numpy import array
     #print max_dist(array([[4,3,2]]),array([[9,3,1]]))
-    run_d()
-    import sys
-    sys.exit()
+    #run_d()
+    #import sys
+    #sys.exit()
     
     from argparse import ArgumentParser
     
