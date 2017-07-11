@@ -485,11 +485,12 @@ def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths
     
     return insert_children_in_tree(tree)
               
-def identifier_to_tree_clean(identifier):            
+def identifier_to_tree_clean(identifier, **kwargs):            
     ad2, branch_lengths, admixture_proportions=divide_triple_string(identifier)
     tree_good2= identifier_to_tree(ad2, 
                                    branch_lengths=string_to_generator(branch_lengths), 
-                                   admixture_proportions=string_to_generator(admixture_proportions))
+                                   admixture_proportions=string_to_generator(admixture_proportions),
+                                   **kwargs)
     return tree_good2
 
 def topological_identifier_to_tree_clean(identifier):

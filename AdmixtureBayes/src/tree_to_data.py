@@ -20,18 +20,17 @@ def tree_to_data_perfect_model(tree, df):
 def normalise(m):
     return m-max(0,amin(m))
 
-def file_to_emp_cov(filename, reduce_column=None):
-    
+def file_to_emp_cov(filename, reduce_column=None, nodes=None):
     dat=[]
     with open(filename, 'r') as f:
-        f.readline()
+        actual_nodes=f.readline()
         for l in f.readlines():
             print l
             dat.append(map(float, l.split()[1:]))
     m=array(dat)
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)
-        m=normalise(m)
+        #m=normalise(m)
     return m
 
 def emp_cov_to_file(m, filename='emp_cov.txt', nodes=None):
