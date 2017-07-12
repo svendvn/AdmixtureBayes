@@ -28,6 +28,10 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None):
             print l
             dat.append(map(float, l.split()[1:]))
     m=array(dat)
+    mapping={val:key for key, val in enumerate(actual_nodes)}
+    if nodes is not None:
+        new_order=[mapping[node] for node in nodes]
+        m=m[:, new_order][new_order]
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)
         #m=normalise(m)
@@ -206,6 +210,51 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
     return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops))
+
+
+
+def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
+    with open(filename, 'r') as f:
+        with open(filename2, 'w') as e:
+            e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
+            pop_count=0
+            rep_count=0
+            count=0
+            data=[]
+            s_vecs=[]
+            for r in f.readlines():
+                
+                data.append(map(int,list(r.rstrip())))
+                count+=1
+                
+                if count==samples_per_pop:
+                    
+                    count=0
+                    pop_count+=1
+                    
+                    s_vec=sum(array(data), axis=0)
+                    s_vecs.append(s_vec)
+                    
+                    data=[]
+                    
+                    print rep_count, pop_count
+                    
+                    if pop_count==no_pops:
+                        
+                        pop_count=0
+                        rep_count+=1
+                        
+                        for s in zip(*s_vecs):
+                            e.write(' '.join([str(a)+','+str(samples_per_pop-a) for a in s])+'\n')
+                        
+                        s_vecs=[]
+                        
+                        if rep_count>=n_reps:
+                            break
+
+    filename2_gz=filename2+'.gz'
+    subprocess.call(['gzip','-f','-k', filename2])
+    return filename2_gz
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
     data=[]

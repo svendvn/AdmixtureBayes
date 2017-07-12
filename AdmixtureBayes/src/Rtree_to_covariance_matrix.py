@@ -1,4 +1,3 @@
-
 from copy import deepcopy
 from numpy import zeros, diag, ix_, outer
 
