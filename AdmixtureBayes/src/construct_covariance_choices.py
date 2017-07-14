@@ -39,8 +39,8 @@ def add_wishart_noise(matrix, df):
     return m
 
 def reduce_covariance_wrapper(full_covariance,**kwargs):
-    outgroup_node_index=next((i for i,s in enumerate(kwargs['full_nodes']) if s==kwargs['outgroup_name']))
-    return reduce_covariance(full_covariance, outgroup_node_index)
+    reduce_node_index=next((i for i,s in enumerate(kwargs['full_nodes']) if s==kwargs['outgroup_name']))
+    return reduce_covariance(full_covariance, reduce_node_index)
     
 def ms_simulate_wrapper(tree, **kwargs):
     no_pops= get_number_of_leaves(tree)
@@ -106,7 +106,7 @@ def rescale_empirical_covariance(m):
 def get_covariance(stages_to_go_through, input, full_nodes=None,
                    skewed_admixture_prior_sim=False,
                    p=0.5,
-                   outgroup_name='outgroup_name',
+                   outgroup_name=None,
                    add_wishart_noise_to_covariance=False,
                    df_of_wishart_noise_to_covariance=1000,
                    reduce_covariance_node=None,
@@ -125,13 +125,14 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['add_wishart_noise_to_covariance']=add_wishart_noise_to_covariance
     kwargs['df_of_wishart_noise_to_covariance']=df_of_wishart_noise_to_covariance
     kwargs['full_nodes']=full_nodes
-    if reduce_covariance_node is None:
-        reduce_covariance_node=outgroup_name
-    kwargs['reduce_covariance_node']=reduce_covariance_node
-    reduced_nodes=deepcopy(full_nodes)
-    if outgroup_name in reduced_nodes:
-        reduced_nodes.remove(outgroup_name)
-    kwargs['reduced_nodes']=reduced_nodes
+    before_added_outgroup_nodes=deepcopy(full_nodes)
+    after_reduce_nodes=deepcopy(full_nodes)
+    if outgroup_name is not None and outgroup_name in before_added_outgroup_nodes:
+        before_added_outgroup_nodes.remove(outgroup_name)
+    if reduce_covariance_node is not None and reduce_covariance_node in after_reduce_nodes:
+        after_reduce_nodes.remove(reduce_covariance_node)
+    kwargs['after_reduce_nodes']=after_reduce_nodes
+    kwargs['before_added_outgroup_nodes']=before_added_outgroup_nodes
     kwargs['sample_per_pop']=sample_per_pop
     kwargs['nreps']=nreps
     kwargs['theta']=theta
@@ -145,7 +146,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     
     
     #makes a necessary transformation of the input(if the input is a filename or something).
-    statistic=read_input(stages_to_go_through[0], input, full_nodes, reduced_nodes)
+    statistic=read_input(stages_to_go_through[0], input, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
     
     for stage_from, stage_to in zip(stages_to_go_through[:-1], stages_to_go_through[1:]):
         print (stage_from, stage_to)
@@ -158,23 +159,25 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
 def write_output(stage, output):
     pass
 
-def read_input(stage, input, full_nodes, reduced_nodes):
+def read_input(stage, input, full_nodes, before_added_outgroup_nodes, after_reduce_nodes):
     if stage==1:
         return input
     if stage==2:
         return input
     if stage==3:
-        return read_tree(input, reduced_nodes)
+        return read_tree(input, before_added_outgroup_nodes)
     if stage==4:
         return read_tree(input, full_nodes)
     if stage==5:
-        return input
+        return read_tree(input, full_nodes)
     if stage==6:
-        return read_covariance_matrix(input, full_nodes)
+        return input
     if stage==7:
-        return read_covariance_matrix(input, reduced_nodes)
-    if stage==8: #assuming that it comes in the pair (matrix or matrix filename, multiplier)
-        return (read_covariance_matrix(input[0], nodes), input[1])
+        return read_covariance_matrix(input, full_nodes)
+    if stage==8:
+        return read_covariance_matrix(input, after_reduce_nodes)
+    if stage==9 : #assuming that it comes in the pair (matrix or matrix filename, multiplier)
+        return (read_covariance_matrix(input[0], full_nodes), input[1])
     assert False, 'The beginning state '+str(stage)+' is unknown.'
         
 def read_covariance_matrix(input, nodes):

@@ -20,6 +20,13 @@ def create_trivial_tree(size, total_height=1.0):
     del tree[new_inner_node]
     return rename_root(tree, new_inner_node)
 
+def rename_leaves(tree, new_leaf_names):
+    old_keys=get_leaf_keys(tree)
+    assert len(new_leaf_names)== len(old_keys), 'number of renamed nodes did not match the actual number of nodes'
+    for old_key, new_key in zip(old_keys, new_leaf_names): 
+        tree=rename_key(tree, old_key, new_key)
+    return tree
+
 def create_trivial_equibranched_tree(size, height=1.0):
     '''
     constructs tree of the form (..((s1,s2),s3),s4)...)
