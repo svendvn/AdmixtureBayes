@@ -10,6 +10,12 @@ def rescale(add, sigma=0.01, pks={}):
 class rescale_add_class(object):
     new_nodes=0
     proposal_name='rescale_add'
+    adaption=True
+    input='add'
+    require_admixture=0
+    reverse_require_admixture=0
+    reverse='rescale_add'
+    admixture_change=0
     
     def __call__(self,*args, **kwargs):
         return rescale(*args, **kwargs)

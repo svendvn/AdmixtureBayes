@@ -40,6 +40,12 @@ class addadmix_class(object):
     
     new_nodes=2
     proposal_name='addadmix'
+    adaption=False
+    input='tree'
+    require_admixture=0
+    admixture_change=1
+    reverse_require_admixture=1
+    reverse='deladmix'
     
     def __call__(self,*args, **kwargs):
         return addadmix(*args, **kwargs)
@@ -47,7 +53,13 @@ class addadmix_class(object):
 class deladmix_class(object):
     
     new_nodes=0
+    adaption=False
     proposal_name='deladmix'
+    input='tree'
+    require_admixture=1
+    admixture_change=-1
+    reverse_require_admixture=0
+    reverse='addadmix'
     
     def __call__(self,*args, **kwargs):
         return deladmix(*args, **kwargs)

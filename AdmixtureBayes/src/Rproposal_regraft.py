@@ -48,6 +48,12 @@ class regraft_class(object):
     
     new_nodes=1
     proposal_name='regraft'
+    input='tree'
+    require_admixture=0
+    reverse_require_admixture=0
+    adaption=False
+    reverse='regraft'
+    admixture_change=0
     
     def __call__(self,*args, **kwargs):
         return make_regraft(*args, **kwargs)

@@ -3,7 +3,10 @@ from numpy import ix_, array
 
 def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False):
     
-    args=['treemix', '-i', filename, '-o', 'tmp', '-root', outgroup, '-m', '0','-k', str(blocksize)]
+    if outgroup:
+        args=['treemix', '-i', filename, '-o', 'tmp', '-root', outgroup, '-m', '0','-k', str(blocksize)]
+    else:
+        args=['treemix', '-i', filename, '-o', 'tmp',  '-m', '0','-k', str(blocksize)]
     if noss:
         args.append('-noss')
     print args

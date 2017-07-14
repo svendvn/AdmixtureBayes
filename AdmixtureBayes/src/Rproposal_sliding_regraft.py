@@ -13,13 +13,20 @@ class sliding_regraft_class(object):
     
     new_nodes=1
     proposal_name='sliding_regraft'
+    adaption=True
     
     def __call__(self,*args, **kwargs):
         return make_sliding_regraft(*args, **kwargs)
     
 class sliding_regraft_class_resimulate(object):
     new_nodes=1
+    input='tree'
+    require_admixture=0
+    reverse_require_admixture=0
+    admixture_change=0
     proposal_name='sliding_regraft'
+    adaption=True
+    reverse='sliding_regraft'
     
     def __init__(self, param):
         self.param=param

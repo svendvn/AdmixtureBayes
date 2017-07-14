@@ -133,6 +133,7 @@ def calculate_pop_size(tup):
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:
+        print 'running', ms_string
         p = subprocess.Popen(ms_string, stdout=subprocess.PIPE, shell=True)
         line_number = 0
         for line in p.stdout.readlines():
@@ -213,10 +214,12 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
 
 
 
-def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
+def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None):
+    if nodes is None:
+        nodes=get_trivial_nodes(no_pops)
     with open(filename, 'r') as f:
         with open(filename2, 'w') as e:
-            e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
+            e.write(' '.join(nodes)+'\n')
             pop_count=0
             rep_count=0
             count=0

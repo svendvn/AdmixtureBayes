@@ -1,11 +1,12 @@
 from tree_statistics import identifier_to_tree_clean
 from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
-from Rtree_operations import add_outgroup, get_number_of_leaves
+from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree
 from scipy.stats import expon
 from Rtree_to_covariance_matrix import make_covariance
 from load_data import read_data
 from copy import deepcopy
+from math import log
 
 
 
@@ -29,7 +30,7 @@ def simulate_number_of_admixture_events_wrapper(n, **kwargs):
 def theoretical_covariance_wrapper(tree, **kwargs):
     covariance= make_covariance(tree, node_keys= kwargs['full_nodes'])
     if kwargs['add_wishart_noise_to_covariance']:
-        covariance=add_wishart_noise(covariance, kwargs['df_of_wishart_noist_to_covariance'])
+        covariance=add_wishart_noise(covariance, kwargs['df_of_wishart_noise_to_covariance'])
     return covariance
         
 def add_wishart_noise(matrix, df):
@@ -55,28 +56,51 @@ def ms_simulate_wrapper(tree, **kwargs):
                    samples_per_pop=kwargs['sample_per_pop'], 
                    no_pops=no_pops, 
                    n_reps=kwargs['nreps'], 
-                   filename2=kwargs['treemix_file'])
+                   filename2=kwargs['treemix_file'],
+                   nodes=kwargs['full_nodes'])
     return filename_gz
 
 def empirical_covariance_wrapper(snp_data_file, **kwargs):
     return read_data(snp_data_file, 
-                     blocksize=kwargs['blocksize_empirical_covariance'], 
+                     outgroup= '',
+                     blocksize=kwargs['blocksize_empirical_covariance'],
                      nodes=kwargs['full_nodes'], 
                      noss=kwargs['ms_variance_correction'])
+    
+def scale_tree_wrapper(tree, **kwargs):
+    return scale_tree(tree, kwargs['scale_tree_factor'])
 
+def normaliser_wrapper(covariance, **kwargs):
+    return rescale_empirical_covariance(covariance)
 
 
 dictionary_of_transformations={
     (1,2):simulate_number_of_admixture_events_wrapper,
     (2,3):simulate_tree_wrapper,
     (3,4):add_outgroup_wrapper,
-    (3,6):theoretical_covariance_wrapper,
-    (4,6):theoretical_covariance_wrapper,
-    (6,7):reduce_covariance_wrapper,
-    (3,5):ms_simulate_wrapper,
-    (4,5):ms_simulate_wrapper,
-    (5,6):empirical_covariance_wrapper
+    (4,5):scale_tree_wrapper,
+    (3,7):theoretical_covariance_wrapper,
+    (4,7):theoretical_covariance_wrapper,
+    (5,7):theoretical_covariance_wrapper,
+    (3,6):ms_simulate_wrapper,
+    (4,6):ms_simulate_wrapper,
+    (5,6):ms_simulate_wrapper,
+    (6,7):empirical_covariance_wrapper,
+    (7,8):reduce_covariance_wrapper,
+    (7,9):normaliser_wrapper,
+    (8,9):normaliser_wrapper
     }
+
+def rescale_empirical_covariance(m):
+    '''
+    It is allowed to rescale the empirical covariance matrix such that the inferred covariance matrix takes values that are closer to the mean of the prior.
+    '''
+    
+    n=m.shape[0]
+    actual_trace=m.trace()
+    expected_trace=log(n)/log(2)*n
+    multiplier= expected_trace/actual_trace
+    return m*multiplier, multiplier
 
 
 def get_covariance(stages_to_go_through, input, full_nodes=None,
@@ -91,7 +115,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    ms_file='tmp.txt',
                    treemix_file='tmp.treemix_in',
                    blocksize_empirical_covariance=100,
-                   ms_variance_correction=False):
+                   ms_variance_correction=False,
+                   scale_tree_factor=0.05):
     
     kwargs={}
     kwargs['skewed_admixture_prior_sim']=skewed_admixture_prior_sim
@@ -116,14 +141,17 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['treemix_file']=treemix_file
     kwargs['blocksize_empirical_covariance']=blocksize_empirical_covariance
     kwargs['ms_variance_correction']=ms_variance_correction
+    kwargs['scale_tree_factor']=scale_tree_factor
     
     
     #makes a necessary transformation of the input(if the input is a filename or something).
     statistic=read_input(stages_to_go_through[0], input, full_nodes, reduced_nodes)
     
     for stage_from, stage_to in zip(stages_to_go_through[:-1], stages_to_go_through[1:]):
+        print (stage_from, stage_to)
         transformer_function=dictionary_of_transformations[(stage_from, stage_to)]
         statistic=transformer_function(statistic, **kwargs)
+        print statistic
     
     return statistic
 
@@ -168,4 +196,4 @@ def read_one_line(filename):
         return f.readline().rstrip()
     
 if __name__=='__main__':
-    print get_covariance(stages_to_go_through=[1,2,3,6], input=4, full_nodes=['s1','s2','s3','s4'])
+    print get_covariance(stages_to_go_through=[1,2,3,4,5,6,7,8,9], input=4, full_nodes=['s1','s2','s3','s4','outgroup_name'])

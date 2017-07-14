@@ -25,6 +25,12 @@ def rescale(tree, sigma=0.01, pks={}):
 class rescale_class(object):
     new_nodes=0
     proposal_name='rescale'
+    adaption=True
+    input='tree'
+    require_admixture=0
+    reverse_require_admixture=0
+    reverse='rescale'
+    admixture_change=0
     
     def __call__(self,*args, **kwargs):
         return rescale(*args, **kwargs)
