@@ -96,12 +96,7 @@ def initialize_posterior2(emp_cov=None,
         return posterior, multiplier
     return posterior
 
-def initialize_posterior(emp_cov, M=None, p=0.5, use_skewed_distr=False, rescale=False):
-    if M is None:
-        M=n_mark(emp_cov)
-    if rescale:
-        emp_cov, multiplier = rescale_empirical_covariance(emp_cov)
-        print 'multiplier is', multiplier
+def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None):
     def posterior(x,pks={}):
         #print tot_branch_length
         prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
@@ -112,7 +107,7 @@ def initialize_posterior(emp_cov, M=None, p=0.5, use_skewed_distr=False, rescale
         pks['likelihood']=likelihood_value
         #pks['posterior']=prior_value+likelihood_value
         return likelihood_value, prior_value
-    if rescale:
+    if multiplier is not None:
         return posterior, multiplier
     return posterior
 

@@ -4,7 +4,7 @@ from construct_starting_trees_choices import get_starting_trees
 from construct_variance_choices import get_covariance
 from construct_nodes_choices import get_nodes
     
-rser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
+parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 parser.add_argument('--wishart_df', type=float, default=10000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
@@ -67,23 +67,6 @@ mp= [simple_adaptive_proposal(proposals, proportions) for _ in options.MCMC_chai
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
 
-def get_covariance(stages_to_go_through, input, full_nodes=None,
-                   skewed_admixture_prior_sim=False,
-                   p=0.5,
-                   outgroup_name='outgroup_name',
-                   add_wishart_noise_to_covariance=False,
-                   df_of_wishart_noise_to_covariance=1000,
-                   reduce_covariance_node=None,
-                   sample_per_pop=50, nreps=2, 
-                   theta=0.4, sites=500000, recomb_rate=1,
-                   ms_file='tmp.txt',
-                   treemix_file='tmp.treemix_in',
-                   blocksize_empirical_covariance=100,
-                   ms_variance_correction=False,
-                   scale_tree_factor=0.05)
-
-
-
 covariance=get_covariance(options.covariance_pipeline, 
                           options.input_file, 
                           full_nodes=full_nodes, 
@@ -94,13 +77,19 @@ covariance=get_covariance(options.covariance_pipeline,
                           sample_per_pop=options.popsize,
                           nreps=options.nreps,
                           treemix_file=options.treemix_file,
-                          ms_variance_correction=options.ms_variance_correction
-                          scale_tree_factor=options.scale_tree_factor
-                          )
+                          ms_variance_correction=options.ms_variance_correction,
+                          scale_tree_factor=options.scale_tree_factor)
+
+no_pops=len(reduced_nodes)
 
 if not options.starting_trees:
-    starting_trees=map(str, [no_pops]*no_chains)
-starting_trees=get_starting_trees()
+    starting_trees=map(str, [no_pops]*options.MCMC_no_chains)
+else:
+    starting_trees=options.starting_trees
+    
+starting_trees=get_starting_trees(starting_trees, options.random_start)
+
+
 
 
 

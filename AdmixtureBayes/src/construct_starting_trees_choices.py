@@ -4,8 +4,6 @@ from Rtree_operations import create_trivial_tree
 
 from copy import deepcopy
 from warnings import warn
-from random import shuffle
-
 
 def get_starting_trees(inputs, no_chains, random=False, nodes=None, skewed_admixture_prior=False):
     
