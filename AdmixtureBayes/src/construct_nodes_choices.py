@@ -4,10 +4,14 @@ from Rtree_operations import get_trivial_nodes
 def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
     
     if not arguments[0]:#this means that we should use the input file for nodes
-        if input_file:
+        if ';' in input_file:
+            nodes=get_trivial_nodes(len(input_file.split('-')[0].split('.')))
+        elif '.' in input_file:
             nodes=read_one_line(input_file)
+        elif ',' in input_file:
+            nodes=get_trivial_nodes(int(input_file[1:].split(',')[0]))
         else:
-            nodes=get_trivial_nodes(8)
+            nodes=get_trivial_nodes(int(input_file))
     else:
         nodes=arguments
     before_added_outgroup=deepcopy(nodes)

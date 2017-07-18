@@ -10,7 +10,6 @@ from Rproposal_rescale_admix import rescale_admixtures_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
-from _curses import start_color
 
 class new_node_naming_policy(object):
     

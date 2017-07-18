@@ -161,9 +161,9 @@ def write_output(stage, output):
 
 def read_input(stage, input, full_nodes, before_added_outgroup_nodes, after_reduce_nodes):
     if stage==1:
-        return input
+        return int(input)
     if stage==2:
-        return input
+        return map(int, input[1:-1].split(','))
     if stage==3:
         return read_tree(input, before_added_outgroup_nodes)
     if stage==4:
@@ -192,7 +192,9 @@ def read_tree(input, nodes):
             input=read_one_line(filename=input)
             return identifier_to_tree_clean(input, nodes=nodes)
         else:
-            return input
+            return identifier_to_tree_clean(input, nodes=nodes)
+    else:
+        return input
         
 def read_one_line(filename):
     with open(filename, 'r') as f:

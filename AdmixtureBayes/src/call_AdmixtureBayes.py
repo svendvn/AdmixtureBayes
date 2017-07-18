@@ -6,7 +6,10 @@ from construct_nodes_choices import get_nodes
 from construct_summary_choices import get_summary_scheme
 from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
-    
+from posterior import initialize_posterior
+from MCMCMC import MCMCMC
+
+
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 parser.add_argument('--wishart_df', type=float, default=10000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -105,7 +108,7 @@ else:
     
 starting_trees=get_starting_trees(starting_trees, options.random_start)
 
-summary_verbose_scheme=get_summary_scheme(majority_tree=options.summary_majority_tree, 
+summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.
                                           proposals=mp[0], 
                                           acceptance_rate_information=options.summary_acceptance_rate,
