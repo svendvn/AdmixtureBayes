@@ -28,7 +28,7 @@ class sliding_regraft_class_resimulate(object):
     adaption=True
     reverse='sliding_regraft'
     
-    def __init__(self, param):
+    def __init__(self, param=False):
         self.param=param
     
     def __call__(self,*args, **kwargs):

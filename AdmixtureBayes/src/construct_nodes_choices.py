@@ -1,9 +1,13 @@
 from copy import deepcopy
+from Rtree_operations import get_trivial_nodes
 
-def get_nodes(arguments, input_file, outgroup_name, reduce_node):
+def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
     
     if not arguments[0]:#this means that we should use the input file for nodes
-        nodes=read_one_line(input_file)
+        if input_file:
+            nodes=read_one_line(input_file)
+        else:
+            nodes=get_trivial_nodes(8)
     else:
         nodes=arguments
     before_added_outgroup=deepcopy(nodes)
@@ -11,7 +15,7 @@ def get_nodes(arguments, input_file, outgroup_name, reduce_node):
     if outgroup_name in nodes:
         before_added_outgroup.remove(outgroup_name)
     else:
-        nodes.append(outgroup)
+        nodes.append(outgroup_name)
     if reduce_node in reduced_nodes:      
         reduced_nodes.remove(reduce_node)
     if reduce_node not in nodes:

@@ -15,7 +15,7 @@ from math import log
 def simulate_tree_wrapper(nk_tuple, **kwargs):
     return generate_phylogeny(size= nk_tuple[0], 
                               admixes=nk_tuple[1], 
-                              leaf_nodes= kwargs['reduced_nodes'], 
+                              leaf_nodes= kwargs['before_added_outgroup_nodes'], 
                               skewed_admixture_prior=kwargs['skewed_admixture_prior_sim'])
     
 def add_outgroup_wrapper(tree_without_outgroup, **kwargs):

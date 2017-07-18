@@ -21,6 +21,10 @@ def save_to_csv(list_of_tuples, summaries, filename='results.csv', origin_layer=
         df['layer']=origin_layer[1]
     df.to_csv(filename)
     
+def get_permut_filename(filename):
+    parts=filename.split('.')
+    return '.'.join(parts[:-1])+'permuts.'+parts[-1]
+    
 def save_permuts_to_csv(list_of_permuts, filename='results-permuts.csv'):
     with open(filename, 'w') as f:
         f.write('flip_number,'+','.join(map(str,range(len(list_of_permuts[0]))))+'\n')
