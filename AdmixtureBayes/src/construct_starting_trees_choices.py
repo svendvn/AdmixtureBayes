@@ -11,7 +11,7 @@ def get_starting_trees(inputs, no_chains, random=False, nodes=None, skewed_admix
         tree=input_to_tree(inputs, random, nodes, skewed_admixture_prior)
         return [deepcopy(tree) for _ in xrange(no_chains)]
     else:
-        list_of_trees=[input_to_tree(input, random, nodes, skewed_admixture_prior) for input in inputs]
+        list_of_trees=[(input_to_tree(input, random, nodes, skewed_admixture_prior),0) for input in inputs]
         if len(list_of_trees)>no_chains:
             warn('Some starting trees will not be used')
         starting_trees=[]
@@ -42,6 +42,6 @@ def input_to_tree(input, random=False, nodes=None, skewed_admixture_prior=False)
             if random:
                 return generate_phylogeny(n,nodes=nodes, skewed_admixture_prior=skewed_admixture_prior)
             else:
-                stree=create_trivial_tree(n, tree)
+                return create_trivial_tree(n, 1.0)
     else:#is it a tree already?
         return input

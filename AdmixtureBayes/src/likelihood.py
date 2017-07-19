@@ -19,6 +19,7 @@ def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
+    #print (par_cov, emp_cov, add)
     pks['covariance']=par_cov
     if par_cov is None:
         print 'illegal tree'
@@ -30,6 +31,7 @@ def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
         d=wishart.logpdf(r*M*(emp_cov-add), df=r*M-1, scale= par_cov)
     except (ValueError, LinAlgError) as e:
         #print "illegal par_cov matrix or to large add"
+        #print e
         return -float("inf")
     return d
         

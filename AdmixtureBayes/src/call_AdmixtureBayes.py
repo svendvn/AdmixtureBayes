@@ -14,9 +14,9 @@ parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 parser.add_argument('--wishart_df', type=float, default=10000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
-parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
+parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[1,2,3,7], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
-parser.add_argument('--input_file', type=str, default='', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+parser.add_argument('--input_file', type=str, default='8', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in')
 parser.add_argument('--outgroup_name', type=str, default='', help='the name of the outgroup that should be added to a simulated dataset.')
 parser.add_argument('--reduce_node', type=str, default='', help='the name of the population that should be made root.')
@@ -83,7 +83,9 @@ proportions, proposals = get_proposals(options)
 mp= [simple_adaptive_proposal(proposals, proportions) for _ in xrange(options.MCMC_chains)]
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
-
+print 'before_nodes', before_added_outgroup
+print 'full_nodes', full_nodes
+print 'reduced_nodes', reduced_nodes
 
 
 covariance=get_covariance(options.covariance_pipeline, 
@@ -102,37 +104,49 @@ covariance=get_covariance(options.covariance_pipeline,
 no_pops=len(reduced_nodes)
 
 if not options.starting_trees:
-    starting_trees=map(str, [no_pops]*options.MCMC_no_chains)
+    starting_trees=map(str, [no_pops]*options.MCMC_chains)
 else:
     starting_trees=options.starting_trees
     
-starting_trees=get_starting_trees(starting_trees, options.random_start)
+starting_trees=get_starting_trees(starting_trees, options.MCMC_chains, options.random_start, nodes=reduced_nodes)
 
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.
                                           proposals=mp[0], 
                                           acceptance_rate_information=options.summary_acceptance_rate,
                                           admixture_proportion_string=options.summary_admixture_proportion_string,
-                                          no_chains=options.MCMC_no_chains)
+                                          no_chains=options.MCMC_chains)
 
 sim_lengths=[options.m]*options.n
 if 9 in options.covariance_pipeline:
-    posterior, multiplier=initialize_posterior(covariance[0], M=options.wishart_df, p=options.m, use_skewed_distr=options.sap_analysis, multiplier=covariance[1])
+    posterior, multiplier=initialize_posterior(covariance[0], M=options.wishart_df, p=options.p, use_skewed_distr=options.sap_analysis, multiplier=covariance[1], nodes=reduced_nodes)
 else:
-    posterior=initialize_posterior(covariance[0], M=options.wishart_df, p=options.m, use_skewed_distr=options.sap_analysis, multiplier=None)
+    posterior=initialize_posterior(covariance, M=options.wishart_df, p=options.p, use_skewed_distr=options.sap_analysis, multiplier=None, nodes=reduced_nodes)
     multiplier=None
     
+print 'starting_trees', starting_trees
+print 'posterior', posterior
+print 'summaries',summaries
+print 'temperature_scheme', fixed_geometrical(options.max_temp,options.MCMC_chains)
+print 'summary_verbose_scheme',summary_verbose_scheme
+print 'sim_lengths',sim_lengths
+print 'int(options.thinning_coef)',int(options.thinning_coef)
+print 'mp',mp
+print 'options.MCMC_chains',options.MCMC_chains
+print 'multiplier', multiplier
+print 'result_file', options.result_file
+print 'options.store_permuts', options.store_permuts
 
 res=MCMCMC(starting_trees=starting_trees, 
        posterior_function= posterior,
        summaries=summaries, 
-       temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_no_chains), 
+       temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_chains), 
        printing_schemes=summary_verbose_scheme, 
        iteration_scheme=sim_lengths, 
        overall_thinnings=int(options.thinning_coef), 
        proposal_scheme= mp, 
-       cores=options.MCMC_no_chains, 
-       no_chains=options.MCMC_no_chains,
+       cores=options.MCMC_chains, 
+       no_chains=options.MCMC_chains,
        multiplier=multiplier,
        result_file=options.result_file,
        store_permuts=options.store_permuts)

@@ -18,11 +18,11 @@ def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8
     reduced_nodes=deepcopy(nodes)
     if outgroup_name in nodes:
         before_added_outgroup.remove(outgroup_name)
-    else:
+    elif outgroup_name:
         nodes.append(outgroup_name)
     if reduce_node in reduced_nodes:      
         reduced_nodes.remove(reduce_node)
-    if reduce_node not in nodes:
+    if reduce_node and reduce_node not in nodes:
         nodes.append(reduce_node)
     return before_added_outgroup, nodes, reduced_nodes
         

@@ -1,5 +1,5 @@
-from tree_statistics import identifier_to_tree_clean
-from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command
+from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths
+from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command, emp_cov_to_file
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree
 from scipy.stats import expon
@@ -74,11 +74,14 @@ def normaliser_wrapper(covariance, **kwargs):
     return rescale_empirical_covariance(covariance)
 
 
+
+
 dictionary_of_transformations={
     (1,2):simulate_number_of_admixture_events_wrapper,
     (2,3):simulate_tree_wrapper,
     (3,4):add_outgroup_wrapper,
     (4,5):scale_tree_wrapper,
+    (3,5):scale_tree_wrapper,
     (3,7):theoretical_covariance_wrapper,
     (4,7):theoretical_covariance_wrapper,
     (5,7):theoretical_covariance_wrapper,
@@ -90,6 +93,45 @@ dictionary_of_transformations={
     (7,9):normaliser_wrapper,
     (8,9):normaliser_wrapper
     }
+
+dictionary_of_reasonable_names={
+    1:'number_of_leaves',
+    2:'leaves_admixtures',
+    3:'true_tree',
+    4:'true_tree_with_outgroup',
+    5:'scaled_true_tree',
+    6:'SNP_data',
+    7:'covariance',
+    8:'covariance_without_reduce_name',
+    9:'covariance_and_multiplier'}
+
+def write_one_line_to_file(filename, value):
+    with open(filename,'w') as f:
+        f.write(value)
+
+def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes):
+    save_word=dictionary_of_reasonable_names[stage_number]
+    filename=prefix+save_word+'.txt'
+    if stage_number==1:
+        write_one_line_to_file(filename, str(value))
+    elif stage_number==2:
+        write_one_line_to_file(filename, str(value))
+    elif stage_number==3:
+        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+    elif stage_number==4:
+        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+    elif stage_number==5:
+        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+    elif stage_number==6:
+        print 'file is already made elsewhere'
+    elif stage_number==7:
+        emp_cov_to_file(value, filename, full_nodes)
+    elif stage_number==8:
+        emp_cov_to_file(value, filename, after_reduce_nodes)
+    else:
+        emp_cov_to_file(value[0], filename, after_reduce_nodes)
+        with open(filename, 'a') as f:
+            f.write('multiplier='+str(value[1]))
 
 def rescale_empirical_covariance(m):
     '''
@@ -112,11 +154,22 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    reduce_covariance_node=None,
                    sample_per_pop=50, nreps=2, 
                    theta=0.4, sites=500000, recomb_rate=1,
-                   ms_file='tmp.txt',
-                   treemix_file='tmp.treemix_in',
+                   ms_file=None,
+                   treemix_file=None,
                    blocksize_empirical_covariance=100,
                    ms_variance_correction=False,
-                   scale_tree_factor=0.05):
+                   scale_tree_factor=0.05,
+                   save_stages=range(1,6)+range(7,10),
+                   prefix='tmp'):
+    
+    if prefix[-1]!='_':
+        prefix+='_'
+    
+    if ms_file is None:
+        ms_file=prefix+'ms.txt'
+    
+    if treemix_file is None:
+        treemix_file=prefix+'treemix'
     
     kwargs={}
     kwargs['skewed_admixture_prior_sim']=skewed_admixture_prior_sim
@@ -148,10 +201,15 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     #makes a necessary transformation of the input(if the input is a filename or something).
     statistic=read_input(stages_to_go_through[0], input, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
     
+    if stages_to_go_through[0] in save_stages:
+        save_stage(statistic, stages_to_go_through[0], prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
+    
     for stage_from, stage_to in zip(stages_to_go_through[:-1], stages_to_go_through[1:]):
         print (stage_from, stage_to)
         transformer_function=dictionary_of_transformations[(stage_from, stage_to)]
         statistic=transformer_function(statistic, **kwargs)
+        if stage_to in save_stages:
+            save_stage(statistic, stage_to, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
         print statistic
     
     return statistic
@@ -190,9 +248,9 @@ def read_tree(input, nodes):
     if isinstance(input, basestring):
         if not ';' in input:
             input=read_one_line(filename=input)
-            return identifier_to_tree_clean(input, nodes=nodes)
+            return identifier_to_tree_clean(input, leaves=nodes)
         else:
-            return identifier_to_tree_clean(input, nodes=nodes)
+            return identifier_to_tree_clean(input, leaves=nodes)
     else:
         return input
         

@@ -226,15 +226,15 @@ def initialize_proposals(proposals):
     
 def draw_proposal(props, k, proportions):
     
-    legal_indices=[i for i,prop in enumerate(props) if prop.required_admixture<=k]    
+    legal_indices=[i for i,prop in enumerate(props) if prop.require_admixture<=k]    
     normaliser=sum([proportion for n,proportion in enumerate(proportions) if n in legal_indices])
     new_proportions=[float(proportion)/normaliser for n,proportion in enumerate(proportions) if n in legal_indices]
     
-    chosen_index= choice(legal_indices, 1, p=new_proportions)
+    chosen_index= choice(legal_indices, 1, p=new_proportions)[0]
     
     effect_of_chosen_index=props[chosen_index].admixture_change
     if effect_of_chosen_index!=0:
-        legal_indices2=[i for i,prop in enumerate(props) if prop.required_admixture <= k+effect_of_chosen_index]    
+        legal_indices2=[i for i,prop in enumerate(props) if prop.require_admixture <= k+effect_of_chosen_index]    
         normaliser2=sum([proportion for n,proportion in enumerate(proportions) if n in legal_indices])
         new_proportions2=[float(proportion)/normaliser for n,proportion in enumerate(proportions) if n in legal_indices]
         reverse_type= props[chosen_index].reverse
@@ -248,7 +248,7 @@ def get_args2(names, adap_object):
     if names:
         args.append(names)
     if adap_object is not None:
-        args.append([adap_object.get_value()])
+        args.append(adap_object.get_value())
     return args    
 
 class simple_adaptive_proposal(object):
@@ -270,21 +270,22 @@ class simple_adaptive_proposal(object):
         pks['proposal_type']= self.props[index].proposal_name
         self.recently_called_type=self.props[index].proposal_name
         self.recently_called_index=index
-        propsal_input= self.props[index]
+        proposal_input= self.props[index].input
         args=get_args2(names, self.adaps[index])
         
         if proposal_input=='add':
             new_add, forward, backward = self.props[index](add, *args, pks=pks)
-            return (tree, new_add), forward, backward, jforward, jbackward
+            return (tree, new_add), forward, backward, 1.0, jforward, jbackward
         if proposal_input=='tree':
             new_tree, forward, backward = self.props[index](tree, *args, pks=pks)
-            return (new_tree, add), forward, backward, jforward, jbackward
+            return (new_tree, add), forward, backward, 1.0, jforward, jbackward
         else:
             new_x, forward, backward = self.props[index](x, *args, pks=pks)
-            return new_x, forward, backward, jforward, jbackward
+            return new_x, forward, backward, 1.0, jforward, jbackward
         
     def adapt(self, mhr, u, post_new, post, temperature):
-        self.adaps[self.recently_called_index].adapt(mhr)
+        if self.props[self.recently_called_index].adaption:
+            self.adaps[self.recently_called_index].adapt(mhr)
         
     def get_exportable_state(self):
         information={}
