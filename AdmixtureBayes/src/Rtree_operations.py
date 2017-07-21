@@ -493,6 +493,7 @@ def get_branch_length(tree,key,branch):
     assert key!='r', 'Tried to access the length of the root branch'
     return tree[key][branch+3]
 
+
 def get_branch_length_from_parent(tree, child_key, parent_key):
     return tree[child_key][3+mother_or_father(tree, child_key, parent_key)]
 

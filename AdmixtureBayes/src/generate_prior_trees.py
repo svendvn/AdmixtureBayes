@@ -61,7 +61,7 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
 def simulate_number_of_admixture_events(p=0.5):
     return geom.rvs(p=p)-1
 
-def generate_phylogeny(size,admixes=None, leaf_nodes=None, skewed_admixture_prior=False):
+def generate_phylogeny(size,admixes=None, p=0.5, leaf_nodes=None, skewed_admixture_prior=False):
     if admixes is None:
         admixes=simulate_number_of_admixture_events(p)
     tree=generate_admix_topology(size, admixes, leaf_nodes)

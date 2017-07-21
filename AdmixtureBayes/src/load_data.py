@@ -1,7 +1,29 @@
 import subprocess
 from numpy import ix_, array
+from astropy.version import major
+from numba.typing.builtins import normalize_1d_index
 
-def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False):
+def split_around_delimiter(text, delimiter=','):
+    #print text
+    return map(int,text.split(delimiter))
+
+def get_muhat(filename):
+    minor_alleles=0
+    major_alleles=0
+    with open(filename, 'r') as f:
+        f.readline() #skipping first line with population names
+        for fl in f.readlines():
+            for pair in fl.split():
+                adds=split_around_delimiter(pair)
+                minor_alleles+=adds[0]
+                major_alleles+=adds[1]
+    muhat=float(minor_alleles*major_alleles)/float(major_alleles+minor_alleles)**2
+    print 'muhat2', muhat
+    return muhat
+        
+        
+
+def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False, normalize=True):
     
     if outgroup:
         args=['treemix', '-i', filename, '-o', 'tmp', '-root', outgroup, '-m', '0','-k', str(blocksize)]
@@ -28,7 +50,13 @@ def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False):
     print mapping
     new_order=[mapping[node] for node in nodes]
     res=array(res)
-    res=res[:, new_order][new_order]
+    if normalize:
+        #uncompressing
+        uncompressed_file=filename[:-3]
+        args3=['gunzip', '-k', '-f',filename]
+        subprocess.call(args3)
+        res=res/get_muhat(uncompressed_file) #remo
+    res=res[:,new_order][new_order]
     return res
 
 if __name__=='__main__':

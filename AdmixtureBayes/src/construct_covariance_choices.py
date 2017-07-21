@@ -38,7 +38,7 @@ def add_wishart_noise(matrix, df):
     m=wishart.rvs(df=r*df-1, scale=matrix/(r*df))
     return m
 
-def reduce_covariance_wrapper(full_covariance,**kwargs):
+def reduce_covariance_wrapper(full_covariance, **kwargs):
     reduce_node_index=next((i for i,s in enumerate(kwargs['full_nodes']) if s==kwargs['outgroup_name']))
     return reduce_covariance(full_covariance, reduce_node_index)
     
@@ -61,11 +61,12 @@ def ms_simulate_wrapper(tree, **kwargs):
     return filename_gz
 
 def empirical_covariance_wrapper(snp_data_file, **kwargs):
-    return read_data(snp_data_file, 
+    cov=read_data(snp_data_file, 
                      outgroup= '',
                      blocksize=kwargs['blocksize_empirical_covariance'],
                      nodes=kwargs['full_nodes'], 
                      noss=kwargs['ms_variance_correction'])
+    return cov
     
 def scale_tree_wrapper(tree, **kwargs):
     return scale_tree(tree, kwargs['scale_tree_factor'])

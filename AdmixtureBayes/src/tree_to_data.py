@@ -217,6 +217,8 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
 def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None):
     if nodes is None:
         nodes=get_trivial_nodes(no_pops)
+    total_sum=0
+    total_number_of_genes=0
     with open(filename, 'r') as f:
         with open(filename2, 'w') as e:
             e.write(' '.join(nodes)+'\n')
@@ -237,7 +239,8 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                     
                     s_vec=sum(array(data), axis=0)
                     s_vecs.append(s_vec)
-                    
+                    total_sum+=sum(s_vec)
+                    total_number_of_genes+=len(s_vec)*samples_per_pop
                     data=[]
                     
                     print rep_count, pop_count
@@ -254,7 +257,8 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                         
                         if rep_count>=n_reps:
                             break
-
+    muhat=float(total_sum)/float(total_number_of_genes)
+    print 'muhat', muhat
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f','-k', filename2])
     return filename2_gz

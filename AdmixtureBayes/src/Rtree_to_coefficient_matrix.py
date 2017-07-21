@@ -145,5 +145,22 @@ if __name__=='__main__':
     
     #print org.T.dot(coef)
     
+    from generate_prior_trees import generate_phylogeny
+    from numpy.linalg import matrix_rank
+    from numpy import set_printoptions
+    
+    from Rtree_operations import get_number_of_admixes
+    from tree_plotting import plot_as_directed_graph
+    
+    set_printoptions(precision=3)
+    
+    for _ in xrange(3):
+        tree=generate_phylogeny(3,2)
+        mat=make_coefficient_matrix(tree)[0]
+        rank=matrix_rank(mat, tol=0.001)
+        print rank, get_number_of_admixes(tree)
+        print mat
+        plot_as_directed_graph(tree, drawing_name='tmp'+str(_)+'.png')
+        
     
 
