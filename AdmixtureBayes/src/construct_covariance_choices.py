@@ -2,7 +2,7 @@ from tree_statistics import identifier_to_tree_clean, unique_identifier_and_bran
 from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command, emp_cov_to_file
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree
-from scipy.stats import expon
+from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
 from load_data import read_data
 from copy import deepcopy

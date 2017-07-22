@@ -1,7 +1,5 @@
 import subprocess
 from numpy import ix_, array
-from astropy.version import major
-from numba.typing.builtins import normalize_1d_index
 
 def split_around_delimiter(text, delimiter=','):
     #print text
@@ -23,7 +21,7 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, outgroup='Yoruba', blocksize=1, nodes=None, noss=False, normalize=True):
+def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True):
     
     if outgroup:
         args=['treemix', '-i', filename, '-o', 'tmp', '-root', outgroup, '-m', '0','-k', str(blocksize)]
