@@ -1,5 +1,6 @@
 import subprocess
 from numpy import ix_, array
+from reduce_covariance import reduce_covariance
 
 def split_around_delimiter(text, delimiter=','):
     #print text
@@ -21,12 +22,9 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True):
+def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True, reduce_also=False, reducer=''):
     
-    if outgroup:
-        args=['treemix', '-i', filename, '-o', 'tmp', '-root', outgroup, '-m', '0','-k', str(blocksize)]
-    else:
-        args=['treemix', '-i', filename, '-o', 'tmp',  '-m', '0','-k', str(blocksize)]
+    args=['treemix', '-i', filename, '-o', 'tmp',  '-m', '0','-k', str(blocksize)]
     if noss:
         args.append('-noss')
     print args
@@ -55,6 +53,15 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         subprocess.call(args3)
         res=res/get_muhat(uncompressed_file) #remo
     res=res[:,new_order][new_order]
+    
+    if reduce_also:
+        if isinstance(reducer, basestring):
+            reduce_index=mapping[reducer]
+        else:
+            reduce_index=reducer
+        res=reduce_covariance(res, reduce_index)
+        
+    
     return res
 
 if __name__=='__main__':

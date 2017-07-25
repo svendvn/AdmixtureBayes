@@ -1,5 +1,5 @@
 from Rtree_operations import get_leaf_keys, get_all_branches, node_is_non_admixture
-from numpy import zeros
+from numpy import zeros, insert
 from Rtree_to_covariance_matrix import Population, _add_to_waiting, _full_node, _merge_pops, _thin_out_dic
 from scipy.linalg import svd
 
@@ -45,8 +45,12 @@ def nullspace(A, atol=1e-13, rtol=0):
     ns = vh[nnz:].conj().T
     return ns
 
-def get_orthogonal_branch_space(tree):
+def get_orthogonal_branch_space(tree, add_one_column=True):
     cof,_, bi= make_coefficient_matrix(tree)
+    #print cof
+    if add_one_column:
+        cof=insert(cof, cof.shape[1], 1, axis=1)
+    #print cof
     ad=nullspace(cof)
     return ad, bi, cof.T
     
@@ -132,27 +136,32 @@ if __name__=='__main__':
     from Rtree_to_covariance_matrix import make_covariance
     from numpy.random import normal
     print make_covariance(tree_good, node_keys= nodes_determined)
-    
-    org, bi,_= get_orthogonal_branch_space(tree_good)
+    from numpy import set_printoptions
+    set_printoptions(precision=2)
+    org, bi,_= get_orthogonal_branch_space(tree_good, add_one_column=True)
     branches_determined=[None]*len(bi) 
     for b,i in bi.items():
         branches_determined[i]=b
     
     updates=org.dot(normal(scale=0.01, size=org.shape[1]))
-    print pretty_string(update_specific_branch_lengths(tree_good, branches_determined, updates, add=True))
+    #print pretty_string(update_specific_branch_lengths(tree_good, branches_determined, updates, add=True))
     
-    print make_covariance(tree_good, node_keys= nodes_determined)
+    #print make_covariance(tree_good, node_keys= nodes_determined)
     
     #print org.T.dot(coef)
     
+    import sys
+    
+    sys.exit()
+    
     from generate_prior_trees import generate_phylogeny
     from numpy.linalg import matrix_rank
-    from numpy import set_printoptions
+    
     
     from Rtree_operations import get_number_of_admixes
     from tree_plotting import plot_as_directed_graph
     
-    set_printoptions(precision=3)
+
     
     for _ in xrange(3):
         tree=generate_phylogeny(3,2)

@@ -8,10 +8,12 @@ from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import initialize_posterior
 from MCMCMC import MCMCMC
+from wishart_distribution_estimation import estimate_degrees_of_freedom
+from astropy.stats.funcs import bootstrap
 
 
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
-parser.add_argument('--wishart_df', type=float, default=10000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
+parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
@@ -102,6 +104,9 @@ covariance=get_covariance(options.covariance_pipeline,
                           scale_tree_factor=options.scale_tree_factor)
 
 no_pops=len(reduced_nodes)
+
+#if options.estimate_bootstrap_df:
+#    wishart_df=estimate_degrees_of_freedom(options.treemix_file, bootstrap_blocksize=options.bootstrap_blocksize, options.reduce_node)
 
 if not options.starting_trees:
     starting_trees=map(str, [no_pops]*options.MCMC_chains)
