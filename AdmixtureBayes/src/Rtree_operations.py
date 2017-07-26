@@ -519,6 +519,18 @@ def get_admixture_keys_and_proportions(tree):
             keys.append(key)
             props.append(node[2])
     return keys, props
+
+def get_pruned_tree_and_add(tree, outgroup):
+    assert tree[outgroup][0]=='r', 'can not remove outgroup which is not outgroup'
+    (child1, branch1, a), (child2,branch2, b)=find_rooted_nodes(tree)
+    del tree[child2]
+    del tree[child1]
+    if child1==outgroup:
+        tree=rename_root(tree, child2)
+    else:
+        tree=rename_root(tree, child1)
+    return tree, a+b
+        
             
     
 

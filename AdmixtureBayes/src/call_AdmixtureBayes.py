@@ -9,13 +9,10 @@ from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import initialize_posterior
 from MCMCMC import MCMCMC
 from wishart_distribution_estimation import estimate_degrees_of_freedom
-from astropy.stats.funcs import bootstrap
 
 
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
-parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
-parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
 parser.add_argument('--input_file', type=str, default='(8,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
@@ -23,7 +20,14 @@ parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='f
 parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
 parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
+parser.add_argument('--prefix', type=str, default='tmp', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 
+#degrees of freedom arguments
+parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
+parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
+
+#proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--addadmix', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale', type=float, default=1, help='this states the frequency of the proposal type')
@@ -35,6 +39,7 @@ parser.add_argument('--rescale_marginally', type=float, default=0, help='this st
 parser.add_argument('--sliding_regraft', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--sliding_rescale', type=float, default=0, help='this states the frequency of the proposal type')
 
+#mc3 arguments
 parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of chains to run the MCMCMC with.')
 parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty the trees will either be simulated with the flag --random_start or the so-called trivial tree')
 parser.add_argument('--random_start', action='store_true', default=False, help='If supplied, the starting trees will be simulated from the prior (unless the starting trees are specified)')
@@ -89,6 +94,11 @@ print 'before_nodes', before_added_outgroup
 print 'full_nodes', full_nodes
 print 'reduced_nodes', reduced_nodes
 
+if options.prefix[-1]!='_':
+    prefix=options.prefix+'_'
+else:
+    prefix=options.prefix
+
 
 covariance=get_covariance(options.covariance_pipeline, 
                           options.input_file, 
@@ -101,12 +111,23 @@ covariance=get_covariance(options.covariance_pipeline,
                           nreps=options.nreps,
                           treemix_file=options.treemix_file,
                           ms_variance_correction=options.ms_variance_correction,
-                          scale_tree_factor=options.scale_tree_factor)
+                          scale_tree_factor=options.scale_tree_factor,
+                          prefix=prefix)
 
 no_pops=len(reduced_nodes)
 
-#if options.estimate_bootstrap_df:
-#    wishart_df=estimate_degrees_of_freedom(options.treemix_file, bootstrap_blocksize=options.bootstrap_blocksize, options.reduce_node)
+if options.estimate_bootstrap_df:
+    assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
+    reduce_also= (8 in options.covariance_pipeline)
+    wishart_df=estimate_degrees_of_freedom(options.treemix_file, 
+                                           bootstrap_blocksize=options.bootstrap_blocksize, 
+                                           reduce_also=reduce_also,
+                                           reducer=options.reduce_node)
+else:
+    wishart_df=options.wishart_df
+    
+with open(prefix+'wishart_DF.txt', 'w') as f:
+    f.write(str(wishart_df))
 
 if not options.starting_trees:
     starting_trees=map(str, [no_pops]*options.MCMC_chains)

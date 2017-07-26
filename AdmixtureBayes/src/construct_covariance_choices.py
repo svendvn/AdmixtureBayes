@@ -1,4 +1,4 @@
-from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths
+from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
 from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command, emp_cov_to_file
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree
@@ -109,6 +109,10 @@ dictionary_of_reasonable_names={
 def write_one_line_to_file(filename, value):
     with open(filename,'w') as f:
         f.write(value)
+        
+def write_two_lines_to_file(filename, value1, value2):
+    with open(filename, 'w') as f:
+        f.write(value1+'\n'+value2)
 
 def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes):
     save_word=dictionary_of_reasonable_names[stage_number]
@@ -118,11 +122,11 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
     elif stage_number==2:
         write_one_line_to_file(filename, str(value))
     elif stage_number==3:
-        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+        write_two_lines_to_file(filename, ' '.join(before_added_outgroup_nodes), unique_identifier_and_branch_lengths(value, before_added_outgroup_nodes))
     elif stage_number==4:
-        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+        write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==5:
-        write_one_line_to_file(filename, unique_identifier_and_branch_lengths(value))
+        write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==6:
         print 'file is already made elsewhere'
     elif stage_number==7:
@@ -248,13 +252,21 @@ def read_covariance_matrix(input, nodes):
 def read_tree(input, nodes):
     if isinstance(input, basestring):
         if not ';' in input:
-            input=read_one_line(filename=input)
-            return identifier_to_tree_clean(input, leaves=nodes)
+            input=read_one_line_skip(filename=input)
+            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(nodes))
         else:
-            return identifier_to_tree_clean(input, leaves=nodes)
+            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(nodes))
     else:
         return input
-        
+
+def read_one_line_skip(filename):
+    with open(filename, 'r') as f:
+        lines=f.readlines()
+        if len(lines[-1])>3:
+            return lines[-1].rstrip()
+        else:
+            return lines[-2].rstrip()
+
 def read_one_line(filename):
     with open(filename, 'r') as f:
         return f.readline().rstrip()

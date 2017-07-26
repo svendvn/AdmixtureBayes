@@ -105,9 +105,14 @@ def make_dics_first_and_second(double_list):
         return {},[],[]
     
     
-def unique_identifier(tree):
+def unique_identifier(tree, leaf_order=None):
     leaves, coalescences_nodes, admixture_nodes=get_categories(tree)
-    ready_lineages=[(key,0) for key in sorted(leaves)]
+    if leaf_order is not None:
+        assert set(leaves)==set(leaf_order), 'the specified leaf order did not match the leaves of the tree.'
+        leaves_ordered=leaf_order
+    else:
+        leaves_ordered=sorted(leaves)
+    ready_lineages=[(key,0) for key in leaves_ordered]
     lineages=deepcopy(ready_lineages)
     gen_to_column=range(len(ready_lineages))
     list_of_gens=[]
@@ -150,7 +155,9 @@ def unique_identifier(tree):
         #print 'gen',gen
         #print 'gone', gone
         list_of_gens,gone, lineages =update_lineages(list_of_gens,gen,gone, lineages, tree)
-                
+        for gon in gone:
+            lineages.remove(gon)
+        gone=[]      
                 
     
         #updating lineages
@@ -190,6 +197,14 @@ class generate_predefined_list(object):
         
     def __call__(self):
         return float(self.listi.pop(0))
+    
+class generate_predefined_list_string(object):
+    
+    def __init__(self, listi):
+        self.listi=listi
+        
+    def __call__(self):
+        return self.listi.pop(0)
     
 class same_number(object):
     
@@ -497,9 +512,14 @@ def topological_identifier_to_tree_clean(identifier):
     tree_good2= identifier_to_tree(identifier)
     return tree_good2
 
-def unique_identifier_and_branch_lengths(tree):
+def unique_identifier_and_branch_lengths(tree, leaf_order=None):
     leaves, coalescences_nodes, admixture_nodes=get_categories(tree)
-    ready_lineages=[(key,0) for key in sorted(leaves)]
+    if leaf_order is not None:
+        assert set(leaves)==set(leaf_order), 'the specified leaf order did not match the leaves of the tree.'
+        leaves_ordered=leaf_order
+    else:
+        leaves_ordered=sorted(leaves)
+    ready_lineages=[(key,0) for key in leaves_ordered]
     lineages=deepcopy(ready_lineages)
     gen_to_column=range(len(ready_lineages))
     list_of_gens=[]
@@ -524,6 +544,7 @@ def unique_identifier_and_branch_lengths(tree):
         #print 'awaited', awaited_coalescences, awaited_dic, first_awaited, second_awaited
         for n,element in enumerate(lineages):
             if element in gone:
+                print 'entered gone!'
                 gen.append('_')
             elif element in sames_dic:
                 partner_index=lineages.index(sames_dic[element])
@@ -549,7 +570,10 @@ def unique_identifier_and_branch_lengths(tree):
                 gen.append('w')
         #print 'gen',gen
         #print 'gone', gone
-        list_of_gens,gone, lineages =update_lineages(list_of_gens,gen,gone, lineages, tree)   
+        list_of_gens,gone, lineages =update_lineages(list_of_gens,gen,gone, lineages, tree)
+        for gon in gone:
+            lineages.remove(gon)
+        gone=[]
     
         #updating lineages
         coalescences_on_hold=still_on_hold+waiting_coalescences.values()
@@ -603,12 +627,17 @@ def get_admixture_proportion_string(tree):
 
 
 if __name__=='__main__':
-    
-    tree='w.w.w.w.w.w.a.a.w-w.w.w.c.w.c.5.a.w.3.a-c.w.c.w.c.4.w.w.0.2.a-w.w.w.w.c.c.4.7.w-c.c.w.w.1.0.w-c.w.w.0.w-c.w.0.w-a.w.w-c.w.0.w-c.w.0-c.0;0.387-0.087-0.806-0.082-2.062-0.803-0.122-0.544-0.061-0.733-0.474-1.342-0.871-0.798-0.753-0.288-0.024-0.174-0.754-0.282-0.45-0.924-0.416-1.081-0.467-1.296-1.171-0.54-1.944-0.258-8.813-0.76-0.073-3.416;0.388-0.467-0.098-0.185-0.019-0.44'
-    
-    print unique_identifier_and_branch_lengths(tree)
-    from Rcatalogue_of_trees import *
     from tree_plotting import pretty_string
+    tree='c.c.w.w.a.0.1.w.w-w.a.w.c.3.w.w.w-c.w.w.0.w.w.c.9-c.w.w.w.w.0-c.w.0.w.w-c.w.0.w-c.0.w-c.0;0.012-0.038-0.05-0.062-0.029-0.068-0.068-0.097-0.005-0.048-0.083-0.024-0.123-0.057-0.024-0.047-0.058-0.144-0.079-0.04-0.035-0.032;0.086-0.219'
+    tree2='c.c.w.w.a.0.1.w.w-w.a.w.c.3.w.w.w-c.w.w.0.w.w.c.6-c.w.w.w.w.0-c.w.0.w.w-c.w.0.w-c.0.w-c.0;0.012-0.038-0.05-0.062-0.029-0.068-0.068-0.097-0.005-0.048-0.083-0.024-0.123-0.057-0.024-0.047-0.058-0.144-0.079-0.04-0.035-0.032;0.086-0.219'
+
+    ft=identifier_to_tree_clean(tree2)
+    print unique_identifier_and_branch_lengths(ft)
+    
+    from sys import exit
+    exit()
+    from Rcatalogue_of_trees import *
+    
     from Rtree_operations import create_burled_leaved_tree
     
     print generation_counts(tree_good)
