@@ -50,7 +50,7 @@ parser.add_argument('--popsize', type=int, default=20, help='the number of genom
 parser.add_argument('--nreps', type=int, default=100, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='tmp.treemix_in', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
-parser.add_argument('--scale_tree_factor', type=float, default=0.05, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
+parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 
 #chain data collection

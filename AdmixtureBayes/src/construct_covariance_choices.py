@@ -39,7 +39,7 @@ def add_wishart_noise(matrix, df):
     return m
 
 def reduce_covariance_wrapper(full_covariance, **kwargs):
-    reduce_node_index=next((i for i,s in enumerate(kwargs['full_nodes']) if s==kwargs['outgroup_name']))
+    reduce_node_index=next((i for i,s in enumerate(kwargs['full_nodes']) if s==kwargs['reduce_covariance_node']))
     return reduce_covariance(full_covariance, reduce_node_index)
     
 def ms_simulate_wrapper(tree, **kwargs):
@@ -49,7 +49,8 @@ def ms_simulate_wrapper(tree, **kwargs):
                        nreps=kwargs['nreps'],
                        theta=kwargs['theta'],
                        sites=kwargs['sites'],
-                       recomb_rate=kwargs['recomb_rate'])
+                       recomb_rate=kwargs['recomb_rate'],
+                       leaf_keys=kwargs['full_nodes'])
     print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
     filename_gz=ms_to_treemix3(kwargs['ms_file'], 
@@ -189,6 +190,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
         before_added_outgroup_nodes.remove(outgroup_name)
     if reduce_covariance_node is not None and reduce_covariance_node in after_reduce_nodes:
         after_reduce_nodes.remove(reduce_covariance_node)
+    kwargs['reduce_covariance_node']=reduce_covariance_node
     kwargs['after_reduce_nodes']=after_reduce_nodes
     kwargs['before_added_outgroup_nodes']=before_added_outgroup_nodes
     kwargs['sample_per_pop']=sample_per_pop

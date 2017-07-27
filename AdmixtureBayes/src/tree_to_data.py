@@ -2,13 +2,14 @@ from Rtree_to_covariance_matrix import make_covariance
 from scipy.stats import wishart
 from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
                               node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
-                              get_real_children_root, get_trivial_nodes, scale_tree_copy)
+                              get_real_children_root, get_trivial_nodes, scale_tree_copy, get_leaf_keys)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin
 from numpy.linalg import det
 from copy import deepcopy
 from load_data import read_data
+from operator import itemgetter
 
 
 def tree_to_data_perfect_model(tree, df):
@@ -61,7 +62,8 @@ def supplementary_text_ms_string():
 
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=0.4, sites=500000, recomb_rate=1):
+                       theta=0.4, sites=500000, recomb_rate=1,
+                       leaf_keys=None):
     tree=deepcopy(rtree)
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
@@ -71,12 +73,12 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
-    max_v=max(times.values())
-    times={k:v for k,v in times.items()}
     print times
     tree=extend_branch_lengths(tree,times)
     print pretty_string(tree)
-    callstring+=construct_ej_en_es_string(tree, times, n)
+    if leaf_keys is None:
+        leaf_keys= get_leaf_keys(tree)
+    callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys)
     return callstring
     
 def extend_branch_lengths(tree, times):
@@ -88,9 +90,10 @@ def extend_branch_lengths(tree, times):
 
 
 
-def construct_ej_en_es_string(tree, times, no_leaves):
-    s_times=sorted(zip(times.values(),times.keys()))
-    dic_of_lineages={(key,0):(n+1) for n,(time,key) in enumerate(s_times[:no_leaves])}
+def construct_ej_en_es_string(tree, times, leaf_keys):
+    s_times=sorted([(v,k) for k,v in times.items()])
+    dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
+    print dic_of_lineages
     population_count=len(dic_of_lineages)
     res_string=''
     for time,key in s_times:
@@ -318,14 +321,14 @@ if __name__=='__main__':
     print supplementary_text_ms_string()
     print tree_to_ms_command(tree2, 50,20)
     #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
-    print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
+    #print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
-    cov= ms_to_treemix2('tmp.txt', 50, 5,20)
+    #cov= ms_to_treemix2('tmp.txt', 50, 5,20)
     #cov2=calculate_covariance_matrix('tmp.txt', 50, 5,20)
-    print cov
+    #print cov
     #print cov2
-    print make_covariance(tree2)
-    print reduce_covariance(cov, 0)
+    #print make_covariance(tree2)
+    #print reduce_covariance(cov, 0)
     #print reduce_covariance(cov2, 0)
-    print reduce_covariance(make_covariance(tree2),0)
+    #print reduce_covariance(make_covariance(tree2),0)
     
