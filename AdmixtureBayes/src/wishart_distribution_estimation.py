@@ -65,8 +65,8 @@ def make_covariances(filenames, **kwargs):
         covs.append(read_data(filename, **kwargs))
     return covs
 
-def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=None, **kwargs):
-    filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks)
+def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=None, no_bootstrap_samples=None, **kwargs):
+    filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
     covs=make_covariances(filenames, nodes=nodes, **kwargs)
     return optimize(covs)
     

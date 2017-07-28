@@ -1231,6 +1231,19 @@ def make_consistency_checks(tree, leaf_nodes=None):
 
     
 if __name__=='__main__':
+    
+    
+        tree=create_trivial_tree(6, 1.0)
+        print pretty_string(tree)
+        tree=add_outgroup(tree=tree, inner_node_name='y', to_new_root_length=0.2, to_outgroup_length=1.5, outgroup_name='x')
+        print pretty_string(tree)
+        ntree, add=get_pruned_tree_and_add(tree, outgroup='x')
+        print 'add', add
+        print pretty_print(ntree)
+        
+        import sys
+        sys.exit()
+    
         tree={'s1':['s1s2',None, None, 0.1,None],
           's2':['s1s2', None, None, 0.1,None],
           's1s2':['r',None, None, 0.2,None],

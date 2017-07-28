@@ -26,6 +26,7 @@ parser.add_argument('--prefix', type=str, default='tmp', help= 'this directory w
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
+parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -47,7 +48,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=100, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=400, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='tmp.treemix_in', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
@@ -122,7 +123,8 @@ if options.estimate_bootstrap_df:
     wishart_df=estimate_degrees_of_freedom(options.treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            reduce_also=reduce_also,
-                                           reducer=options.reduce_node)
+                                           reducer=options.reduce_node,
+                                           no_bootstrap_samples=options.no_bootstrap_samples)
 else:
     wishart_df=options.wishart_df
     
