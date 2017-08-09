@@ -7,6 +7,7 @@ from Rtree_to_covariance_matrix import make_covariance
 from load_data import read_data
 from copy import deepcopy
 from math import log
+import time
 
 
 
@@ -44,13 +45,14 @@ def reduce_covariance_wrapper(full_covariance, **kwargs):
     
 def ms_simulate_wrapper(tree, **kwargs):
     no_pops= get_number_of_leaves(tree)
-    ms_command=tree_to_ms_command(tree,
+    ms_command, minmaxv=tree_to_ms_command(tree,  #TO CHANGE BACK
                        sample_per_pop=kwargs['sample_per_pop'],
                        nreps=kwargs['nreps'],
                        theta=kwargs['theta'],
                        sites=kwargs['sites'],
                        recomb_rate=kwargs['recomb_rate'],
                        leaf_keys=kwargs['full_nodes'])
+    kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
     print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
     filename_gz=ms_to_treemix3(kwargs['ms_file'], 
@@ -127,6 +129,7 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
     elif stage_number==4:
         write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==5:
+        print full_nodes
         write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==6:
         print 'file is already made elsewhere'
@@ -164,7 +167,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    treemix_file=None,
                    blocksize_empirical_covariance=100,
                    ms_variance_correction=False,
-                   scale_tree_factor=0.05,
+                   scale_tree_factor=0.0005,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp'):
     
@@ -203,8 +206,9 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['blocksize_empirical_covariance']=blocksize_empirical_covariance
     kwargs['ms_variance_correction']=ms_variance_correction
     kwargs['scale_tree_factor']=scale_tree_factor
+    kwargs['pks']={}
     
-    
+    start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
     statistic=read_input(stages_to_go_through[0], input, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
     
@@ -219,7 +223,9 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
             save_stage(statistic, stage_to, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
         print statistic
     
-    return statistic
+    end=time.time()
+    
+    return statistic, (end-start, kwargs['pks']['minmaxv'])
 
 def write_output(stage, output):
     pass
@@ -255,9 +261,9 @@ def read_tree(input, nodes):
     if isinstance(input, basestring):
         if not ';' in input:
             input=read_one_line_skip(filename=input)
-            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(nodes))
+            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(deepcopy(nodes)))
         else:
-            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(nodes))
+            return identifier_to_tree_clean(input, leaves=generate_predefined_list_string(deepcopy(nodes)))
     else:
         return input
 
@@ -274,4 +280,20 @@ def read_one_line(filename):
         return f.readline().rstrip()
     
 if __name__=='__main__':
-    print get_covariance(stages_to_go_through=[1,2,3,4,5,6,7,8,9], input=4, full_nodes=['s1','s2','s3','s4','outgroup_name'])
+    
+    for _ in xrange(100):
+        _,(time_e, (minv,maxv,levels))=get_covariance(stages_to_go_through=[2,3,4,5,6,7,8,9], input='(5,0)', full_nodes=['s1','s2','s3','s4','s5','outgroup_name'],
+                             outgroup_name='outgroup_name', reduce_covariance_node='outgroup_name',
+                             nreps=500)
+        resl=[time_e, minv, maxv,levels]
+        print 'levels',levels
+        import post_analysis
+        other= post_analysis.get_true_posterior(outgroup='outgroup_name')
+        resl+=list(other)
+        with open('resfile.txt', 'a') as f:
+            f.write(','.join(map(str,resl))+'\n')
+            
+    
+    
+    
+    
