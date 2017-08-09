@@ -79,7 +79,13 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     if leaf_keys is None:
         leaf_keys= get_leaf_keys(tree)
     callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys)
-    return callstring
+    
+    #TO CHANGE BACK:
+    print tree
+    popsizes=[[calculate_pop_size(node[3])] if node_is_non_admixture(node) else [calculate_pop_size(node[3]), calculate_pop_size(node[4])] for key,node in tree.items()]    
+    pops=[p for l in popsizes for p in l]
+    
+    return callstring,(min(pops),max(pops), max(times.values()))  #TO CHANGE BACK
     
 def extend_branch_lengths(tree, times):
     for key, node in tree.items():
@@ -101,7 +107,7 @@ def construct_ej_en_es_string(tree, times, leaf_keys):
             i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
             res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
             dic_of_lineages[(key,0)]=j
-            pop_size=calculate_pop_size(node[3])
+            pop_size=1.0#calculate_pop_size(node[3])
             res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
             break
         node=tree[key]

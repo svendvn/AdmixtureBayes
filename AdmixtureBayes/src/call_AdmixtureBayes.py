@@ -48,7 +48,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=400, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=40, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='tmp.treemix_in', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')

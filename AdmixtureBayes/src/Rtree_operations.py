@@ -27,6 +27,21 @@ def rename_leaves(tree, new_leaf_names):
         tree=rename_key(tree, old_key, new_key)
     return tree
 
+def max_distance_to_leaf(tree,key, parent_key=None):
+    node=tree[key]
+    if node_is_leaf_node(node):
+        return node[3]
+    if parent_key is not None:
+        branch=mother_or_father(tree, key, parent_key)
+        add=node[3+branch]
+    else:
+        add=0
+    if node_is_coalescence(node):
+        return add+max(max_distance_to_root(tree, node[5], key), max_distance_to_root(tree, node[6],key))
+    if node_is_admixture(node):
+        return add+max_distance_to_root(tree, node[5], key)
+    assert False, 'strange node caused no exit.'
+
 def create_trivial_equibranched_tree(size, height=1.0):
     '''
     constructs tree of the form (..((s1,s2),s3),s4)...)

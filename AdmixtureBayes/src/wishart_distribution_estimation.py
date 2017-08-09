@@ -60,9 +60,15 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
                 
 def make_covariances(filenames, **kwargs):
     covs=[]
+    normalisers=[]
     for filename in filenames:
         print filename
-        covs.append(read_data(filename, **kwargs))
+        res=read_data(filename, return_muhat=True, **kwargs)
+        covs.append(res[0])
+        normalisers.append(res[1])
+    print '-----------------------------------------------------'
+    print 'Normalisers='
+    print normalisers
     return covs
 
 def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=None, no_bootstrap_samples=None, **kwargs):

@@ -1,7 +1,8 @@
 from posterior import initialize_posterior
-from numpy import array, set_printoptions
+from numpy import array, set_printoptions, mean
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
-from Rtree_operations import get_pruned_tree_and_add, scale_tree_copy, pretty_string
+from Rtree_operations import (get_pruned_tree_and_add, scale_tree_copy, pretty_string, get_average_distance_to_root,
+                              get_max_distance_to_root,get_min_distance_to_root)
 from copy import deepcopy
 from Rtree_to_covariance_matrix import make_covariance
 from reduce_covariance import reduce_covariance
@@ -17,7 +18,7 @@ def get_true_posterior(wishart_file='tmp_covariance_and_multiplier.txt',
     set_printoptions(precision=2)
     multiplier=8.57292960745
     print make_covariance(scale_tree_copy(true_tree,multiplier), node_keys=nodes)
-    print reduce_covariance(make_covariance(scale_tree_copy(true_tree,multiplier), node_keys=nodes),8)
+    print reduce_covariance(make_covariance(scale_tree_copy(true_tree,multiplier), node_keys=nodes),len(nodes)-1)
     print true_tree
     print nodes
     print outgroup
@@ -36,9 +37,13 @@ def get_true_posterior(wishart_file='tmp_covariance_and_multiplier.txt',
     print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier
     print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier-covariance
     print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier/covariance
+    avg_scale=mean((make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier/covariance)
+    avg_root=get_average_distance_to_root(x[0])
+    max_root=get_max_distance_to_root(x[0])
+    min_root=get_min_distance_to_root(x[0])
     wishart_df=read_wishart_df_file(wishart_df_file)
     posterior, multiplier2=initialize_posterior(covariance, M=wishart_df, p=p, use_skewed_distr=use_skewed_distr, multiplier=multiplier, nodes=nodes)
-    return posterior((scale_tree_copy(x[0], multiplier2),x[1]))
+    return avg_scale, avg_root, max_root, min_root, x[1] #posterior((scale_tree_copy(x[0], multiplier2),x[1]))
     
 def read_wishart_df_file(filename):
     with open(filename, 'r') as f:

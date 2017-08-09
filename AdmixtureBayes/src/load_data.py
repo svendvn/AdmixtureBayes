@@ -22,7 +22,7 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True, reduce_also=False, reducer=''):
+def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True, reduce_also=False, reducer='', return_muhat=False):
     
     args=['treemix', '-i', filename, '-o', 'tmp',  '-m', '0','-k', str(blocksize)]
     if noss:
@@ -51,7 +51,8 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         uncompressed_file=filename[:-3]
         args3=['gunzip', '-k', '-f',filename]
         subprocess.call(args3)
-        res=res/get_muhat(uncompressed_file) #remo
+        muhat=get_muhat(uncompressed_file)
+        res=res/muhat #remo
     res=res[:,new_order][new_order]
     
     if reduce_also:
@@ -60,8 +61,9 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         else:
             reduce_index=reducer
         res=reduce_covariance(res, reduce_index)
-        
     
+    if return_muhat:   
+        return res, muhat
     return res
 
 if __name__=='__main__':
