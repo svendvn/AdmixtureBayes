@@ -7,6 +7,7 @@ from Rproposal_sliding_rescale import sliding_rescale_class
 from Rproposal_rescale_add import rescale_add_class
 from Rproposal_rescale_constrained import rescale_constrained_class
 from Rproposal_rescale_admix import rescale_admixtures_class
+from Rproposal_rescale_admix_correction import rescale_admix_correction_class
 from numpy.random import choice
 from Rtree_operations import get_number_of_admixes
 from math import exp
@@ -216,7 +217,7 @@ def initialize_proposals(proposals):
     all_props=[addadmix_class, deladmix_class, regraft_class, 
                rescale_class, sliding_regraft_class, sliding_regraft_class_resimulate,
                rescale_marginally_class, sliding_rescale_class, rescale_add_class,
-               rescale_constrained_class,  rescale_admixtures_class]
+               rescale_constrained_class,  rescale_admixtures_class, rescale_admix_correction_class]
     all_props_dic={cl.proposal_name:cl for cl in all_props}
     print all_props_dic
     res=[]

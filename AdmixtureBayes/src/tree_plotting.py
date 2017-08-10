@@ -10,7 +10,7 @@ import os
 file_suffix=[s+'.csv' for s in ['leaves', 'inner_nodes','edges','adm_props']]
 
 def plot_graph(*args, **kwargs):
-    plot_as_admixture_tree(*args, **kwargs)
+    plot_as_directed_graph(*args, **kwargs)
 
 def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=True):
     aarhus_tree = to_aarhus_admixture_graph(tree)
@@ -22,7 +22,7 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
         img.show()
         
         
-def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.BMP', popup=True):
+def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True):
 
     leaves, admixture_nodes, coalescence_nodes, root, edges= to_networkx_format(tree)
     filename, image_format= drawing_name.split('.')

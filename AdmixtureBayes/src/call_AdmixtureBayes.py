@@ -23,8 +23,8 @@ parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of
 parser.add_argument('--prefix', type=str, default='tmp', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 
 #degrees of freedom arguments
-parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
-parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
+parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--wishart_df', type=float, default=100.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 
@@ -34,7 +34,8 @@ parser.add_argument('--addadmix', type=float, default=1, help='this states the f
 parser.add_argument('--rescale', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--regraft', type=float, default=0, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_add', type=float, default=1, help='this states the frequency of the proposal type')
-parser.add_argument('--rescale_admix', type=float, default=1, help='this states the frequency of the proposal type')
+parser.add_argument('--rescale_admix', type=float, default=0, help='this states the frequency of the proposal type')
+parser.add_argument('--rescale_admix_correction', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_constrained', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_marginally', type=float, default=0, help='this states the frequency of the proposal type')
 parser.add_argument('--sliding_regraft', type=float, default=1, help='this states the frequency of the proposal type')
@@ -70,11 +71,13 @@ options=parser.parse_args()
 
 def get_proposals(options):
     all_proposals=['deladmix', 'addadmix', 'rescale', 
-                   'regraft', 'rescale_add', 'rescale_admixtures', 
+                   'regraft', 'rescale_add', 'rescale_admixtures',
+                   'rescale_admix_correction', 
                    'rescale_constrained', 'rescale_marginally', 
                    'sliding_regraft', 'sliding_rescale']
     all_proportions=[options.deladmix, options.addadmix, options.rescale, 
                      options.regraft, options.rescale_add, options.rescale_admix, 
+                     options.rescale_admix_correction,
                      options.rescale_constrained, options.rescale_marginally, 
                      options.sliding_regraft, options.sliding_rescale]
     

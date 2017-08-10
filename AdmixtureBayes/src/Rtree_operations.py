@@ -28,19 +28,43 @@ def rename_leaves(tree, new_leaf_names):
     return tree
 
 def max_distance_to_leaf(tree,key, parent_key=None):
+    if key=='r':
+        (child_key1,_,_),(child_key2,_,_)=find_rooted_nodes(tree)
+        return max(max_distance_to_leaf(tree, child_key1, key), max_distance_to_leaf(tree, child_key2,key))
     node=tree[key]
-    if node_is_leaf_node(node):
-        return node[3]
     if parent_key is not None:
         branch=mother_or_father(tree, key, parent_key)
         add=node[3+branch]
     else:
         add=0
+    if node_is_leaf_node(node):
+        return add
     if node_is_coalescence(node):
-        return add+max(max_distance_to_root(tree, node[5], key), max_distance_to_root(tree, node[6],key))
+        return add+max(max_distance_to_leaf(tree, node[5], key), max_distance_to_leaf(tree, node[6],key))
     if node_is_admixture(node):
-        return add+max_distance_to_root(tree, node[5], key)
+        return add+max_distance_to_leaf(tree, node[5], key)
     assert False, 'strange node caused no exit.'
+    
+def time_adjust_node(key, node, timed_events):
+    p1,p2=node[:2]
+    t1=timed_events[p1]-timed_events[key]
+    node[3]=t1
+    if p2 is not None:
+        t2=timed_events[p2]-timed_events[key]
+        node[4]=t2
+    return node
+
+def get_max_timing(tree):
+    timed_events={'r':get_max_distance_to_root(tree)}
+    for key in tree:
+        timed_events[key]=max_distance_to_leaf(tree, key)
+    return timed_events    
+    
+def time_adjust_tree(tree):
+    timed_events=get_max_timing(tree)
+    for key, node in tree.items():
+        tree[key]=time_adjust_node(key, node, timed_events)
+    return tree
 
 def create_trivial_equibranched_tree(size, height=1.0):
     '''
@@ -155,10 +179,10 @@ def get_distance_to_root(tree, key, function=max):
         return 0.0
     node=tree[key]
     if node_is_admixture(node):
-        return function(get_distance_to_root(tree, node[0])+node[3], 
-                   get_distance_to_root(tree, node[1])+node[4], node[2])
+        return function(get_distance_to_root(tree, node[0], function=function)+node[3], 
+                   get_distance_to_root(tree, node[1], function=function)+node[4], node[2])
     else:
-        return get_distance_to_root(tree, node[0])+node[3]
+        return get_distance_to_root(tree, node[0], function=function)+node[3]
 
 def special_max(x,y,z=None):
     return max(x,y)
@@ -1255,6 +1279,14 @@ if __name__=='__main__':
         ntree, add=get_pruned_tree_and_add(tree, outgroup='x')
         print 'add', add
         print pretty_print(ntree)
+        
+        from Rcatalogue_of_trees import tree_good
+        
+        print pretty_string(tree_good)
+        print max_distance_to_leaf(tree_good, 'r'), 
+        print get_max_distance_to_root(tree_good)
+        print pretty_string(time_adjust_tree(tree_good))
+        print pretty_string(time_adjust_tree(time_adjust_tree(tree_good)))
         
         import sys
         sys.exit()

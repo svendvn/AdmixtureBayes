@@ -2,7 +2,8 @@ from Rtree_to_covariance_matrix import make_covariance
 from scipy.stats import wishart
 from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
                               node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
-                              get_real_children_root, get_trivial_nodes, scale_tree_copy, get_leaf_keys)
+                              get_real_children_root, get_trivial_nodes, scale_tree_copy, get_leaf_keys,
+                              time_adjust_tree, get_max_timing)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin
@@ -60,6 +61,26 @@ def supplementary_text_ms_string():
 0.04400 5 4 -en 0.04670 4 0.025 -ej 0.04675 4 3 -en 0.04945 3 0.025 -ej 0.04950 3 2 \
 -en 0.05220 2 0.025 -ej 0.05225 2 1'
 
+def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nreps=2, 
+                       theta=0.4, sites=500000, recomb_rate=1,
+                       leaf_keys=None):
+    
+    tree=deepcopy(time_adjusted_tree)
+    if recomb_rate is None:
+        rec_part=' -s '+str(sites)
+    else:
+        rec_part=' -r '+str(recomb_rate)+ ' '+str(sites)
+    n=get_no_leaves(tree)
+    callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
+    callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
+    times=get_max_timing(tree)
+    print times
+    tree=extend_branch_lengths(tree,times)
+    print pretty_string(tree)
+    if leaf_keys is None:
+        leaf_keys= get_leaf_keys(tree)
+    callstring+=construct_ej_es_string(tree, times, leaf_keys=leaf_keys)
+    return callstring
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
                        theta=0.4, sites=500000, recomb_rate=1,
@@ -80,12 +101,12 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
         leaf_keys= get_leaf_keys(tree)
     callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys)
     
-    #TO CHANGE BACK:
-    print tree
-    popsizes=[[calculate_pop_size(node[3])] if node_is_non_admixture(node) else [calculate_pop_size(node[3]), calculate_pop_size(node[4])] for key,node in tree.items()]    
-    pops=[p for l in popsizes for p in l]
     
-    return callstring,(min(pops),max(pops), max(times.values()))  #TO CHANGE BACK
+    #print tree
+    #popsizes=[[calculate_pop_size(node[3])] if node_is_non_admixture(node) else [calculate_pop_size(node[3]), calculate_pop_size(node[4])] for key,node in tree.items()]    
+    #pops=[p for l in popsizes for p in l]
+    
+    return callstring#,(min(pops),max(pops), max(times.values()))  #TO CHANGE BACK
     
 def extend_branch_lengths(tree, times):
     for key, node in tree.items():
@@ -94,6 +115,30 @@ def extend_branch_lengths(tree, times):
             tree[key][3+n]=(tree[key][3+n], pseudo_time)
     return tree
 
+def construct_ej_es_string(tree, times, leaf_keys):
+    s_times=sorted([(v,k) for k,v in times.items()])
+    dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
+    print dic_of_lineages
+    population_count=len(dic_of_lineages)
+    res_string=''
+    for time,key in s_times:
+        if key=='r':
+            i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
+            res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
+            dic_of_lineages[(key,0)]=j
+            break
+        node=tree[key]
+        if node_is_coalescence(node):
+            i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
+            res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
+            dic_of_lineages[(key,0)]=j
+        if node_is_admixture(node):
+            population_count+=1
+            i=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))[0]
+            res_string+='-es '+str(time)+' '+str(i)+' '+str(1.0-node[2])+' '
+            dic_of_lineages[(key,0)]=i
+            dic_of_lineages[(key,1)]=population_count
+    return res_string
 
 
 def construct_ej_en_es_string(tree, times, leaf_keys):
@@ -321,11 +366,11 @@ if __name__=='__main__':
     from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
-    tree2=scale_tree(generate_phylogeny(5,0),0.05)
+    tree2=scale_tree(generate_phylogeny(5,1),0.05)
     print pretty_string(tree2)
     print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()
-    print tree_to_ms_command(tree2, 50,20)
+    print time_adjusted_tree_to_ms_command(tree_good, 50,20)
     #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
     #print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)

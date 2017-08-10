@@ -1,7 +1,8 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
-from tree_to_data import file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, tree_to_ms_command, emp_cov_to_file
+from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, 
+                          tree_to_ms_command, emp_cov_to_file,time_adjusted_tree_to_ms_command)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
-from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree
+from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
 from load_data import read_data
@@ -45,14 +46,24 @@ def reduce_covariance_wrapper(full_covariance, **kwargs):
     
 def ms_simulate_wrapper(tree, **kwargs):
     no_pops= get_number_of_leaves(tree)
-    ms_command, minmaxv=tree_to_ms_command(tree,  #TO CHANGE BACK
+    #ms_command, minmaxv=tree_to_ms_command(tree,  #TO CHANGE BACK
+    if kwargs['time_adjust']:
+        ms_command=time_adjusted_tree_to_ms_command(tree,  #TO CHANGE BACK
                        sample_per_pop=kwargs['sample_per_pop'],
                        nreps=kwargs['nreps'],
                        theta=kwargs['theta'],
                        sites=kwargs['sites'],
                        recomb_rate=kwargs['recomb_rate'],
                        leaf_keys=kwargs['full_nodes'])
-    kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
+    else:
+        ms_command=tree_to_ms_command(tree,  #TO CHANGE BACK
+                       sample_per_pop=kwargs['sample_per_pop'],
+                       nreps=kwargs['nreps'],
+                       theta=kwargs['theta'],
+                       sites=kwargs['sites'],
+                       recomb_rate=kwargs['recomb_rate'],
+                       leaf_keys=kwargs['full_nodes'])
+    #kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
     print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
     filename_gz=ms_to_treemix3(kwargs['ms_file'], 
@@ -72,6 +83,8 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
     return cov
     
 def scale_tree_wrapper(tree, **kwargs):
+    if kwargs['time_adjust']:
+        tree=time_adjust_tree(tree) 
     return scale_tree(tree, kwargs['scale_tree_factor'])
 
 def normaliser_wrapper(covariance, **kwargs):
@@ -167,9 +180,10 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    treemix_file=None,
                    blocksize_empirical_covariance=100,
                    ms_variance_correction=False,
-                   scale_tree_factor=0.0005,
+                   scale_tree_factor=0.05,
                    save_stages=range(1,6)+range(7,10),
-                   prefix='tmp'):
+                   prefix='tmp',
+                   t_adjust_tree=False):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -207,6 +221,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['ms_variance_correction']=ms_variance_correction
     kwargs['scale_tree_factor']=scale_tree_factor
     kwargs['pks']={}
+    kwargs['time_adjust']=t_adjust_tree
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
@@ -225,7 +240,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     
     end=time.time()
     
-    return statistic, (end-start, kwargs['pks']['minmaxv'])
+    return statistic
 
 def write_output(stage, output):
     pass
@@ -282,14 +297,13 @@ def read_one_line(filename):
 if __name__=='__main__':
     
     for _ in xrange(100):
-        _,(time_e, (minv,maxv,levels))=get_covariance(stages_to_go_through=[2,3,4,5,6,7,8,9], input='(5,0)', full_nodes=['s1','s2','s3','s4','s5','outgroup_name'],
+        cov=get_covariance(stages_to_go_through=[2,3,4,5,6,7,8,9], input='(5,2)', full_nodes=['s1','s2','s3','s4','s5','outgroup_name'],
                              outgroup_name='outgroup_name', reduce_covariance_node='outgroup_name',
-                             nreps=500)
-        resl=[time_e, minv, maxv,levels]
-        print 'levels',levels
+                             nreps=500, t_adjust_tree=False, scale_tree_factor=0.01, ms_variance_correction=False)
+        #print 'levels',levels
         import post_analysis
         other= post_analysis.get_true_posterior(outgroup='outgroup_name')
-        resl+=list(other)
+        resl=list(other)
         with open('resfile.txt', 'a') as f:
             f.write(','.join(map(str,resl))+'\n')
             
