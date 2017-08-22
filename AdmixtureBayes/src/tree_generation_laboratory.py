@@ -25,7 +25,8 @@ def save_tree(tree, filename):
 
 def load_tree(filename):
     with open(filename, 'r') as f:
-        stree=f.readline().rstrip()
+        ls=f.readlines()
+        stree=ls[-1].rstrip()
     return stree
 
 def identifier_to_tree_clean_wrapper(stree):

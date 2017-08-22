@@ -194,10 +194,10 @@ def call_ms_string(ms_string, sequence_file):
             line_number += 1
             if line_number >= 5 and line and (line[0]=='0' or line[0]=='1'):
                 #print len(line)
-                print line_number, line[:4]
+                #print line_number, line[:4]
                 f.write(line)
-            else:
-                print line_number,':', line.rstrip()
+            #else:
+                #print line_number,':', line.rstrip()
     return 0
 
 def calculate_covariance_matrix(file='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1):
@@ -371,7 +371,7 @@ if __name__=='__main__':
     print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()
     print time_adjusted_tree_to_ms_command(tree_good, 50,20)
-    #print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
+    print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
     #print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
     #cov= ms_to_treemix2('tmp.txt', 50, 5,20)

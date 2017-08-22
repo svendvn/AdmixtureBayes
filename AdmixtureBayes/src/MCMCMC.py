@@ -27,7 +27,8 @@ def MCMCMC(starting_trees,
            numpy_seeds=None,
            multiplier= None,
            result_file=None,
-           store_permuts=False):
+           store_permuts=False,
+           stop_criteria=None):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
@@ -102,6 +103,9 @@ def MCMCMC(starting_trees,
         #proposal_updates=_handle_flipping_of_proposals(proposal_updates, permut)
         total_permutation=_update_permutation(total_permutation, permut)
         cum_iterations+=no_iterations
+        if stop_criteria is not None:
+            if stop_criteria(cum_iterations, result_file):
+                break
         
     pool.terminate()
     if result_file is None and store_permuts:

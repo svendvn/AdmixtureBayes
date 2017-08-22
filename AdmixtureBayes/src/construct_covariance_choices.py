@@ -1,6 +1,6 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
 from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, 
-                          tree_to_ms_command, emp_cov_to_file,time_adjusted_tree_to_ms_command)
+                          tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
@@ -295,11 +295,11 @@ def read_one_line(filename):
         return f.readline().rstrip()
     
 if __name__=='__main__':
-    
+    #
     for _ in xrange(100):
-        cov=get_covariance(stages_to_go_through=[2,3,4,5,6,7,8,9], input='(5,2)', full_nodes=['s1','s2','s3','s4','s5','outgroup_name'],
+        cov=get_covariance(stages_to_go_through=[4,5,6,7,8,9], input='tmp_true_tree_with_outgroup.txt', full_nodes=['s1','s2','s3','s4','s5','s6','outgroup_name'],
                              outgroup_name='outgroup_name', reduce_covariance_node='outgroup_name',
-                             nreps=500, t_adjust_tree=False, scale_tree_factor=0.01, ms_variance_correction=False)
+                             nreps=500, t_adjust_tree=True, scale_tree_factor=0.002, ms_variance_correction=True)
         #print 'levels',levels
         import post_analysis
         other= post_analysis.get_true_posterior(outgroup='outgroup_name')

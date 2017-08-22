@@ -30,10 +30,10 @@ def get_summary_scheme(majority_tree=False,
     if full_tree:
         summaries.append(summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'))
     if admixture_proportion_string:
-        summaries.append(summary.s_basic_tree_statistics(tree_statistics.get_admixture_proportion_string, 'admixtures', output='string'),)
+        summaries.append(summary.s_basic_tree_statistics(tree_statistics.get_admixture_proportion_string, 'admixtures', output='string'))
     if acceptance_rate_information:
-        summary.s_variable('mhr', output='double_missing'),
-        summary.s_variable('proposal_type', output='string'),
+        summaries.append(summary.s_variable('mhr', output='double_missing'))
+        summaries.append(summary.s_variable('proposal_type', output='string'))
         if proposals is not None:
             for prop_name,adapt in zip(prop_names, adaption):
                 if adapt:
