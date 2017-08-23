@@ -63,7 +63,7 @@ def supplementary_text_ms_string():
 
 def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nreps=2, 
                        theta=0.4, sites=500000, recomb_rate=1,
-                       leaf_keys=None):
+                       leaf_keys=None, final_pop_size=1.0):
     
     tree=deepcopy(time_adjusted_tree)
     if recomb_rate is None:
@@ -79,7 +79,7 @@ def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nrep
     print pretty_string(tree)
     if leaf_keys is None:
         leaf_keys= get_leaf_keys(tree)
-    callstring+=construct_ej_es_string(tree, times, leaf_keys=leaf_keys)
+    callstring+=construct_ej_es_string(tree, times, leaf_keys=leaf_keys, final_pop_size=final_pop_size)
     return callstring
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
@@ -115,7 +115,7 @@ def extend_branch_lengths(tree, times):
             tree[key][3+n]=(tree[key][3+n], pseudo_time)
     return tree
 
-def construct_ej_es_string(tree, times, leaf_keys):
+def construct_ej_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     s_times=sorted([(v,k) for k,v in times.items()])
     dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
     print dic_of_lineages
@@ -126,6 +126,7 @@ def construct_ej_es_string(tree, times, leaf_keys):
             i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
             res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
             dic_of_lineages[(key,0)]=j
+            res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(final_pop_size)+' '
             break
         node=tree[key]
         if node_is_coalescence(node):

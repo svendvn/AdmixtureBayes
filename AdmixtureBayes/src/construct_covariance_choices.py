@@ -54,7 +54,8 @@ def ms_simulate_wrapper(tree, **kwargs):
                        theta=kwargs['theta'],
                        sites=kwargs['sites'],
                        recomb_rate=kwargs['recomb_rate'],
-                       leaf_keys=kwargs['full_nodes'])
+                       leaf_keys=kwargs['full_nodes'],
+                       final_pop_size=kwargs['final_pop_size'])
     else:
         ms_command=tree_to_ms_command(tree,  #TO CHANGE BACK
                        sample_per_pop=kwargs['sample_per_pop'],
@@ -183,7 +184,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    scale_tree_factor=0.05,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp',
-                   t_adjust_tree=False):
+                   t_adjust_tree=False,
+                   final_pop_size=100.0):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -222,6 +224,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['scale_tree_factor']=scale_tree_factor
     kwargs['pks']={}
     kwargs['time_adjust']=t_adjust_tree
+    kwargs['final_pop_size']=final_pop_size
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
@@ -299,7 +302,7 @@ if __name__=='__main__':
     for _ in xrange(100):
         cov=get_covariance(stages_to_go_through=[4,5,6,7,8,9], input='tmp_true_tree_with_outgroup.txt', full_nodes=['s1','s2','s3','s4','s5','s6','outgroup_name'],
                              outgroup_name='outgroup_name', reduce_covariance_node='outgroup_name',
-                             nreps=500, t_adjust_tree=True, scale_tree_factor=0.002, ms_variance_correction=True)
+                             nreps=500, t_adjust_tree=True, scale_tree_factor=0.05, ms_variance_correction=False, final_pop_size= 100.0)
         #print 'levels',levels
         import post_analysis
         other= post_analysis.get_true_posterior(outgroup='outgroup_name')

@@ -24,7 +24,7 @@ class stop_criteria(object):
     def stop_yet(self, filename):
         dir = os.path.dirname(__file__)
         outfile='tmp_stop_criteria.txt'
-        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, '0.5', os.path.join(dir, outfile)]+self.summaries
+        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, '0.5', outfile]+self.summaries
         print command
         call(command)
         return self.check_outfile(outfile)
