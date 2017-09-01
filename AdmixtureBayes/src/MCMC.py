@@ -72,6 +72,12 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
     iteration_summary=[]
     #print 'random', random()
     count=0
+    from_count=0
+    
+    if appending_result_file is not None:
+        with open(appending_result_file, 'w') as f:
+            f.write(",".join(['iteration'] + [s.name for s in summaries])+'\n')
+        
     for i in range(i_start_from,i_start_from+N):
         proposal_knowledge_scraper={}
         new_x,new_post=one_jump(x, post, temperature, posterior_function, proposal, proposal_knowledge_scraper)
@@ -96,7 +102,11 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
                                                                iteration_number=i,**proposal_knowledge_scraper))
             if appending_result_file is not None:
                 count+=1
-                ###NOT IMPLEMENTED
+                if count % appending_result_frequency==0:
+                    with open(appending_result_file, 'a') as f:
+                        for n,params in enumerate(iteration_summary[from_count:]):
+                            f.write(",".join(map(str, params))+'\n')
+                    from_count=count
         x=new_x
         post=new_post
         if check_trees:
