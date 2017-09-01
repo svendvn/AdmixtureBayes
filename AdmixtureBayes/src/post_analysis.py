@@ -1,12 +1,12 @@
-from posterior import initialize_posterior
-from numpy import array, set_printoptions, mean
+from posterior import posterior_class
+from numpy import array, set_printoptions, mean, linspace, sum
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
 from Rtree_operations import (get_pruned_tree_and_add, scale_tree_copy, pretty_string, get_average_distance_to_root,
                               get_max_distance_to_root,get_min_distance_to_root)
 from copy import deepcopy
 from Rtree_to_covariance_matrix import make_covariance
 from reduce_covariance import reduce_covariance
-from sympy.stats.rv_interface import covariance
+from construct_covariance_choices import rescale_empirical_covariance
 
 def get_true_posterior(wishart_file='tmp_covariance_and_multiplier.txt', 
                        true_tree_file='tmp_scaled_true_tree.txt', 
@@ -34,16 +34,41 @@ def get_true_posterior(wishart_file='tmp_covariance_and_multiplier.txt',
     #multiplier=1.0
     print covariance
     #print make_covariance(scale_tree_copy(x[0], multiplier))
-    print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier
-    print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier-covariance
-    print (make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier/covariance
+    t_covariance, t_multiplier= rescale_empirical_covariance(make_covariance(x[0])+x[1])
+    print t_covariance
+    print t_covariance-covariance
+    print (t_covariance)/covariance
+    print (t_covariance/t_multiplier)-covariance/multiplier
+    print (t_covariance/t_multiplier)/(covariance/multiplier)
     avg_scale=mean((make_covariance(scale_tree_copy(x[0],1.0))+x[1])*multiplier/covariance)
     avg_root=get_average_distance_to_root(x[0])
     max_root=get_max_distance_to_root(x[0])
     min_root=get_min_distance_to_root(x[0])
     wishart_df=read_wishart_df_file(wishart_df_file)
-    posterior, multiplier2=initialize_posterior(covariance, M=wishart_df, p=p, use_skewed_distr=use_skewed_distr, multiplier=multiplier, nodes=nodes)
-    return avg_scale, avg_root, max_root, min_root, x[1] #posterior((scale_tree_copy(x[0], multiplier2),x[1]))
+    posterior= posterior_class(covariance, M=wishart_df, p=p, use_skewed_distr=use_skewed_distr, multiplier=multiplier, nodes=nodes)
+    pks={}
+    a=posterior(x, pks)
+    print a
+    prior_val=pks['prior']
+    lik_vals=[posterior.get_likelihood_from_matrix(t_covariance*c) for c in linspace(0.1,2.5,1500)]
+    print lik_vals
+    n=sorted([(v,e) for e,v in enumerate(lik_vals)])[-1][1]
+    print n,linspace(0.1,2.5,1500)[n]
+    print lik_vals[n]
+    print linspace(0.1,2.5,1500)[n]*t_covariance
+    print covariance
+    print t_covariance
+    print posterior.get_likelihood_from_matrix(t_covariance)
+    print sum((covariance-t_covariance)**2)
+    print sum((covariance-t_covariance*linspace(0.1,2.5,1500)[n])**2)
+    t_cov2=deepcopy(t_covariance)
+    t_cov2[3,5]=t_cov2[5,3]=1.6
+    t_cov2[1,2]=t_cov2[2,1]=2.45
+    print t_cov2
+    print posterior.get_likelihood_from_matrix(t_cov2)
+    print posterior.get_likelihood_from_matrix(covariance)
+    print posterior.get_likelihood_from_matrix(covariance*(wishart_df/(wishart_df-covariance.shape[0]-1)))
+    return prior_val+max(lik_vals)
     
 def read_wishart_df_file(filename):
     with open(filename, 'r') as f:
@@ -78,4 +103,4 @@ def read_wishart_file(filename, nodes):
     return covariance, multiplier
             
 if __name__=='__main__':
-    print get_true_posterior()
+    print get_true_posterior(outgroup='outgroup_name')

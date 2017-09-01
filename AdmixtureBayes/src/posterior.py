@@ -1,5 +1,5 @@
 from prior import prior
-from likelihood import likelihood, n_mark
+from likelihood import likelihood, n_mark, likelihood_from_matrix
 from scipy.stats import norm, multivariate_normal
 from math import log
 from generate_prior_trees import generate_phylogeny
@@ -112,6 +112,29 @@ def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplie
         return posterior, multiplier
     return posterior
 
+class posterior_class(object):
+    
+    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None):
+        self.emp_cov=emp_cov
+        self.M=M
+        self.p=p
+        self.use_skewed_distr=use_skewed_distr
+        self.multiplier=multiplier
+        self.nodes=nodes
+        
+    def __call__(self, x, pks={}):
+        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks)
+        if prior_value==-float('inf'):
+            return -float('inf'), prior_value
+        likelihood_value=likelihood(x, self.emp_cov,M=self.M, nodes=self.nodes)
+        pks['prior']=prior_value
+        pks['likelihood']=likelihood_value
+        #pks['posterior']=prior_value+likelihood_value
+        return likelihood_value, prior_value
+    
+    def get_likelihood_from_matrix(self, matrix, pks={}):
+        return likelihood_from_matrix(matrix, self.emp_cov, M=self.M, pks=pks)
+        
 def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     if M is None:
         M=n_mark(emp_cov)

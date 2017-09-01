@@ -28,13 +28,28 @@ def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
         #print emp_cov-add
         #print add
         #print par_cov
-        d=wishart.logpdf(r*M*(emp_cov-add), df=r*M-1, scale= par_cov)
+        d=wishart.logpdf(emp_cov, df=M, scale= (par_cov+add)/M)
     except (ValueError, LinAlgError) as e:
         #print "illegal par_cov matrix or to large add"
         #print e
         return -float("inf")
     return d
-        
+
+def likelihood_from_matrix(matrix, emp_cov, M,  pks={}):
+    pks['covariance']=matrix
+    if matrix is None:
+        print 'illegal tree'
+        return -float('inf')
+    try:
+        #print emp_cov-add
+        #print add
+        #print par_cov
+        d=wishart.logpdf(emp_cov, df=M, scale= matrix/M)
+    except (ValueError, LinAlgError) as e:
+        #print "illegal par_cov matrix or to large add"
+        #print e
+        return -float("inf")
+    return d
     
 
 if __name__=="__main__":

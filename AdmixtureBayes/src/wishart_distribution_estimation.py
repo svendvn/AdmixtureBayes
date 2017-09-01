@@ -13,7 +13,7 @@ def optimize(sample_of_matrices):
     
     def joint_density(df_l, verbose=True):
         df=df_l[0]
-        val=-sum((wishart.logpdf(x, df=r*df-1, scale=mean_wishart/(r*df))  for x in sample_of_matrices))
+        val=-sum((wishart.logpdf(x, df=df, scale=mean_wishart/df)  for x in sample_of_matrices))
         if verbose:
             print df, ':', val
         return val
@@ -63,7 +63,7 @@ def make_covariances(filenames, **kwargs):
     normalisers=[]
     for filename in filenames:
         print filename
-        res=read_data(filename, return_muhat=True, **kwargs)
+        res=read_data(filename,  **kwargs)
         covs.append(res[0])
         normalisers.append(res[1])
     print '-----------------------------------------------------'
@@ -81,11 +81,12 @@ def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=No
 
 if __name__=='__main__':
     from numpy import identity, ones
-    matrix=identity(5)*0.9+ones((5,5))/10
+    matrix=identity(5)*0.9 + ones((5,5))/10
     r=matrix.shape[0]
     df=100
     xs= [wishart.rvs(df=r*df-1, scale=matrix/(r*df)) for _ in xrange(100)]
     #print optimize(xs)
     blocksizes=[250,500,750,1000,1250,1500,1750,2000,2250,2500,2750,3000,3500,4000,4500,5000]
+    blocksizes=[500]
     y=[estimate_degrees_of_freedom('tmp.treemix_in', bootstrap_blocksize=blocksize, reduce_also=True, reducer='out',  blocksize=1000) for blocksize in blocksizes]
     print y

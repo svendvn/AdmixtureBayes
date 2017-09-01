@@ -4,6 +4,7 @@ get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch,
 from math import log, factorial,exp
 from scipy.special import binom 
 import linear_distribution
+from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
 
 def calculate_branch_prior(branches):
     return -sum(branches)
@@ -15,7 +16,7 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}):
     if not all(prop>=0 and prop <=1 for prop in admixtures):
         return -float('inf')
     branches=get_all_branch_lengths(tree)
-    if not all(branch>0 for branch in branches):
+    if not all(branch>=0 for branch in branches):
         return -float('inf')
     branch_prior=calculate_branch_prior(branches)
     no_admix_prior=no_admixes(p, len(admixtures))
@@ -269,7 +270,7 @@ if __name__=='__main__':
         tree=generate_admix_topology(3,1)
         print tree
         pretty_print(tree)
-        print exp(prior(tree)),
+        print exp(prior((tree,0))),
         
     import sys
     sys.exit()

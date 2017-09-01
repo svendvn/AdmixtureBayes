@@ -26,6 +26,7 @@ from scipy.stats import geom, wishart
 from likelihood import n_mark
 import os
 from copy import deepcopy
+from uniform_topological_prior import uniform_topological_prior_function
 
 
 
@@ -296,7 +297,7 @@ def test_topological_prior_density(n,k,sim_length):
         list_of_simulated_trees.append(unique_id)
         if unique_id not in dictionary_of_probabilities:
             print unique_id
-            dictionary_of_probabilities[unique_id]=exp(topological_prior(tree))
+            dictionary_of_probabilities[unique_id]=exp(uniform_topological_prior_function(tree))
     ad,ad2=dictionary_of_probabilities, Counter(list_of_simulated_trees)
     for key, val in ad.items():
         print val, 'vs', float(ad2[key])/sim_length,': ', key
@@ -415,8 +416,8 @@ def trivial_simulation(start_val, reps, thinning_coef=1):
 
 if __name__=='__main__':
     #s_tree=create_trivial_tree(4)
-    
-    marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=10)
+    #test_topological_prior_density
+    #marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=10)
     #marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=100)
     #marginalize_out_data_in_posterior(4, no_trees=50, nsim=100000, wishart_df=1000)
     #topological_support(s_tree)
@@ -424,7 +425,7 @@ if __name__=='__main__':
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    #print test_topological_prior_density(3,3, 500000)
+    print test_topological_prior_density(2,3, 50000)
     #from Rcatalogue_of_trees import tree_good, tree_one_admixture, tree_minimal
     
     #tree2=addadmix(addadmix(addadmix(addadmix(tree_good)[0])[0])[0])[0]

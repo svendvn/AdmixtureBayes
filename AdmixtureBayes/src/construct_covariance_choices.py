@@ -1,6 +1,7 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
 from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, 
-                          tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command)
+                          tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command,
+                          calculate_covariance_matrix2)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
@@ -37,7 +38,7 @@ def theoretical_covariance_wrapper(tree, **kwargs):
         
 def add_wishart_noise(matrix, df):
     r=matrix.shape[0]
-    m=wishart.rvs(df=r*df-1, scale=matrix/(r*df))
+    m=wishart.rvs(df=df, scale=matrix/df)
     return m
 
 def reduce_covariance_wrapper(full_covariance, **kwargs):
@@ -67,15 +68,25 @@ def ms_simulate_wrapper(tree, **kwargs):
     #kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
     print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
-    filename_gz=ms_to_treemix3(kwargs['ms_file'], 
-                   samples_per_pop=kwargs['sample_per_pop'], 
-                   no_pops=no_pops, 
-                   n_reps=kwargs['nreps'], 
-                   filename2=kwargs['treemix_file'],
-                   nodes=kwargs['full_nodes'])
+    if kwargs['via_treemix']:
+        filename_gz=ms_to_treemix3(kwargs['ms_file'], 
+                       samples_per_pop=kwargs['sample_per_pop'], 
+                       no_pops=no_pops, 
+                       n_reps=kwargs['nreps'], 
+                       filename2=kwargs['treemix_file'],
+                       nodes=kwargs['full_nodes'])
+    else:
+        return kwargs['ms_file']
     return filename_gz
 
 def empirical_covariance_wrapper(snp_data_file, **kwargs):
+    if not kwargs['via_treemix']:
+        outgroup_number=any((n for n,e in enumerate(kwargs['full_nodes']) if e==kwargs['reduce_covariance_node']))
+        return calculate_covariance_matrix2(snp_data_file, 
+                                            samples_per_pop=kwargs['sample_per_pop'], 
+                                            no_pops=len(kwargs['full_nodes']), 
+                                            n_reps=kwargs['nreps'],
+                                            outgroup_number= outgroup_number)
     cov=read_data(snp_data_file, 
                      outgroup= '',
                      blocksize=kwargs['blocksize_empirical_covariance'],
@@ -107,6 +118,7 @@ dictionary_of_transformations={
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
     (6,7):empirical_covariance_wrapper,
+    (6,8):empirical_covariance_wrapper,
     (7,8):reduce_covariance_wrapper,
     (7,9):normaliser_wrapper,
     (8,9):normaliser_wrapper
@@ -185,7 +197,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp',
                    t_adjust_tree=False,
-                   final_pop_size=100.0):
+                   final_pop_size=100.0,
+                   via_treemix=True):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -225,6 +238,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['pks']={}
     kwargs['time_adjust']=t_adjust_tree
     kwargs['final_pop_size']=final_pop_size
+    kwargs['via_treemix']=via_treemix
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
@@ -299,10 +313,11 @@ def read_one_line(filename):
     
 if __name__=='__main__':
     #
-    for _ in xrange(100):
-        cov=get_covariance(stages_to_go_through=[4,5,6,7,8,9], input='tmp_true_tree_with_outgroup.txt', full_nodes=['s1','s2','s3','s4','s5','s6','outgroup_name'],
+    for _ in xrange(1):
+        cov=get_covariance(stages_to_go_through=[2,3,4,5,6,7,8,9], input='(6,2)', full_nodes=['s1','s2','s3','s4','s5','s6','outgroup_name'],
                              outgroup_name='outgroup_name', reduce_covariance_node='outgroup_name',
-                             nreps=500, t_adjust_tree=True, scale_tree_factor=0.05, ms_variance_correction=False, final_pop_size= 100.0)
+                             nreps=500, t_adjust_tree=True, scale_tree_factor=0.01, ms_variance_correction=True, via_treemix=True,
+                             add_wishart_noise_to_covariance=False)
         #print 'levels',levels
         import post_analysis
         other= post_analysis.get_true_posterior(outgroup='outgroup_name')
