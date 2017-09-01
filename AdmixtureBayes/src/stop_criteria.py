@@ -4,7 +4,7 @@ import os
 
 class stop_criteria(object):
     
-    def __init__(self, frequency=20000, summaries=['no_admixes']):
+    def __init__(self, frequency=20000, summaries=['no_admixes','average_branch_length','add']):
         self.counter=0
         self.frequency=frequency
         self.summaries=summaries

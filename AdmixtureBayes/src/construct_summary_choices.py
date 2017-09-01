@@ -45,6 +45,6 @@ def get_summary_scheme(majority_tree=False,
         #sample_verbose_scheme_first['prior']=(1,1)
         sample_verbose_scheme_first['no_admixes']=(1,1)
     if no_chains==1:
-        return sample_verbose_scheme_first, summaries
+        return [sample_verbose_scheme_first], summaries
     else:
         return [sample_verbose_scheme_first]+[sample_verbose_scheme]*(no_chains-1), summaries
