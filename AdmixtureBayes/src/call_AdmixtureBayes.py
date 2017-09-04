@@ -20,20 +20,27 @@ os.environ["MKL_NUM_THREADS"] = "1"
 #w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485
 
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
-parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
-parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
-parser.add_argument('--sap_analysis',  action='store_true',default=True, help='skewed admixture proportion prior in the analysis')
-parser.add_argument('--input_file', type=str, default='(8,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+
+#overall options
+parser.add_argument('--input_file', type=str, default='tmp_covariance_and_multiplier.txt', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
-parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
-parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
-parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
 parser.add_argument('--prefix', type=str, default='tmp', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
 
+#covariance matrix options
+parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
+parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
+parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
+parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
+
+#prior options
+parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
+parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
+parser.add_argument('--uniform_prior', action='store_true', default=False, help='If applied a uniform prior will be used on the different topologies.')
+
 #degrees of freedom arguments
-parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
-parser.add_argument('--wishart_df', type=float, default=10000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
+parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 
@@ -58,11 +65,12 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=40, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=400, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='tmp.treemix_in', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
+parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
 
 #chain data collection
 parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
@@ -70,7 +78,7 @@ parser.add_argument('--summary_acceptance_rate', action='store_true', default=Tr
 parser.add_argument('--summary_admixture_proportion_string', action='store_true', default=True, help='this will save a string in each step indicating names and values of all admixture proportions')
 
 #MCMCMC setup
-parser.add_argument('--n', type=int, default=2000, help='the number of MCMCMC flips throughout the chain.')
+parser.add_argument('--n', type=int, default=20000, help='the number of MCMCMC flips throughout the chain.')
 parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
 parser.add_argument('--max_temp', type=float, default=40, help='the maximum temperature used in the MCMCMC.')
 parser.add_argument('--thinning_coef', type=int, default=40, help='the number of iterations between each data recording point.')
@@ -127,7 +135,8 @@ covariance=get_covariance(options.covariance_pipeline,
                           treemix_file=options.treemix_file,
                           ms_variance_correction=options.ms_variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
-                          prefix=prefix)
+                          prefix=prefix,
+                          t_adjust_tree=options.time_adjusted_tree)
 
 no_pops=len(reduced_nodes)
 
@@ -161,9 +170,15 @@ summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summa
 
 sim_lengths=[options.m]*options.n
 if 9 in options.covariance_pipeline:
-    posterior, multiplier=initialize_posterior(covariance[0], M=options.wishart_df, p=options.p, use_skewed_distr=options.sap_analysis, multiplier=covariance[1], nodes=reduced_nodes)
+    posterior, multiplier=initialize_posterior(covariance[0], M=options.wishart_df, p=options.p, 
+                                               use_skewed_distr=options.sap_analysis, 
+                                               multiplier=covariance[1], nodes=reduced_nodes,
+                                               use_uniform_prior=options.uniform_prior)
 else:
-    posterior=initialize_posterior(covariance, M=options.wishart_df, p=options.p, use_skewed_distr=options.sap_analysis, multiplier=None, nodes=reduced_nodes)
+    posterior=initialize_posterior(covariance, M=options.wishart_df, p=options.p, 
+                                   use_skewed_distr=options.sap_analysis, 
+                                   multiplier=None, nodes=reduced_nodes,
+                                   use_uniform_prior=options.uniform_prior)
     multiplier=None
     
 print 'starting_trees', starting_trees

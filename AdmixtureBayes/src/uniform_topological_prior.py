@@ -15,10 +15,10 @@ class uniform_prior(object):
         else:
             A=admixtures
         if len(self.admixture_probabilities)>A:
-            return log(self.admixture_probabilities[A])
+            return log(self.admixture_probabilities[A])-log(2)*A
         else:
             val=self.get_new_probability(A)
-            return log(val)
+            return log(val)-log(2)*A
         
     def get_new_probability(self, A):
         sum=0

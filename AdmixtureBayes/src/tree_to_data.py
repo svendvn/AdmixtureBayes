@@ -25,14 +25,21 @@ def normalise(m):
 def file_to_emp_cov(filename, reduce_column=None, nodes=None):
     dat=[]
     with open(filename, 'r') as f:
-        actual_nodes=f.readline()
+        actual_nodes=f.readline().rstrip().split(" ")
         for l in f.readlines():
             print l
-            dat.append(map(float, l.split()[1:]))
+            n=map(float, l.split()[1:])
+            if len(n)>1:
+                dat.append(n)
     m=array(dat)
+    print m
     mapping={val:key for key, val in enumerate(actual_nodes)}
+    print 'mapping', mapping
+    print 'nodes', nodes
     if nodes is not None:
         new_order=[mapping[node] for node in nodes]
+        print 'new_order', new_order
+        print 'm.shape', m.shape
         m=m[:, new_order][new_order]
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)

@@ -280,12 +280,17 @@ def read_input(stage, input, full_nodes, before_added_outgroup_nodes, after_redu
     if stage==8:
         return read_covariance_matrix(input, after_reduce_nodes)
     if stage==9 : #assuming that it comes in the pair (matrix or matrix filename, multiplier)
-        return (read_covariance_matrix(input[0], full_nodes), input[1])
+        return (read_covariance_matrix(input, after_reduce_nodes), read_multiplier(input))
     assert False, 'The beginning state '+str(stage)+' is unknown.'
+        
+def read_multiplier(input):
+    with open(input, 'r') as f:
+        last_line=f.readlines()[-1]
+        return float(last_line.split("=")[1])
         
 def read_covariance_matrix(input, nodes):
     if isinstance(input, basestring):
-        return file_to_emp_cov(input, nodes)
+        return file_to_emp_cov(input, nodes=nodes)
     else:
         return input
     

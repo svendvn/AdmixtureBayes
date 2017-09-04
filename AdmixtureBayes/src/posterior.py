@@ -96,11 +96,11 @@ def initialize_posterior2(emp_cov=None,
         return posterior, multiplier
     return posterior
 
-def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None):
+def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False):
     def posterior(x,pks={}):
         #print tot_branch_length
         #print get_number_of_leaves(x[0]), emp_cov.shape[0]
-        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks)
+        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks, use_uniform_prior=use_uniform_prior)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         likelihood_value=likelihood(x, emp_cov,M=M, nodes=nodes)
@@ -114,16 +114,17 @@ def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplie
 
 class posterior_class(object):
     
-    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None):
+    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False):
         self.emp_cov=emp_cov
         self.M=M
         self.p=p
         self.use_skewed_distr=use_skewed_distr
         self.multiplier=multiplier
         self.nodes=nodes
+        self.use_uniform_prior=use_uniform_prior
         
     def __call__(self, x, pks={}):
-        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks)
+        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         likelihood_value=likelihood(x, self.emp_cov,M=self.M, nodes=self.nodes)
