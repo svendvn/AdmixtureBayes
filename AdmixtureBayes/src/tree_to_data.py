@@ -362,7 +362,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     muhat=float(total_sum)/float(total_number_of_genes)
     print 'muhat', muhat
     filename2_gz=filename2+'.gz'
-    subprocess.call(['gzip','-f','-k', filename2])
+    subprocess.call(['gzip','-f', filename2])
     return filename2_gz
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
@@ -385,7 +385,7 @@ def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, f
         for s_vec in zip(*sums):
             f.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
     filename2_gz=filename2+'.gz'
-    subprocess.call(['gzip','-f','-k', filename2])
+    subprocess.call(['gzip','-f', filename2])
     return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True)
 
 def trace_from_root(tree, init_freq):

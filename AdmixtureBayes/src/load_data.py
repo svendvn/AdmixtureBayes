@@ -29,7 +29,7 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         args.append('-noss')
     print args
     subprocess.call(args)#, shell=True)
-    args2=['gunzip', '-k', '-f','tmp.cov.gz']
+    args2=['gunzip', '-f','tmp.cov.gz']
     subprocess.call(args2)
     
     with open('tmp.cov', 'r') as f:
@@ -49,7 +49,7 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
     if normalize:
         #uncompressing
         uncompressed_file=filename[:-3]
-        args3=['gunzip', '-k', '-f',filename]
+        args3=['gunzip', '-f',filename]
         subprocess.call(args3)
         muhat=get_muhat(uncompressed_file)
         res=res/muhat #remo
