@@ -24,7 +24,7 @@ parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 #overall options
 parser.add_argument('--input_file', type=str, default='(4,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
-parser.add_argument('--prefix', type=str, default='tmp', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
+parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
 
 #covariance matrix options
@@ -39,10 +39,11 @@ parser.add_argument('--sap_analysis',  action='store_true',default=False, help='
 parser.add_argument('--uniform_prior', action='store_true', default=False, help='If applied a uniform prior will be used on the different topologies.')
 
 #degrees of freedom arguments
-parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
+parser.add_argument('--treemix_out_files', type=str, default="tmp")
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -66,7 +67,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
 parser.add_argument('--nreps', type=int, default=40, help='How many pieces of size 500 kb should be simualted')
-parser.add_argument('--treemix_file', type=str, default='tmp.treemix_in', help= 'the filename of the intermediate step that contains the ms output.')
+parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
@@ -78,7 +79,7 @@ parser.add_argument('--summary_acceptance_rate', action='store_true', default=Tr
 parser.add_argument('--summary_admixture_proportion_string', action='store_true', default=True, help='this will save a string in each step indicating names and values of all admixture proportions')
 
 #MCMCMC setup
-parser.add_argument('--n', type=int, default=20000, help='the number of MCMCMC flips throughout the chain.')
+parser.add_argument('--n', type=int, default=200, help='the number of MCMCMC flips throughout the chain.')
 parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
 parser.add_argument('--max_temp', type=float, default=40, help='the maximum temperature used in the MCMCMC.')
 parser.add_argument('--thinning_coef', type=int, default=40, help='the number of iterations between each data recording point.')
@@ -121,6 +122,14 @@ if options.prefix[-1]!='_':
     prefix=options.prefix+'_'
 else:
     prefix=options.prefix
+    
+if not options.treemix_file:
+    treemix_file=prefix+"treemix_in.txt"
+else:
+    treemix_file=options.treemix_file
+    
+if not options.treemix_out_files:
+    
 
 
 covariance=get_covariance(options.covariance_pipeline, 
@@ -132,7 +141,7 @@ covariance=get_covariance(options.covariance_pipeline,
                           reduce_covariance_node=options.reduce_node,
                           sample_per_pop=options.popsize,
                           nreps=options.nreps,
-                          treemix_file=options.treemix_file,
+                          treemix_file=treemix_file,
                           ms_variance_correction=options.ms_variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
@@ -143,7 +152,7 @@ no_pops=len(reduced_nodes)
 if options.estimate_bootstrap_df:
     assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     reduce_also= (8 in options.covariance_pipeline)
-    wishart_df=estimate_degrees_of_freedom(options.treemix_file, 
+    wishart_df=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            reduce_also=reduce_also,
                                            reducer=options.reduce_node,
@@ -195,7 +204,7 @@ print 'result_file', options.result_file
 print 'options.store_permuts', options.store_permuts
 
 if options.stop_criteria:
-    sc=stop_criteria(frequency=options.stop_criteria_frequency)
+    sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt')
 else:
     sc=None
 

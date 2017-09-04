@@ -22,17 +22,17 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=True, reduce_also=False, reducer='', return_muhat=False):
+def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=False, reducer='', return_muhat=False, outfile='tmp'):
     
-    args=['treemix', '-i', filename, '-o', 'tmp',  '-m', '0','-k', str(blocksize)]
+    args=['treemix', '-i', filename, '-o', outfile,  '-m', '0','-k', str(blocksize)]
     if noss:
         args.append('-noss')
     print args
     subprocess.call(args)#, shell=True)
-    args2=['gunzip', '-f','tmp.cov.gz']
+    args2=['gunzip', '-f',outfile+'.cov.gz']
     subprocess.call(args2)
     
-    with open('tmp.cov', 'r') as f:
+    with open(outfile+'.cov', 'r') as f:
         cats=f.readline().split()
         if nodes==None:
             nodes=cats

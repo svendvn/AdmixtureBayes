@@ -4,10 +4,11 @@ import os
 
 class stop_criteria(object):
     
-    def __init__(self, frequency=20000, summaries=['no_admixes','average_branch_length','add']):
+    def __init__(self, frequency=20000, summaries=['no_admixes','average_branch_length','add'], outfile='tmp_stop_criteria.txt'):
         self.counter=0
         self.frequency=frequency
         self.summaries=summaries
+        self.outfile=outfile
         
         
     def __call__(self, cum_iterations, filename):
@@ -23,14 +24,13 @@ class stop_criteria(object):
     
     def stop_yet(self, filename):
         dir = os.path.dirname(__file__)
-        outfile='tmp_stop_criteria.txt'
-        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, '0.5', outfile]+self.summaries
+        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, '0.5', self.outfile]+self.summaries
         print command
         call(command)
-        return self.check_outfile(outfile)
+        return self.check_outfile()
     
-    def check_outfile(self, filename):
-        with open(filename, 'r') as f:
+    def check_outfile(self):
+        with open(self.outfile, 'r') as f:
             f.readline()
             for lin in f.readlines():
                 ess=float(lin.split()[-1])

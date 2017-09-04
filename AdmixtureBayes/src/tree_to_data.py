@@ -271,7 +271,7 @@ def reduce_covariance(covmat, subtracted_population_index):
     reducer=insert(identity(covmat.shape[0]-1), subtracted_population_index, -1, axis=1)
     return reducer.dot(covmat).dot(reducer.T)
 
-def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
+def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
     with open(filename, 'r') as f:
         with open(filename2, 'w') as e:
             e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
@@ -311,8 +311,8 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                             break
 
     filename2_gz=filename2+'.gz'
-    subprocess.call(['gzip','-f','-k', filename2])
-    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops))
+    subprocess.call(['gzip','-f', filename2])
+    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops), outfile=treemix_files)
 
 
 
@@ -365,7 +365,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     subprocess.call(['gzip','-f', filename2])
     return filename2_gz
     
-def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in'):
+def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
     data=[]
     with open(filename, 'r') as f:
         for r in f.readlines():
@@ -386,7 +386,7 @@ def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, f
             f.write(' '.join([str(s)+','+str(samples_per_pop-s) for s in s_vec])+'\n')
     filename2_gz=filename2+'.gz'
     subprocess.call(['gzip','-f', filename2])
-    return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True)
+    return read_data(filename2_gz, blocksize=10000 ,outgroup='s3', noss=True, outfile=treemix_files)
 
 def trace_from_root(tree, init_freq):
     (child_key1, child_branch1, branch_length1),(child_key1, child_branch1, branch_length1)=find_rooted_nodes(tree)

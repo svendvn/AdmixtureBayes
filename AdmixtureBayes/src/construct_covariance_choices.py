@@ -91,7 +91,8 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
                      outgroup= '',
                      blocksize=kwargs['blocksize_empirical_covariance'],
                      nodes=kwargs['full_nodes'], 
-                     noss=kwargs['ms_variance_correction'])
+                     noss=kwargs['ms_variance_correction'],
+                     outfile=kwargs['treemix_out_files'])
     return cov
     
 def scale_tree_wrapper(tree, **kwargs):
@@ -198,7 +199,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    prefix='tmp',
                    t_adjust_tree=False,
                    final_pop_size=100.0,
-                   via_treemix=True):
+                   via_treemix=True,
+                   treemix_out_files='tmp'):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -216,6 +218,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['add_wishart_noise_to_covariance']=add_wishart_noise_to_covariance
     kwargs['df_of_wishart_noise_to_covariance']=df_of_wishart_noise_to_covariance
     kwargs['full_nodes']=full_nodes
+    kwargs['treemix_out_files']=treemix_out_files
     before_added_outgroup_nodes=deepcopy(full_nodes)
     after_reduce_nodes=deepcopy(full_nodes)
     if outgroup_name is not None and outgroup_name in before_added_outgroup_nodes:
