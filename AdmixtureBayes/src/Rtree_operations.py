@@ -452,6 +452,8 @@ def update_specific_branch_lengths(tree, branches, new_lengths, add=False):
             if tree[key][branch+3]<0:
                 return None
     return tree
+
+
         
 
 def get_all_branch_descendants_and_rest(tree, key,branch):

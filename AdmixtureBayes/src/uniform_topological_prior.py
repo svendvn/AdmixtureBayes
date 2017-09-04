@@ -55,5 +55,5 @@ def uniform_topological_prior_function(tree):
 if __name__ == '__main__':
     from Rcatalogue_of_trees import tree_good
     from math import exp
-    up=uniform_prior(3)
-    print 1.0/exp(up.probability(admixtures=1))
+    up=uniform_prior(2)
+    print 1.0/exp(up.probability(admixtures=3))

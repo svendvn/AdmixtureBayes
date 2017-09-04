@@ -425,7 +425,7 @@ if __name__=='__main__':
      #proposal_support(s_tree, nodes= get_trivial_nodes(15))
     #plot_as_directed_graph(s_tree)
     #wait(1)
-    print test_topological_prior_density(2,3, 50000)
+    print test_topological_prior_density(2,3, 300000)
     #from Rcatalogue_of_trees import tree_good, tree_one_admixture, tree_minimal
     
     #tree2=addadmix(addadmix(addadmix(addadmix(tree_good)[0])[0])[0])[0]

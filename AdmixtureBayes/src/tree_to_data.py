@@ -3,7 +3,7 @@ from scipy.stats import wishart
 from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
                               node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
                               get_real_children_root, get_trivial_nodes, scale_tree_copy, get_leaf_keys,
-                              time_adjust_tree, get_max_timing)
+                              time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt
@@ -70,7 +70,7 @@ def supplementary_text_ms_string():
 
 def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nreps=2, 
                        theta=0.4, sites=500000, recomb_rate=1,
-                       leaf_keys=None, final_pop_size=1.0):
+                       leaf_keys=None, final_pop_size=100.0):
     
     tree=deepcopy(time_adjusted_tree)
     if recomb_rate is None:
@@ -91,8 +91,9 @@ def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nrep
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
                        theta=0.4, sites=500000, recomb_rate=1,
-                       leaf_keys=None):
+                       leaf_keys=None, final_pop_size=100.0):
     tree=deepcopy(rtree)
+    drift_sum=sum(get_all_branch_lengths(tree))
     if recomb_rate is None:
         rec_part=' -s '+str(sites)
     else:
@@ -103,10 +104,14 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     times=get_timing(tree)
     print times
     tree=extend_branch_lengths(tree,times)
+    tuple_branch_lengths=get_all_branch_lengths(tree)
+    count_sum=sum((x[1] for x in tuple_branch_lengths))
+    tree=scaled_tupled_branches(tree, drift_sum/count_sum)
+    times={k:v*drift_sum/count_sum for k,v in times.items()}
     print pretty_string(tree)
     if leaf_keys is None:
         leaf_keys= get_leaf_keys(tree)
-    callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys)
+    callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys, final_pop_size=final_pop_size)
     
     
     #print tree
@@ -114,6 +119,17 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     #pops=[p for l in popsizes for p in l]
     
     return callstring#,(min(pops),max(pops), max(times.values()))  #TO CHANGE BACK
+
+def scaled_tupled_branches(tree, d):
+    '''
+    g
+    '''
+    for key in tree.keys():
+        tree[key][3]=(tree[key][3][0], tree[key][3][1]*d)
+        if tree[key][4] is not None:
+            tree[key][4]=(tree[key][4][0], tree[key][3][1]*d)
+    return tree
+    
     
 def extend_branch_lengths(tree, times):
     for key, node in tree.items():
@@ -149,7 +165,7 @@ def construct_ej_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     return res_string
 
 
-def construct_ej_en_es_string(tree, times, leaf_keys):
+def construct_ej_en_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     s_times=sorted([(v,k) for k,v in times.items()])
     dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
     print dic_of_lineages
@@ -160,7 +176,7 @@ def construct_ej_en_es_string(tree, times, leaf_keys):
             i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
             res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
             dic_of_lineages[(key,0)]=j
-            pop_size=1.0#calculate_pop_size(node[3])
+            pop_size=final_pop_size
             res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
             break
         node=tree[key]
@@ -402,8 +418,11 @@ if __name__=='__main__':
     print pretty_string(tree2)
     print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()
-    print time_adjusted_tree_to_ms_command(tree_good, 50,20)
-    print call_ms_string(supplementary_text_ms_string(), 'supp.txt')
+    tree_good=generate_phylogeny(7)
+    a=tree_to_ms_command(tree_good, 50,20)
+    print call_ms_string(a, 'supp.txt')
+    b=time_adjusted_tree_to_ms_command(tree_good,50,20)
+    print call_ms_string(b, 'supp2.txt')
     #print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
     #cov= ms_to_treemix2('tmp.txt', 50, 5,20)
