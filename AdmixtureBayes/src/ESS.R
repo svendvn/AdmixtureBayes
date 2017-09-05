@@ -16,7 +16,7 @@ colnames(dfa) <- summaries
 df2=apply(dfa,c(1,2),as.numeric)
 
 all_nums=function(df){
-  mcmcobj=mcmc(df[(floor(proportion*nrow(df))):nrow(df)])
+  mcmcobj=mcmc(df[(floor(proportion*nrow(df))):nrow(df),])
   res_df=data.frame(summary=colnames(df))
   res_df$ESS=effectiveSize(mcmcobj)
   return(res_df)
