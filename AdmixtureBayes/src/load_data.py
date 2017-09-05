@@ -29,7 +29,10 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         args.append('-noss')
     print args
     subprocess.call(args)#, shell=True)
+    args2=['cp', outfile+'.cov', outfile+'.cov.tmp',';','gunzip', '-f',outfile+'.cov.gz', ';', 'mv', outfile+'.cov.tmp', outfile+'.cov']
     args2=['gunzip', '-f',outfile+'.cov.gz']
+    
+    print 'args2', args2
     subprocess.call(args2)
     
     with open(outfile+'.cov', 'r') as f:

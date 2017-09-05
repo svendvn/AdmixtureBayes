@@ -43,7 +43,6 @@ parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True
 parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
-parser.add_argument('--treemix_out_files', type=str, default="tmp")
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -66,7 +65,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=40, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=200, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
@@ -123,13 +122,8 @@ if options.prefix[-1]!='_':
 else:
     prefix=options.prefix
     
-if not options.treemix_file:
-    treemix_file=prefix+"treemix_in.txt"
-else:
-    treemix_file=options.treemix_file
-    
-if not options.treemix_out_files:
-    
+treemix_file=prefix+"treemix_in.txt" 
+treemix_out_files=prefix+'treemix_out'
 
 
 covariance=get_covariance(options.covariance_pipeline, 
@@ -142,6 +136,7 @@ covariance=get_covariance(options.covariance_pipeline,
                           sample_per_pop=options.popsize,
                           nreps=options.nreps,
                           treemix_file=treemix_file,
+                          treemix_out_files=treemix_out_files,
                           ms_variance_correction=options.ms_variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
@@ -156,7 +151,8 @@ if options.estimate_bootstrap_df:
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            reduce_also=reduce_also,
                                            reducer=options.reduce_node,
-                                           no_bootstrap_samples=options.no_bootstrap_samples)
+                                           no_bootstrap_samples=options.no_bootstrap_samples,
+                                           outfile=treemix_out_files)
 else:
     wishart_df=options.wishart_df
     

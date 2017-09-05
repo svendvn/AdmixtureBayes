@@ -362,7 +362,10 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     muhat=float(total_sum)/float(total_number_of_genes)
     print 'muhat', muhat
     filename2_gz=filename2+'.gz'
-    subprocess.call(['gzip','-f', filename2])
+    print filename2
+    args=[['cp', '-T', filename2, filename2+'.tmp'],['gzip','-f', filename2], ['mv', filename2+'.tmp', filename2]]
+    for arg in args:
+        subprocess.call(arg)
     return filename2_gz
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):

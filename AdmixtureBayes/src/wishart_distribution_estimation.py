@@ -54,7 +54,7 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
             for i in bootstrap_inds:
                 g.writelines(line_sets[i])
         new_filename_gz=new_filename+'.gz'
-        subprocess.call(['gzip','-f','-k', new_filename])
+        subprocess.call(['gzip','-f', new_filename])
         filenames.append(new_filename_gz)
     return filenames, first_line.split()
                 
@@ -73,6 +73,7 @@ def make_covariances(filenames, **kwargs):
 
 def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=None, no_bootstrap_samples=None, **kwargs):
     filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
+    print filenames
     covs=make_covariances(filenames, nodes=nodes, **kwargs)
     return optimize(covs)
     
@@ -80,6 +81,8 @@ def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=No
 
 
 if __name__=='__main__':
+    f=estimate_degrees_of_freedom('sletmig/_treemix_in.txt')
+    print 'f',f
     from numpy import identity, ones
     matrix=identity(5)*0.9 + ones((5,5))/10
     r=matrix.shape[0]
@@ -88,5 +91,5 @@ if __name__=='__main__':
     #print optimize(xs)
     blocksizes=[250,500,750,1000,1250,1500,1750,2000,2250,2500,2750,3000,3500,4000,4500,5000]
     blocksizes=[500]
-    y=[estimate_degrees_of_freedom('tmp.treemix_in', bootstrap_blocksize=blocksize, reduce_also=True, reducer='out',  blocksize=1000) for blocksize in blocksizes]
+    y=[estimate_degrees_of_freedom('sletmig/_treemix_in.txt', bootstrap_blocksize=blocksize, reduce_also=True, reducer='out',  blocksize=1000) for blocksize in blocksizes]
     print y
