@@ -22,7 +22,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 
 #overall options
-parser.add_argument('--input_file', type=str, default='(4,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+parser.add_argument('--input_file', type=str, default='(8,0)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
@@ -65,7 +65,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=200, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=40, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
@@ -222,7 +222,7 @@ def f():
     
 def g():
     basic_chain(start_x= starting_trees[0],
-                summaries=summaries,
+                summ20aries=summaries,
                 posterior_function=posterior,
                 proposal=mp[0],
                 post=None,

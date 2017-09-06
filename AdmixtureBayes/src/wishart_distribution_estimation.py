@@ -1,14 +1,21 @@
 from scipy.stats import wishart
 from numpy import mean
+from numpy.linalg import det, matrix_rank
 from scipy.optimize import minimize
 from load_data import read_data
 import subprocess
 from numpy.random import choice
+from tree_to_data import treemix_to_cov
+
 
 
 def optimize(sample_of_matrices):
     
-    mean_wishart= mean(sample_of_matrices, axis=0)
+    mean_wishart=  mean(sample_of_matrices, axis=0)
+    print [det(s) for s in sample_of_matrices]
+    print 'mean_wishart', mean_wishart
+    print det(mean_wishart)
+    print matrix_rank(mean_wishart)
     r=mean_wishart.shape[0]
     
     def joint_density(df_l, verbose=True):
@@ -60,36 +67,33 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
                 
 def make_covariances(filenames, **kwargs):
     covs=[]
-    normalisers=[]
     for filename in filenames:
         print filename
-        res=read_data(filename,  **kwargs)
-        covs.append(res[0])
-        normalisers.append(res[1])
-    print '-----------------------------------------------------'
-    print 'Normalisers='
-    print normalisers
+        res=treemix_to_cov(filename,  **kwargs)
+        covs.append(res*100)
     return covs
 
-def estimate_degrees_of_freedom(filename, bootstrap_blocksize=1000, no_blocks=None, no_bootstrap_samples=None, **kwargs):
+def estimate_degrees_of_freedom(filename, bootstrap_blocksize=100, no_blocks=None, no_bootstrap_samples=10, **kwargs):
     filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
+    print 'nodes', nodes
     print filenames
     covs=make_covariances(filenames, nodes=nodes, **kwargs)
+    print covs[1]
     return optimize(covs)
     
 
 
 
 if __name__=='__main__':
-    f=estimate_degrees_of_freedom('sletmig/_treemix_in.txt')
+    f=estimate_degrees_of_freedom('sletmig/_treemix_in.txt', reduce_also=True, reducer='out', blocksize=100)
     print 'f',f
-    from numpy import identity, ones
-    matrix=identity(5)*0.9 + ones((5,5))/10
-    r=matrix.shape[0]
-    df=100
-    xs= [wishart.rvs(df=r*df-1, scale=matrix/(r*df)) for _ in xrange(100)]
+    #from numpy import identity, ones
+    #matrix=identity(5)*0.9 + ones((5,5))/10
+    #r=matrix.shape[0]
+    #df=100
+    #xs= [wishart.rvs(df=r*df-1, scale=matrix/(r*df)) for _ in xrange(100)]
     #print optimize(xs)
-    blocksizes=[250,500,750,1000,1250,1500,1750,2000,2250,2500,2750,3000,3500,4000,4500,5000]
-    blocksizes=[500]
-    y=[estimate_degrees_of_freedom('sletmig/_treemix_in.txt', bootstrap_blocksize=blocksize, reduce_also=True, reducer='out',  blocksize=1000) for blocksize in blocksizes]
-    print y
+    #blocksizes=[250,500,750,1000,1250,1500,1750,2000,2250,2500,2750,3000,3500,4000,4500,5000]
+    #blocksizes=[500]
+    #y=[estimate_degrees_of_freedom('sletmig/_treemix_in.txt', bootstrap_blocksize=blocksize, reduce_also=True, reducer='out',  blocksize=1000) for blocksize in blocksizes]
+    #print y

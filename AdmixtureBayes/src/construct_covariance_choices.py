@@ -88,7 +88,6 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
                                             n_reps=kwargs['nreps'],
                                             outgroup_number= outgroup_number)
     cov=read_data(snp_data_file, 
-                     outgroup= '',
                      blocksize=kwargs['blocksize_empirical_covariance'],
                      nodes=kwargs['full_nodes'], 
                      noss=kwargs['ms_variance_correction'],

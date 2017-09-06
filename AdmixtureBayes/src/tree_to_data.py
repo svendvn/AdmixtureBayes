@@ -253,9 +253,9 @@ def calculate_covariance_matrix2(file='tmp.txt', samples_per_pop=20, no_pops=4, 
     new_data=[data[i:(i+samples_per_pop*no_pops)] for i in range(0,len(data),samples_per_pop*no_pops)]
     m=map(array, new_data)
     m=hstack(new_data)
-    print m.shape
+    #print m.shape
     #alpha=0.05
-    outgroup_alleles=mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
+    outgroup_alleles=mean(m,axis=0)#mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
     #other_alleles=mean(m[:outgroup_number*samples_per_pop], axis=0)/2+mean(m[(outgroup_number+1)*samples_per_pop:], axis=0)/2
     #sroot_homozygocity=sqrt(outgroup_alleles*(1.0-outgroup_alleles))
     #indices_of_positivity=[i for i,(s,o) in enumerate(zip(outgroup_alleles,other_alleles)) if s>alpha and s<(1.0-alpha) and o>alpha and o<(1.0-alpha)]
@@ -265,6 +265,10 @@ def calculate_covariance_matrix2(file='tmp.txt', samples_per_pop=20, no_pops=4, 
     ps=tuple([(mean(m[(i*samples_per_pop):((i+1)*samples_per_pop),  ], axis=0)-outgroup_alleles) for i in xrange(no_pops)])
     p=vstack(ps)
     e_cov=cov(p)
+    e_cov2=p.dot(p.T)/p.shape[1]
+    #print 'e_cov2', e_cov2
+    #print 'e_cov', e_cov
+    e_cov=reduce_covariance(e_cov2, outgroup_number)
     return e_cov
 
 def reduce_covariance(covmat, subtracted_population_index):
@@ -314,6 +318,50 @@ def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     subprocess.call(['gzip','-f', filename2])
     return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops), outfile=treemix_files)
 
+def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also=False, reducer='', noss='not implemented', blocksize='unused', nodes=None):
+    
+    #unzip
+    take_copy_args=['cp', filename, filename+".tmp"]
+    move_back_args=['mv', filename+'.tmp', filename]
+    args=['gunzip', '-f', filename]
+    new_filename='.'.join(filename.split('.')[:-1])
+    subprocess.call(take_copy_args)
+    subprocess.call(args)
+    subprocess.call(move_back_args)
+    
+    with open(new_filename, 'r') as f:
+        names=f.readline().split()
+        allele_counts=[]
+        for r in f.readlines():
+            minor_majors=r.split()
+            freqs=[]
+            for minor_major in minor_majors:
+                minor, major= map(float,minor_major.split(','))
+                freqs.append(float(minor)/float(major+minor))
+            allele_counts.append(freqs)
+    p=array(allele_counts)
+    p=p.T
+    
+    mapping={val:key for key, val in enumerate(names)}
+    if nodes is None:
+        nodes=names
+    new_order=[mapping[node] for node in nodes]
+    p=p[new_order,:]
+    
+    if reduce_also:
+        n_outgroup=next((n for n, e in enumerate(names) if e==reducer))
+        print n_outgroup
+        p=p-p[n_outgroup,:]
+    m=p.dot(p.T)/p.shape[1]
+    #print m
+    
+    
+    if reduce_also:
+        m=reduce_covariance(m, n_outgroup)
+    return m
+    
+        
+    
 
 
 def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None):
@@ -423,9 +471,9 @@ if __name__=='__main__':
     print supplementary_text_ms_string()
     tree_good=generate_phylogeny(7)
     a=tree_to_ms_command(tree_good, 50,20)
-    print call_ms_string(a, 'supp.txt')
+    #print call_ms_string(a, 'supp.txt')
     b=time_adjusted_tree_to_ms_command(tree_good,50,20)
-    print call_ms_string(b, 'supp2.txt')
+    #print call_ms_string(b, 'supp2.txt')
     #print call_ms_string(tree_to_ms_command(tree2, 50,20), 'tmp.txt')
     #cov= ms_to_treemix2('supp.txt', 20, 20,400)
     #cov= ms_to_treemix2('tmp.txt', 50, 5,20)
@@ -436,4 +484,50 @@ if __name__=='__main__':
     #print reduce_covariance(cov, 0)
     #print reduce_covariance(cov2, 0)
     #print reduce_covariance(make_covariance(tree2),0)
+    
+#     call_ms_string(a, 'sletmig/_ms_file.txt')
+#     b1=calculate_covariance_matrix2('sletmig/_ms_file.txt', 50,7,20,0)
+#     ms_to_treemix3('sletmig/_ms_file.txt', 50,7,20, filename2='sletmig/tmp_treemix_in.txt')
+#     b2=read_data('sletmig/tmp_treemix_in.txt.gz', blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=True, reducer='s1', return_muhat=False, outfile='tmp')
+#     b3=treemix_to_cov('sletmig/tmp_treemix_in.txt.gz', 'outfile', True, 's1', noss=False, blocksize=None)
+# 
+# 
+#     
+#     c3=calculate_covariance_matrix2('sletmig/_ms.txt', 20,9,100,8)
+#     
+#     
+#     from numpy import set_printoptions
+#     set_printoptions(precision=4, suppress=True)
+#     from load_data import read_data
+#     cs=[read_data('sletmig/_treemix_in86.txt.gz', blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=True, reducer=i, return_muhat=False, outfile='tmp') for i in range(9)]
+#     c2=treemix_to_cov('sletmig/_treemix_in86.txt.gz', 'outfile', True, 'out', noss=False, blocksize=None)
+#     
+#     print b2
+#     print b3
+#     print b1
+#     
+#     print c2
+#     print c3
+#     for c in cs:
+#         print c
+        
+    testdata=['0010','\n','0011','\n','0000','\n','1110','\n','1000','\n','1100','\n','1100','\n','1111','\n','0111']
+    snp_file=['0,3 3,0 2,1','\n','0,3 2,1 3,0', '\n', '2,1 1,2 2,1','\n','1,2 0,3 2,1']
+    with open('sletmig/ms.txt', 'w') as f:
+        for a in testdata:
+            f.write(a)
+    with open('sletmig/treemix_in.txt' , 'w') as f:
+        f.write('s1 s2 out'+'\n')
+        for a in snp_file:
+            f.write(a)
+    subprocess.call(['gzip', '-f','-k', 'sletmig/treemix_in.txt'])
+    b1=calculate_covariance_matrix2('sletmig/ms.txt', 3,3,1,2)
+    b2=[read_data('sletmig/treemix_in.txt.gz', blocksize=4, nodes=['out','s1','s2'], noss=True, normalize=False, reduce_also=True, reducer=i, return_muhat=False, outfile='tmp') for i in range(3)]
+    b3=treemix_to_cov('sletmig/treemix_in.txt.gz', 'outfile', True, 'out', noss=False, blocksize=None)
+
+    for b in b2:
+        print b
+    print b3
+    print b1
+    
     

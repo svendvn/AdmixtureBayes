@@ -1,5 +1,5 @@
 import subprocess
-from numpy import ix_, array
+from numpy import ix_, array, set_printoptions
 from reduce_covariance import reduce_covariance
 
 def split_around_delimiter(text, delimiter=','):
@@ -22,31 +22,31 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=False, reducer='', return_muhat=False, outfile='tmp'):
+def read_data(filename, blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=False, reducer='', return_muhat=False, outfile='tmp'):
     
     args=['treemix', '-i', filename, '-o', outfile,  '-m', '0','-k', str(blocksize)]
     if noss:
         args.append('-noss')
-    print args
+    #print args
     subprocess.call(args)#, shell=True)
     args2=['cp', outfile+'.cov', outfile+'.cov.tmp',';','gunzip', '-f',outfile+'.cov.gz', ';', 'mv', outfile+'.cov.tmp', outfile+'.cov']
     args2=['gunzip', '-f',outfile+'.cov.gz']
     
-    print 'args2', args2
+    #print 'args2', args2
     subprocess.call(args2)
     
     with open(outfile+'.cov', 'r') as f:
         cats=f.readline().split()
-        if nodes==None:
+        if nodes is None:
             nodes=cats
         res=[]
         for l in f.readlines():
             numbers=map(float,l.split()[1:])
             res.append(numbers)
-            
+    set_printoptions(precision=4, suppress=True)        
     mapping={val:key for key, val in enumerate(cats)}
-    print nodes
-    print mapping
+    #print nodes
+    #print mapping
     new_order=[mapping[node] for node in nodes]
     res=array(res)
     if normalize:
@@ -57,14 +57,16 @@ def read_data(filename, outgroup='', blocksize=1, nodes=None, noss=False, normal
         muhat=get_muhat(uncompressed_file)
         res=res/muhat #remo
     res=res[:,new_order][new_order]
+    #print res
     
     if reduce_also:
         if isinstance(reducer, basestring):
             reduce_index=mapping[reducer]
         else:
             reduce_index=reducer
+        print 'reduce index', reduce_index, 'of', cats
         res=reduce_covariance(res, reduce_index)
-    
+    #print res
     if return_muhat:   
         return res, muhat
     return res
