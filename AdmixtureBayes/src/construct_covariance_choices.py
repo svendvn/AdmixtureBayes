@@ -3,6 +3,7 @@ from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, ca
                           tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command,
                           calculate_covariance_matrix2)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
+from generate_sadmix_trees import generate_sadmix_tree
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
@@ -16,6 +17,8 @@ import time
 
 
 def simulate_tree_wrapper(nk_tuple, **kwargs):
+    if kwargs['sadmix']:
+        return generate_sadmix_tree(nk_tuple[0], no_sadmixes=nk_tuple[1], nodes=kwargs['before_added_outgroup_nodes'], starting_admixes=0)
     return generate_phylogeny(size= nk_tuple[0], 
                               admixes=nk_tuple[1], 
                               leaf_nodes= kwargs['before_added_outgroup_nodes'], 
@@ -199,7 +202,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    t_adjust_tree=False,
                    final_pop_size=100.0,
                    via_treemix=True,
-                   treemix_out_files='tmp'):
+                   treemix_out_files='tmp',
+                   sadmix=False):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -218,6 +222,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['df_of_wishart_noise_to_covariance']=df_of_wishart_noise_to_covariance
     kwargs['full_nodes']=full_nodes
     kwargs['treemix_out_files']=treemix_out_files
+    kwargs['sadmix']=sadmix
     before_added_outgroup_nodes=deepcopy(full_nodes)
     after_reduce_nodes=deepcopy(full_nodes)
     if outgroup_name is not None and outgroup_name in before_added_outgroup_nodes:

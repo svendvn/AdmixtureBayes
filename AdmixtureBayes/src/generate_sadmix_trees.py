@@ -23,21 +23,21 @@ def add_sadmixes(tree, final_no_sadmixes):
     k=get_number_of_admixes(tree)
     n=get_number_of_leaves(tree)
     maxrank=n*(n+1)/2
-    print pretty_string(tree)
+    #print pretty_string(tree)
     for i in range(k,final_no_sadmixes):
         pops=get_rank(tree)
         assert pops<maxrank, 'Admixture event number '+str(i+1)+' cant be added because the model is already maxed out'
         names=['sad'+str(i)+'a','sad'+str(i)+'b']
         candidate_tree,_,_=addadmix(tree,new_node_names=names, preserve_root_distance=False)
         candidate_pops=get_rank(candidate_tree)
-        print 'cand_res', candidate_pops, pops
+        #print 'cand_res', candidate_pops, pops
         while candidate_pops<=pops:
-            print 'rejected addition'
+            #print 'rejected addition'
             candidate_tree,_,_=addadmix(tree,new_node_names=names, preserve_root_distance=False)
             candidate_pops=get_rank(candidate_tree)
-            print 'cand_res', candidate_pops, pops
+            #print 'cand_res', candidate_pops, pops
         tree=candidate_tree
-        print '----------'
+        #print '----------'
         print pretty_string(tree)
         
     return tree
@@ -69,5 +69,5 @@ def admixes_are_sadmixes(tree):
             
 if __name__=='__main__':
     from Rtree_operations import pretty_string
-    t=generate_sadmix_tree(4,4)
+    t=generate_sadmix_tree(10,7)
     print pretty_string(t)
