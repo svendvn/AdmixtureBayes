@@ -71,6 +71,7 @@ parser.add_argument('--ms_variance_correction', default=False, action='store_tru
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
+parser.add_argument('--sadmix_tree', default=True, action='store_true', help='this will simulate trees where all admixture events are important in the sense that they expand the space of possible covariance matrices.')
 
 #chain data collection
 parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
@@ -80,11 +81,11 @@ parser.add_argument('--summary_admixture_proportion_string', action='store_true'
 #MCMCMC setup
 parser.add_argument('--n', type=int, default=200, help='the number of MCMCMC flips throughout the chain.')
 parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
-parser.add_argument('--max_temp', type=float, default=40, help='the maximum temperature used in the MCMCMC.')
+parser.add_argument('--max_temp', type=float, default=100, help='the maximum temperature used in the MCMCMC.')
 parser.add_argument('--thinning_coef', type=int, default=40, help='the number of iterations between each data recording point.')
 parser.add_argument('--store_permuts', action='store_true', default=False, help='If applied, the permutations from the MCMCMC flips are recorded in a file with a similar filename to the result_file')
 parser.add_argument('--stop_criteria', action='store_true', default=True, help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at ')
-parser.add_argument('--stop_criteria_frequency', type=int, default=20000, help='This tells the frequency of checking for when the stop criteria are checked (if the stop_criteria flag is turned on)')
+parser.add_argument('--stop_criteria_frequency', type=int, default=200000, help='This tells the frequency of checking for when the stop criteria are checked (if the stop_criteria flag is turned on)')
 
 options=parser.parse_args()
 
@@ -140,7 +141,8 @@ covariance=get_covariance(options.covariance_pipeline,
                           ms_variance_correction=options.ms_variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
-                          t_adjust_tree=options.time_adjusted_tree)
+                          t_adjust_tree=options.time_adjusted_tree,
+                          sadmix=options.sadmix_tree)
 
 no_pops=len(reduced_nodes)
 

@@ -13,6 +13,9 @@ class Population:
         self.weights=weights
         self.members=members
         
+    def get_population_string(self):
+        return '.'.join(sorted(self.members))
+        
     def remove_partition(self, weight):
         #print "weight",weight
         #print "self.weight",self.weights
@@ -166,6 +169,39 @@ def make_covariance(tree, node_keys=None, old_cov=False):
 
     return covmat.get_matrix()
 
+class dummy_covmat(object):
+    
+    def update(self, *args, **kwargs):
+        pass
+        
+
+def get_populations(tree):
+    node_keys=sorted(get_leaf_keys(tree))
+    pops=[Population([1.0],[node]) for node in node_keys]
+    ready_nodes=zip(node_keys,pops)
+    waiting_nodes={}
+    taken_nodes=[]
+    covmat=dummy_covmat()
+    pop_strings=[]
+    while True:
+        for key,pop in ready_nodes:
+            pop_strings.append(pop.get_population_string())
+            upds=leave_node(key, tree[key], pop, covmat)
+            for upd in upds:
+                waiting_nodes=_add_to_waiting(waiting_nodes, upd,tree)
+            taken_nodes.append(key)
+        waiting_nodes,ready_nodes=_thin_out_dic(waiting_nodes, taken_nodes[:])
+        #print 'waiting_nodes', waiting_nodes
+        #print 'ready_nodes', ready_nodes
+        #print 'taken_nodes', taken_nodes
+        if len(ready_nodes)==0:
+            return None
+        if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
+            big_pop=ready_nodes[0][1]
+            pop_strings.append(big_pop.get_population_string())
+            break
+
+    return sorted(list(set(pop_strings)))
                  
             
             
@@ -291,6 +327,11 @@ if __name__=="__main__":
                     print r1[i,j],r2[i,j],r1[i,j]-r2[i,j]
                     return False
         return True
+    
+    print get_populations(tree_on_the_border2)
+        
+    import sys
+    sys.exit()
         
         
     for _ in xrange(300):
@@ -305,8 +346,7 @@ if __name__=="__main__":
             print r2
             break
         
-    import sys
-    sys.exit()
+    
         
     N=40
     tree=create_burled_leaved_tree(N,1)

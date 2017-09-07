@@ -2,6 +2,7 @@ from Rtree_operations import get_leaf_keys, get_all_branches, node_is_non_admixt
 from numpy import zeros, insert
 from Rtree_to_covariance_matrix import Population, _add_to_waiting, _full_node, _merge_pops, _thin_out_dic
 from scipy.linalg import svd
+from numpy.linalg import matrix_rank 
 
 
 
@@ -53,6 +54,14 @@ def get_orthogonal_branch_space(tree, add_one_column=True):
     #print cof
     ad=nullspace(cof)
     return ad, bi, cof.T
+
+def get_rank(tree):
+    '''
+    the rank of a tree is the rank of the coefficient matrix
+    '''
+    coef,_,_=make_coefficient_matrix(tree)
+    r=matrix_rank(coef)
+    return r
     
     
     
