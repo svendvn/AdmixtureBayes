@@ -39,7 +39,7 @@ parser.add_argument('--sap_analysis',  action='store_true',default=False, help='
 parser.add_argument('--uniform_prior', action='store_true', default=False, help='If applied a uniform prior will be used on the different topologies.')
 
 #degrees of freedom arguments
-parser.add_argument('--estimate_bootstrap_df', action='store_true', default=True, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
 parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
