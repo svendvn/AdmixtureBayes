@@ -23,6 +23,11 @@ def save_tree(tree, filename):
     with open(filename, 'w') as f:
         f.write(tree)
 
+def save_tree_and_nodes(tree, filename, nodes):
+    with open(filename, 'w') as f:
+        f.write(' '.join(nodes)+'\n')
+        f.write(tree)
+
 def load_tree(filename):
     with open(filename, 'r') as f:
         ls=f.readlines()

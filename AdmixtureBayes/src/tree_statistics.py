@@ -5,6 +5,7 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               pretty_print, get_admixture_keys_and_proportions)
 from copy import deepcopy
 from prior import matchmake
+from numpy.random import random
 #import bidict
 import collections
 #from tree_plotting import plot_graph, plot_as_directed_graph
@@ -213,6 +214,13 @@ class same_number(object):
     
     def __call__(self):
         return self.value
+
+class uniform_generator(object):
+    
+    def __call__(self):
+        return random()
+       
+    
     
 class bifacturing_tree(object):
     
@@ -508,8 +516,11 @@ def identifier_to_tree_clean(identifier, **kwargs):
                                    **kwargs)
     return tree_good2
 
-def topological_identifier_to_tree_clean(identifier):
-    tree_good2= identifier_to_tree(identifier)
+def topological_identifier_to_tree_clean(identifier, **kwargs):
+    tree_good2= identifier_to_tree(identifier,
+                                   branch_lengths=uniform_generator(),
+                                   admixture_proportions=uniform_generator(),
+                                   **kwargs)
     return tree_good2
 
 def unique_identifier_and_branch_lengths(tree, leaf_order=None):

@@ -1,4 +1,4 @@
-from Rtree_operations import get_leaf_keys, get_all_branches, node_is_non_admixture
+from Rtree_operations import get_leaf_keys, get_all_branches, node_is_non_admixture, get_number_of_leaves
 from numpy import zeros, insert
 from Rtree_to_covariance_matrix import Population, _add_to_waiting, _full_node, _merge_pops, _thin_out_dic
 from scipy.linalg import svd
@@ -55,13 +55,29 @@ def get_orthogonal_branch_space(tree, add_one_column=True):
     ad=nullspace(cof)
     return ad, bi, cof.T
 
-def get_rank(tree):
+def get_rank(tree, add_one_column=True):
     '''
     the rank of a tree is the rank of the coefficient matrix
     '''
     coef,_,_=make_coefficient_matrix(tree)
+    if add_one_column:
+        coef=insert(coef, coef.shape[1], 1, axis=1)
+    n=get_number_of_leaves(tree)
     r=matrix_rank(coef)
     return r
+
+def get_numbers(tree, add_one_column=True):
+    '''
+    the rank of a tree is the rank of the coefficient matrix
+    '''
+    n=get_number_of_leaves(tree)
+    max_rank=n*(n+1)/2
+    min_rank=2*n-1
+    coef,_,_=make_coefficient_matrix(tree)
+    if add_one_column:
+        coef=insert(coef, coef.shape[1], 1, axis=1)
+    r=matrix_rank(coef)
+    return min_rank, r, max_rank
     
     
     

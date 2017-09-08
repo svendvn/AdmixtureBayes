@@ -1,7 +1,7 @@
 from Rtree_operations import update_all_admixtures, get_number_of_admixes, get_specific_branch_lengths, get_leaf_keys, update_specific_branch_lengths
 from copy import deepcopy
 from numpy.random import normal
-from math import sqrt
+from math import sqrt, exp
 from numpy.linalg.linalg import pinv
 from numpy.linalg import matrix_rank
 from Rtree_to_coefficient_matrix import make_coefficient_matrix
@@ -19,7 +19,7 @@ class updater(object):
     def __call__(self):
         return normal(scale=self.sigma)
 
-def rescale_admix_correction(tree, sigma=0.01, pks={}, make_correction=True):
+def rescale_admix_correction(tree, sigma=0.01, pks={}, make_correction=True, return_without_correction=False):
     k=get_number_of_admixes(tree)
     pks['rescale_admix_correction_adap_param']=sigma
     new_tree=deepcopy(tree)
@@ -31,12 +31,15 @@ def rescale_admix_correction(tree, sigma=0.01, pks={}, make_correction=True):
     else:
         return new_tree,1,0.234 #not to have to deal with the admix=0 case, I return 0.234 such that the adaptive parameter is not affected by these special cases.
     if make_correction:
-        new_tree, qforward, qbackward = getcorrection(tree, new_tree,0.1/64)
+        untouched_tree=deepcopy(new_tree)
+        new_tree, qforward, qbackward = getcorrection(tree, new_tree,sigma/20)
     else:
         qforward=qbackward=1.0
     if new_tree is None:
         return tree, 1,0
-    return new_tree ,qforward, qbackward
+    if return_without_correction:
+        return new_tree ,qforward, qbackward, untouched_tree
+    return new_tree ,qforward, qbackward#, untouched_tree
 
 def mm(U,L,initial_value, tol=0.00000001):
     x_old=deepcopy(initial_value)
@@ -74,7 +77,7 @@ def getcorrection(old_tree, new_tree,sigma):
     
     x_new=mu_new+norm.rvs(scale=sigma, size= len(mu_new))
     
-    q_forward=reduce(mul, norm.pdf(mu_new-x_new, scale=sigma))
+    q_forward=sum(norm.logpdf(mu_new-x_new, scale=sigma))
     
     upper_reverse=x_new.dot((A.T.dot(B)+identity(len(branches))))
     lower_first_reverse=B.T.dot(B)+identity(len(branches))
@@ -85,7 +88,7 @@ def getcorrection(old_tree, new_tree,sigma):
     #print 'matrix_rank , dimension (B)', matrix_rank(B), B.shape
     #print 'x_reverse', reverse_mu_new
     
-    q_backward=reduce(mul, norm.pdf(mu_reverse-x_A, scale=sigma))
+    q_backward=sum(norm.logpdf(mu_reverse-x_A, scale=sigma))
 
     #wear the new values
     #print branches
@@ -98,7 +101,7 @@ def getcorrection(old_tree, new_tree,sigma):
 
 
 
-    return new_tree, q_forward, q_backward
+    return new_tree, 1.0, exp(q_backward-q_forward)
     
     
 def reverse_dic_to_list(dic):
@@ -137,7 +140,7 @@ if __name__=='__main__':
     bl=likelihood((tree,0), before_covariance, M=10000, nodes=nodes)
     print 'before covariance', bl
     for _ in xrange(1):
-        new_tree,f,b,tbf=rescale_admix_correction(tree, make_correction=True, sigma=0.1)
+        new_tree,f,b, tbf=rescale_admix_correction(tree, make_correction=True, sigma=0.1, return_without_correction=True)
         print 'proposal ratio', b/f
         al=likelihood((new_tree,0), before_covariance, M=10000, nodes=nodes)
         print 'after covariance', al
