@@ -6,9 +6,9 @@ output: html_notebook
 Read in data
 
 ```{r}
-df=read.csv('results.csv', header=T)
+df=read.csv('result_mc3.csv', header=T)
 df=df[2:nrow(df),]
-sim_df=read.csv('sim_prior2.csv', header =T)
+#sim_df=read.csv('sim_prior2.csv', header =T)
 summs_df=read.csv('summaries.csv', header = T)
 summaries_in_dataframe=sapply(summs_df$summary, function(x){ return(x%in%colnames(df)) })
 summs_df=summs_df[summaries_in_dataframe,]
@@ -188,5 +188,28 @@ for(df_ in list_of_dfs){
 }
 
 
+```
+
+```{r}
+lf=list.files('segments/')
+full_files=paste0('segments/',lf)
+plot(1, type='n', xlim=c(0,100000/10), ylim=c(0,1))
+plot_file=function(filename){
+  ad=scan(filename)
+  iterations=ad[1:(length(ad)/2)]
+  proportions=ad[(length(ad)/2+1):length(ad)]
+  lines(iterations, proportions)
+}
+for(filename in full_files){
+  plot_file(filename)
+}
+```
+
+```{r}
+admix_no_correction=as.numeric(as.character(df$rescale_admixtures_adap_param))
+admix_correction=as.numeric(as.character(df$rescale_admix_correction_adap_param))
+x_axis=1:2000
+plot(x_axis[which(is.na(admix_no_correction)==0)], na.omit(admix_no_correction), type='l', ylim=c(0,0.2))
+points(x_axis[which(is.na(admix_correction)==0)], na.omit(admix_correction), type='l', col='red')
 ```
 

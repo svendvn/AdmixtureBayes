@@ -26,6 +26,14 @@ parser.add_argument('--input_file', type=str, default='(8,0)', help='the input f
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
+parser.add_argument('--treemix_instead', action= 'store_true', default=False, help='this will call treemix instead of AdmixtureBayes')
+
+#treemix arguments
+parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead')
+parser.add_argument('--treemix_no_admixtures', type=int, nargs='+', default=[0,1,2,3], help='the number of admixture events in treemixrun. Only used when treemix_instead')
+parser.add_argument('--treemix_processes', type=int, default=1, help='the number of parallel processes to run treemix over.')
+parser.add_argument('--alternative_treemix_infile', type=str, default='', help='By default the program will use the treemix file generated in the covariance pipeline (or go looking for the file that would have been made if 6 was part of the pipeline). This will override that')
+
 
 #covariance matrix options
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
@@ -72,7 +80,7 @@ parser.add_argument('--ms_variance_correction', default=False, action='store_tru
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
-parser.add_argument('--sadmix_tree', default=True, action='store_true', help='this will simulate trees where all admixture events are important in the sense that they expand the space of possible covariance matrices.')
+parser.add_argument('--sadmix_tree', default=False, action='store_true', help='this will simulate trees where all admixture events are important in the sense that they expand the space of possible covariance matrices.')
 
 #chain data collection
 parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
@@ -145,6 +153,26 @@ covariance=get_covariance(options.covariance_pipeline,
                           t_adjust_tree=options.time_adjusted_tree,
                           sadmix=options.sadmix_tree,
                           add_wishart_noise_to_covariance=options.wishart_noise)
+
+if options.treemix_instead:
+    if options.alternative_treemix_infile:
+        treemix_in_file=options.alternative_treemix_infile
+    else:
+        treemix_in_file=treemix_file+'.gz'
+    dir = os.path.dirname(__file__)
+    program=os.path.join(dir,'treemixrunner.py')
+    calls_to_treemix=[['python',program, 
+                       '-p', str(options.treemix_processes), 
+                       '-n', str(options.treemix_reps), 
+                       '-i', treemix_in_file,
+                       '-o', prefix+'treemix'+str(k),
+                       '-m', str(k)] for k in options.treemix_no_admixtures]
+    from subprocess import call
+    for c in calls_to_treemix:
+        call(c)
+    
+    import sys
+    sys.exit()
 
 no_pops=len(reduced_nodes)
 

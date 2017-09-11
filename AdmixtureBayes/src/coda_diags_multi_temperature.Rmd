@@ -119,7 +119,7 @@ all_plots(df2)
 ```
 
 ```{r}
-all_nums(df2)
+all_nums(df2[,-2])
 ```
 
 
@@ -136,15 +136,15 @@ for(variable in variables_to_plot_normally){
 
 Analysing each proposal type with respect to mhr.
 ```{r}
-if('proposal_type' %in% colnames(df)){
+if('proposal_type' %in% colnames(dfa)){
   barplot(table(df$proposal_type))
-  if( 'mhr' %in% colnames(df)){
+  if( 'mhr' %in% colnames(dfa)){
 
     rmf=function(x,n=50){
       x=sapply(x, function(x){min(as.numeric(x),1)})
       return((cumsum(x)[(n+1):length(x)]-cumsum(x[1:(length(x)-n)]))/n)
     }
-    rmeans= aggregate(mhr ~ proposal_type, df, rmf, simplify = T)
+    rmeans= aggregate(mhr ~ proposal_type, dfa, rmf, simplify = T)
     df_rmeans=data.frame(do.call(cbind, rmeans[,2]))
     colnames(df_rmeans) <- rmeans[,1]
     df_rmeans$id=1:nrow(df_rmeans)
@@ -155,9 +155,15 @@ if('proposal_type' %in% colnames(df)){
   }
 }
 ```
+```{r}
+split_up=function(s){
+  return(strsplit(s, split = ';', fixed = T)[[1]][1])
+}
+dfa$topology=sapply(as.character(dfa$tree), split_up)
+```
 
 ```{r}
-sort(table(dfa$tree_identifier), decreasing=T)[1:10]
+sort(table(dfa$topology), decreasing=T)[1:10]
 ```
 
 ```{r}
@@ -172,6 +178,7 @@ c(mean(y1), mean(y2))
 branch_lengths=function(x, pattern){
   identifier_branch_props=strsplit(x, split=';', fixed =T)[[1]]
   identifier=identifier_branch_props[1]
+  #print(identifier==pattern)
   if(identifier==pattern){
     branch_strings=strsplit(identifier_branch_props[2], '-', fixed= T)[[1]]
     return(as.numeric(branch_strings))
@@ -179,8 +186,9 @@ branch_lengths=function(x, pattern){
   return(numeric(0))
 }
 
-pat='c.c.1.0-c.0'
-res=matrix(0, nrow=0, ncol=6)
+pat=names(sort(table(dfa$topology), decreasing=T))[1]
+print(pat)
+res=matrix(0, nrow=0, ncol=20)
 for(i in 1:nrow(dfa)){
   ad=branch_lengths(as.character(dfa$tree[i]), pat)
   if(length(ad)>0){
@@ -188,6 +196,15 @@ for(i in 1:nrow(dfa)){
     res=rbind(res,ad)
   }
 }
+
 apply(res,2,quantile, p=c(0.025,0.5,0.975))
+```
+
+```{r}
+for( c in colnames(dfa)){
+  if(endsWith(c,'adap_param')){
+    plot(na.omit(dfa[,c]), type='l', ylab=c)
+  }
+}
 ```
 
