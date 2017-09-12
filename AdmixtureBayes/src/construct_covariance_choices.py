@@ -25,7 +25,11 @@ def simulate_tree_wrapper(nk_tuple, **kwargs):
                               skewed_admixture_prior=kwargs['skewed_admixture_prior_sim'])
     
 def add_outgroup_wrapper(tree_without_outgroup, **kwargs):
-    new_length_1, new_length_2= expon.rvs(), expon.rvs()
+    v=expon.rvs()
+    new_length_1, new_length_2= v/2, v/2
+    if kwargs['add_file']:
+        with open(kwargs['add_file'], 'w') as f:
+            f.write(str(v))
     tree_with_outgroup= add_outgroup(tree_without_outgroup,  inner_node_name='new_node', to_new_root_length=new_length_1, to_outgroup_length=new_length_2, outgroup_name=kwargs['outgroup_name'])
     return tree_with_outgroup
 
@@ -203,7 +207,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    final_pop_size=100.0,
                    via_treemix=True,
                    treemix_out_files='tmp',
-                   sadmix=False):
+                   sadmix=False,
+                   add_file=''):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -246,6 +251,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['time_adjust']=t_adjust_tree
     kwargs['final_pop_size']=final_pop_size
     kwargs['via_treemix']=via_treemix
+    kwargs['add_file']=add_file
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

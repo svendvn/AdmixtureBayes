@@ -47,7 +47,11 @@ class addadmix_class(object):
     reverse_require_admixture=1
     reverse='deladmix'
     
+    def __init__(self, **kwargs):
+        self.kwargs=kwargs
+    
     def __call__(self,*args, **kwargs):
+        kwargs.update(self.kwargs)
         return addadmix(*args, **kwargs)
     
 class deladmix_class(object):
@@ -61,7 +65,11 @@ class deladmix_class(object):
     reverse_require_admixture=0
     reverse='addadmix'
     
+    def __init__(self, **kwargs):
+        self.kwargs=kwargs
+    
     def __call__(self,*args, **kwargs):
+        kwargs.update(self.kwargs)
         return deladmix(*args, **kwargs)
     
 def float_equal(x,y):

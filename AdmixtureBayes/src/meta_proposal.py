@@ -213,7 +213,7 @@ class simple_adaption(object):
                                                 verbose=False,
                                                 name=self.name)
     
-def initialize_proposals(proposals):
+def initialize_proposals(proposals, extras={}):
     all_props=[addadmix_class, deladmix_class, regraft_class, 
                rescale_class, sliding_regraft_class, sliding_regraft_class_resimulate,
                rescale_marginally_class, sliding_rescale_class, rescale_add_class,
@@ -222,7 +222,10 @@ def initialize_proposals(proposals):
     print all_props_dic
     res=[]
     for proposal in proposals:
-        res.append(all_props_dic[proposal]())
+        if proposal in extras:
+            res.append(all_props_dic[proposal](**extras[proposal]))
+        else:
+            res.append(all_props_dic[proposal]())
     return res
     
 def draw_proposal(props, k, proportions):
@@ -254,8 +257,8 @@ def get_args2(names, adap_object):
 
 class simple_adaptive_proposal(object):
     
-    def __init__(self, proposals, proportions):
-        self.props=initialize_proposals(proposals)
+    def __init__(self, proposals, proportions, extras={}):
+        self.props=initialize_proposals(proposals, extras)
         self.proportions=proportions
         self.adaps=[simple_adaption() if prop.adaption else None for prop in self.props]
         self.node_naming=new_node_naming_policy()

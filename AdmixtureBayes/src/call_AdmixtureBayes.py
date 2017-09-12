@@ -22,7 +22,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 
 #overall options
-parser.add_argument('--input_file', type=str, default='(8,0)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+parser.add_argument('--input_file', type=str, default='4', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
@@ -46,6 +46,7 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
 parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
 parser.add_argument('--uniform_prior', action='store_true', default=False, help='If applied a uniform prior will be used on the different topologies.')
+parser.add_argument('--no_add', action='store_true', default=False, help='this will remove the add contribution')
 
 #degrees of freedom arguments
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
@@ -58,7 +59,7 @@ parser.add_argument('--deladmix', type=float, default=1, help='this states the f
 parser.add_argument('--addadmix', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--regraft', type=float, default=0, help='this states the frequency of the proposal type')
-parser.add_argument('--rescale_add', type=float, default=0, help='this states the frequency of the proposal type')
+parser.add_argument('--rescale_add', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_admix', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_admix_correction', type=float, default=0, help='this states the frequency of the proposal type')
 parser.add_argument('--rescale_constrained', type=float, default=1, help='this states the frequency of the proposal type')
@@ -66,9 +67,13 @@ parser.add_argument('--rescale_marginally', type=float, default=0, help='this st
 parser.add_argument('--sliding_regraft', type=float, default=1, help='this states the frequency of the proposal type')
 parser.add_argument('--sliding_rescale', type=float, default=0, help='this states the frequency of the proposal type')
 
+#other proposal options
+parser.add_argument('--cancel_preserve_root_distance', default=False, action='store_true', help="if applied there will not be made correction for root distance when adding and deleting admixtures")
+
 #mc3 arguments
 parser.add_argument('--MCMC_chains', type=int, default=7, help='The number of chains to run the MCMCMC with.')
 parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty the trees will either be simulated with the flag --random_start or the so-called trivial tree')
+parser.add_argument('--starting_add', type=str, default='', help="filename of file with the optimal add")
 parser.add_argument('--random_start', action='store_true', default=False, help='If supplied, the starting trees will be simulated from the prior (unless the starting trees are specified)')
 
 #tree simulation
@@ -119,8 +124,16 @@ def get_proposals(options):
             thinned_proposals.append(proposal)
     return thinned_proportions, thinned_proposals
 
+if options.cancel_preserve_root_distance:
+    extras={'deladmix':{'preserve_root_distance':False}, 'addadmix':{'preserve_root_distance':False}}
+else:
+    extras={}
+    
+if options.no_add:
+    extras['rescale_constrained']={'update_add':False}
+
 proportions, proposals = get_proposals(options)
-mp= [simple_adaptive_proposal(proposals, proportions) for _ in xrange(options.MCMC_chains)]
+mp= [simple_adaptive_proposal(proposals, proportions, extras) for _ in xrange(options.MCMC_chains)]
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
 print 'before_nodes', before_added_outgroup
@@ -152,7 +165,9 @@ covariance=get_covariance(options.covariance_pipeline,
                           prefix=prefix,
                           t_adjust_tree=options.time_adjusted_tree,
                           sadmix=options.sadmix_tree,
-                          add_wishart_noise_to_covariance=options.wishart_noise)
+                          add_wishart_noise_to_covariance=options.wishart_noise,
+                          df_of_wishart_noise_to_covariance=options.wishart_df,
+                          add_file=options.starting_add)
 
 if options.treemix_instead:
     if options.alternative_treemix_infile:
@@ -195,8 +210,14 @@ if not options.starting_trees:
     starting_trees=map(str, [no_pops]*options.MCMC_chains)
 else:
     starting_trees=options.starting_trees
+
+scaling=1
+if 5 in options.covariance_pipeline:
+    scaling*=options.scale_tree_factor    
+if 9 in options.covariance_pipeline:
+    scaling*=covariance[1]
     
-starting_trees=get_starting_trees(starting_trees, options.MCMC_chains, options.random_start, nodes=reduced_nodes)
+starting_trees=get_starting_trees(starting_trees, options.MCMC_chains, options.random_start, nodes=reduced_nodes, add=options.starting_add, scaling=scaling)
 
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.
@@ -254,7 +275,7 @@ def f():
     
 def g():
     basic_chain(start_x= starting_trees[0],
-                summ20aries=summaries,
+                summaries=summaries,
                 posterior_function=posterior,
                 proposal=mp[0],
                 post=None,

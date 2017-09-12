@@ -14,18 +14,27 @@ def reverse_dic_to_list(dic):
 def get_added_branch_pieces(org, param):
     return org.dot(normal(scale=param, size=org.shape[1]))
 
-def rescale(x, sigma=0.01, pks={}):
+def rescale(x, sigma=0.01, pks={}, update_add=True):
     tree, add=x
     pks['rescale_constrained_adap_param']=sigma
     new_tree=deepcopy(tree)
-    orgs, bi,_= get_orthogonal_branch_space(new_tree, add_one_column=True)
+    orgs, bi,_= get_orthogonal_branch_space(new_tree, add_one_column=update_add)
     #print norm(orgs, axis=0)
     branches=reverse_dic_to_list(bi)
     branch_pieces= get_added_branch_pieces(orgs, sigma)
-    new_tree= update_specific_branch_lengths(new_tree, branches, branch_pieces[:-1], add=True)
+    if update_add:
+        b=branch_pieces[:-1]
+        #print 'ADD!'
+    else:
+        #print 'NO ADD!'
+        b=branch_pieces
+    new_tree= update_specific_branch_lengths(new_tree, branches, b, add=True)
     if new_tree is None:
         return x,1,0 #rejecting by setting backward jump probability to 0.
-    new_add=add+branch_pieces[-1]
+    if update_add:
+        new_add=add+branch_pieces[-1]
+    else:
+        new_add=0
     if new_add<0:
         return x,1,0 #rejecting by setting backward jump probability to 0.
     return  (new_tree, new_add),1,1
@@ -40,7 +49,13 @@ class rescale_constrained_class(object):
     admixture_change=0
     reverse='rescale_constrained'
     
+    
+    def __init__(self, **kwargs):
+        self.kwargs=kwargs
+    
     def __call__(self,*args, **kwargs):
+        kwargs.update(self.kwargs)
+        #print kwargs
         return rescale(*args, **kwargs)
 
 
