@@ -1,4 +1,4 @@
-from scipy.stats import expon, geom
+from scipy.stats import expon, geom, pareto
 from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proportions, get_number_of_admixes, get_number_of_leaves, 
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
 from math import log, factorial,exp
@@ -7,6 +7,12 @@ import linear_distribution
 from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
 
 def calculate_branch_prior(branches):
+    #if all((b<10 for b in branches)):
+    #    return -len(branches)*log(10)
+    #else:
+    #    return -float('inf')
+    #return 0.0
+    #return sum((pareto.logpdf(br,2, scale=0.01) for br in branches))
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 

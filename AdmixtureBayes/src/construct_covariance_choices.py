@@ -178,6 +178,9 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
 def rescale_empirical_covariance(m):
     '''
     It is allowed to rescale the empirical covariance matrix such that the inferred covariance matrix takes values that are closer to the mean of the prior.
+    
+    We expect the total 
+    
     '''
     
     n=m.shape[0]

@@ -3,7 +3,7 @@ from Rtree_operations import rename_root,pretty_print
 from copy import deepcopy
 from numpy import argsort
 from collections import Counter
-from scipy.stats import uniform, expon, geom
+from scipy.stats import uniform, expon, geom, pareto
 import linear_distribution
 
 
