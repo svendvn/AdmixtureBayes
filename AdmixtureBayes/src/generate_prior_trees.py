@@ -1,5 +1,5 @@
 from numpy.random import choice
-from Rtree_operations import rename_root,pretty_print
+from Rtree_operations import rename_root,pretty_print, get_number_of_leaves
 from copy import deepcopy
 from numpy import argsort
 from collections import Counter
@@ -61,25 +61,30 @@ def generate_admix_topology(size, admixes, leaf_nodes=None):
 def simulate_number_of_admixture_events(p=0.5):
     return geom.rvs(p=p)-1
 
+def get_admixture_factor(n,k):
+    return float(2*n-2+2*k)/float(2*n-2)
+
 def generate_phylogeny(size,admixes=None, p=0.5, leaf_nodes=None, skewed_admixture_prior=False):
     if admixes is None:
         admixes=simulate_number_of_admixture_events(p)
     tree=generate_admix_topology(size, admixes, leaf_nodes)
+    n=get_number_of_leaves(tree)
+    factor=get_admixture_factor(n, admixes)
     for node in tree.values():
-        node=_resimulate(node, skewed_admixture_prior)
+        node=_resimulate(node, factor, skewed_admixture_prior)
     return tree
 
 
-def _resimulate(node, skewed_admixture_prior=False):
+def _resimulate(node, factor=1.0, skewed_admixture_prior=False):
     if node[2] is not None:
         if skewed_admixture_prior:
             node[2]=linear_distribution.rvs()
         else:
             node[2]=uniform.rvs()
     if node[3] is not None:
-        node[3]=expon.rvs()
+        node[3]=expon.rvs()/factor
     if node[4] is not None:
-        node[4]=expon.rvs()
+        node[4]=expon.rvs()/factor
     return node
 
 def _allowed_generation(chosen_indexes, no_totally_free, no_halfly_frees, no_admixes, illegal_indexes):

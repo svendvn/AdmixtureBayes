@@ -69,6 +69,8 @@ def MCMCMC(starting_trees,
     total_permutation=range(no_chains)
     permuts=[]
     
+    freeze_support()
+    
     if numpy_seeds is None:
         numpy_seeds=[None]*no_chains
     pool = basic_chain_pool(summaries, posterior_function, proposal_scheme, numpy_seeds)
