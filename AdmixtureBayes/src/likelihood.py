@@ -2,8 +2,7 @@ from Rtree_to_covariance_matrix import make_covariance
 
 from scipy.stats import wishart, norm
 from numpy.linalg import eig, LinAlgError
-from math import sqrt
-from numpy import sum
+from numpy import sum, sqrt
 
 def n_mark(cov_mat):
     m=cov_mat.shape[0]
@@ -29,7 +28,7 @@ def likelihood_treemix(x, emp_cov, variances, nodes=None, pks={}):
         #print emp_cov-add
         #print add
         #print par_cov
-        d=sum(norm.logpdf((emp_cov-par_cov-add)/variances))
+        d=sum(norm.logpdf((emp_cov-par_cov-add)/sqrt(variances)))
     except (ValueError, LinAlgError) as e:
         #print "illegal par_cov matrix or to large add"
         #print e
@@ -87,8 +86,8 @@ if __name__=="__main__":
     print make_covariance(s_tree, Rtree_operations.get_trivial_nodes(4))
     print 'likelihood(M=12)', likelihood((s_tree,0), emp_cov)
     print 'likelihood(M=nmark)', likelihood((s_tree,0), emp_cov,M=nmark)
-    print 'likelihood(M=12)', likelihood2((true_tree,0), emp_cov)
-    print 'likelihood(M=nmark)', likelihood2((true_tree,0), emp_cov*1.1)
+    print 'likelihood(M=12)', likelihood_treemix((true_tree,0), emp_cov, (emp_cov+1)/0.5)
+    print 'likelihood(M=nmark)', likelihood_treemix((true_tree,0), emp_cov*1.1, (emp_cov+1)/0.5)
 #     from tree_operations import make_flat_list_no_admix
 #     from numpy import diag
 #     N=5
