@@ -6,7 +6,7 @@ from construct_nodes_choices import get_nodes
 from construct_summary_choices import get_summary_scheme
 from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
-from posterior import initialize_posterior
+from posterior import initialize_posterior, initialize_treemix_posterior
 from MCMCMC import MCMCMC
 from wishart_distribution_estimation import estimate_degrees_of_freedom
 from MCMC import basic_chain
@@ -22,12 +22,13 @@ os.environ["MKL_NUM_THREADS"] = "1"
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 
 #overall options
-parser.add_argument('--input_file', type=str, default='sletmig/_covariance_and_multiplier.txt', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+parser.add_argument('--input_file', type=str, default='(4,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
 parser.add_argument('--treemix_instead', action= 'store_true', default=False, help='this will call treemix instead of AdmixtureBayes')
 parser.add_argument('--treemix_also', action='store_true', default=False, help='this will call treemix in addition to AdmixtureBayes')
+parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -37,7 +38,7 @@ parser.add_argument('--alternative_treemix_infile', type=str, default='', help='
 
 
 #covariance matrix options
-parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[9], help='skewed admixture proportion prior in the simulated datasets')
+parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
 parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
@@ -80,7 +81,7 @@ parser.add_argument('--random_start', action='store_true', default=False, help='
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-parser.add_argument('--nreps', type=int, default=500, help='How many pieces of size 500 kb should be simualted')
+parser.add_argument('--nreps', type=int, default=50, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
@@ -201,12 +202,16 @@ if options.estimate_bootstrap_df:
                                            reduce_also=reduce_also,
                                            reducer=options.reduce_node,
                                            no_bootstrap_samples=options.no_bootstrap_samples,
-                                           outfile=treemix_out_files)
+                                           outfile=treemix_out_files,
+                                           estimate_m=options.likelihood_treemix)
 else:
     wishart_df=options.wishart_df
-    
-with open(prefix+'wishart_DF.txt', 'w') as f:
-    f.write(str(wishart_df))
+
+if not options.likelihood_treemix:
+    with open(prefix+'wishart_DF.txt', 'w') as f:
+        f.write(str(wishart_df))
+else:
+    print wishart_df
 
 if not options.starting_trees:
     starting_trees=map(str, [no_pops]*options.MCMC_chains)
@@ -230,16 +235,29 @@ summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summa
 
 sim_lengths=[options.m]*options.n
 if 9 in options.covariance_pipeline:
-    posterior, multiplier=initialize_posterior(covariance[0], M=options.wishart_df, p=options.p, 
-                                               use_skewed_distr=options.sap_analysis, 
-                                               multiplier=covariance[1], nodes=reduced_nodes,
-                                               use_uniform_prior=options.uniform_prior)
+    if options.likelihood_treemix:
+        posterior, multiplier=initialize_treemix_posterior(covariance[0], variances=wishart_df, p=options.p, 
+                                                   use_skewed_distr=options.sap_analysis, 
+                                                   multiplier=covariance[1], nodes=reduced_nodes,
+                                                   use_uniform_prior=options.uniform_prior)
+    else:
+        posterior, multiplier=initialize_posterior(covariance[0], M=wishart_df, p=options.p, 
+                                                   use_skewed_distr=options.sap_analysis, 
+                                                   multiplier=covariance[1], nodes=reduced_nodes,
+                                                   use_uniform_prior=options.uniform_prior)
 else:
-    posterior=initialize_posterior(covariance, M=options.wishart_df, p=options.p, 
+    if options.likelihood_treemix:
+        posterior=initialize_posterior(covariance, variances=wishart_df, p=options.p, 
                                    use_skewed_distr=options.sap_analysis, 
                                    multiplier=None, nodes=reduced_nodes,
                                    use_uniform_prior=options.uniform_prior)
-    multiplier=None
+        multiplier=None
+    else:
+        posterior=initialize_posterior(covariance, M=wishart_df, p=options.p, 
+                                       use_skewed_distr=options.sap_analysis, 
+                                       multiplier=None, nodes=reduced_nodes,
+                                       use_uniform_prior=options.uniform_prior)
+        multiplier=None
     
 print 'starting_trees', starting_trees
 print 'posterior', posterior

@@ -1,5 +1,5 @@
 from scipy.stats import wishart
-from numpy import mean
+from numpy import mean,var
 from numpy.linalg import det, matrix_rank
 from scipy.optimize import minimize
 from load_data import read_data
@@ -26,6 +26,9 @@ def optimize(sample_of_matrices):
         return val
     
     return minimize(joint_density, r, bounds=[(r,None)]).x[0]
+
+def estimate(sample_of_matrices):
+    return var(sample_of_matrices, axis=0)
 
 def get_partitions(lines, blocksize):
     list_of_lists=[]
@@ -73,20 +76,25 @@ def make_covariances(filenames, **kwargs):
         covs.append(res*100)
     return covs
 
-def estimate_degrees_of_freedom(filename, bootstrap_blocksize=100, no_blocks=None, no_bootstrap_samples=10, **kwargs):
+def estimate_degrees_of_freedom(filename, bootstrap_blocksize=100, no_blocks=None, no_bootstrap_samples=10, estimate_m=False, **kwargs):
     filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
     print 'nodes', nodes
     print filenames
     covs=make_covariances(filenames, nodes=nodes, **kwargs)
     print covs[1]
+    if estimate_m:
+        return estimate(covs)
     return optimize(covs)
     
 
 
 
 if __name__=='__main__':
-    f=estimate_degrees_of_freedom('sletmig/_treemix_in.txt', reduce_also=True, reducer='out', blocksize=100)
-    print 'f',f
+    from numpy import array
+    print estimate([array([[2,2],[2,2]]), array([[2,1],[0,-1]])])
+    
+    #f=estimate_degrees_of_freedom('sletmig/_treemix_in.txt', reduce_also=True, reducer='out', blocksize=100)
+    #print 'f',f
     #from numpy import identity, ones
     #matrix=identity(5)*0.9 + ones((5,5))/10
     #r=matrix.shape[0]
