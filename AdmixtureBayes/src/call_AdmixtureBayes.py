@@ -22,7 +22,7 @@ os.environ["MKL_NUM_THREADS"] = "1"
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 
 #overall options
-parser.add_argument('--input_file', type=str, default='(6,0)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
+parser.add_argument('--input_file', type=str, default='sletmig/_covariance_and_multiplier.txt', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
@@ -37,7 +37,7 @@ parser.add_argument('--alternative_treemix_infile', type=str, default='', help='
 
 
 #covariance matrix options
-parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
+parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[9], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
 parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')

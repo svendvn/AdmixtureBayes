@@ -62,7 +62,7 @@ def simulate_number_of_admixture_events(p=0.5):
     return geom.rvs(p=p)-1
 
 def get_admixture_factor(n,k):
-    return float(2*n-2+2*k)/float(2*n-2)
+    return float(2*n-2+3*k)/float(2*n-2)
 
 def generate_phylogeny(size,admixes=None, p=0.5, leaf_nodes=None, skewed_admixture_prior=False):
     if admixes is None:

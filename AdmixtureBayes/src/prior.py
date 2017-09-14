@@ -14,7 +14,7 @@ def calculate_branch_prior(branches, k):
     #return 0.0
     #return sum((pareto.logpdf(br,2, scale=0.01) for br in branches))
     n2k=len(branches)
-    n=n2k-2*k
+    n=n2k-k*3
     d=float(n2k)/float(n)
     
     return -sum(branches)*d+log(d)*len(branches)
