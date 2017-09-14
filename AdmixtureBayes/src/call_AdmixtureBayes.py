@@ -195,7 +195,7 @@ if options.treemix_instead or options.treemix_also:
 no_pops=len(reduced_nodes)
 
 if options.estimate_bootstrap_df:
-    assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
+    #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     reduce_also= (8 in options.covariance_pipeline)
     wishart_df=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
