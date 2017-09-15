@@ -35,8 +35,13 @@ def get_possible_strees(tree, nodes):
     return n_trees
 
 if __name__=='__main__':
-    from tree_generation_laboratory import simulate_tree, save_tree_and_nodes
-    from Rtree_operations import get_trivial_nodes
-    stree=simulate_tree(6,2)
-    save_tree_and_nodes(stree, 'tmp.txt', get_trivial_nodes(6))
-    make_possible_files('tmp.txt', 'tmp_out.txt')
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
+
+    #overall options
+    parser.add_argument('--i', type=str, default='_true_tree.txt', help='')
+    parser.add_argument('--o', type=str, default='tree.txt')
+    
+    options=parser.parse_args()
+    make_possible_files(options.i, options.o)
