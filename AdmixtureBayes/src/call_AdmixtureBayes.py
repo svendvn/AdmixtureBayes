@@ -52,6 +52,7 @@ parser.add_argument('--no_add', action='store_true', default=False, help='this w
 
 #degrees of freedom arguments
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+parser.add_argument('--wishart_df_file', type=str, default='', help='file with the number of degrees of freedom in the wishart distribution.')
 parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
@@ -204,6 +205,9 @@ if options.estimate_bootstrap_df:
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            outfile=treemix_out_files,
                                            estimate_m=options.likelihood_treemix)
+elif options.wishart_df_file:
+    with open(options.wishart_df_file, 'r') as f:
+        wishart_df=float(f.readline().rstrip())
 else:
     wishart_df=options.wishart_df
 
