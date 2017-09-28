@@ -6,7 +6,7 @@ from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_
                               time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
-from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt
+from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros
 from numpy.linalg import det
 from copy import deepcopy
 from load_data import read_data
@@ -244,7 +244,18 @@ def calculate_covariance_matrix(file='tmp.txt', samples_per_pop=20, no_pops=4, n
     #print p.dot(p.T)/(p.shape[1])
     return p.dot(p.T)/(p.shape[1])
 
-def calculate_covariance_matrix2(file='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, outgroup_number=None):
+    
+    
+    
+    
+
+def calculate_covariance_matrix2(file='tmp.txt', 
+                                 samples_per_pop=20, 
+                                 no_pops=4, 
+                                 n_reps=1, 
+                                 outgroup_number=None, 
+                                 variance_correction=False,
+                                 outgroup=True):
     data=[]
     with open(file, 'r') as f:
         for r in f.readlines():
@@ -255,14 +266,17 @@ def calculate_covariance_matrix2(file='tmp.txt', samples_per_pop=20, no_pops=4, 
     m=hstack(new_data)
     #print m.shape
     #alpha=0.05
-    outgroup_alleles=mean(m,axis=0)#mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
+    if outgroup:
+        subtract_alleles=mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
+    else:
+        subtract_alleles=mean(m,axis=0)
     #other_alleles=mean(m[:outgroup_number*samples_per_pop], axis=0)/2+mean(m[(outgroup_number+1)*samples_per_pop:], axis=0)/2
     #sroot_homozygocity=sqrt(outgroup_alleles*(1.0-outgroup_alleles))
     #indices_of_positivity=[i for i,(s,o) in enumerate(zip(outgroup_alleles,other_alleles)) if s>alpha and s<(1.0-alpha) and o>alpha and o<(1.0-alpha)]
     #thinned_outgroup_alleles=outgroup_alleles[indices_of_positivity]
     #thinned_sroot_homozygocity=sroot_homozygocity[indices_of_positivity]
     #print 'SNPs', len(indices_of_positivity)
-    ps=tuple([(mean(m[(i*samples_per_pop):((i+1)*samples_per_pop),  ], axis=0)-outgroup_alleles) for i in xrange(no_pops)])
+    ps=tuple([(mean(m[(i*samples_per_pop):((i+1)*samples_per_pop),  ], axis=0)-subtract_alleles) for i in xrange(no_pops)])
     p=vstack(ps)
     e_cov=cov(p)
     e_cov2=p.dot(p.T)/p.shape[1]

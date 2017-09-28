@@ -35,7 +35,23 @@ def likelihood_treemix(x, emp_cov, variances, nodes=None, pks={}):
         return -float("inf")
     return d
 
-def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
+def likelihood_treemix_from_matrix(matrix, emp_cov, variances,  pks={}):
+    pks['covariance']=matrix
+    if matrix is None:
+        print 'illegal tree'
+        return -float('inf')
+    try:
+        #print emp_cov-add
+        #print add
+        #print par_cov
+        d=sum(norm.logpdf((emp_cov-matrix-add)/sqrt(variances)))
+    except (ValueError, LinAlgError) as e:
+        #print "illegal par_cov matrix or to large add"
+        #print e
+        return -float("inf")
+    return d
+
+def likelihood(x, emp_cov, M=12,nodes=None,  pks={}):
     tree, add= x
     r=emp_cov.shape[0]
     if nodes is None:

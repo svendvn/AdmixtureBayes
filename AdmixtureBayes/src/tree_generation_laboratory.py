@@ -75,15 +75,15 @@ def autogenerate_tree(no_leaves, no_admixtures, minimum_number_of_nonzeros=1, mi
     
     
 if __name__=='__main__':
-    #s=simulate_tree(3, 0)
+    #s=simulate_tree(5, 0)
     #save_tree(s, 'tree.txt')
-    #plot_big_tree(s)
-    
-    #s=load_tree('tree.txt')
-    #s=add_random_admix(s)
     #print_tree(s)
+    
+    s=load_tree('tree.txt')
+    s=add_random_admix(s)
+    print_tree(s)
     #plot_big_tree(s)
-    #save_tree(s, 'tree2.txt')
+    save_tree(s, 'tree2.txt')
     
     #s=load_tree('tree2.txt')
     #s=add_random_admix(s)
@@ -103,7 +103,7 @@ if __name__=='__main__':
     #print cov
     #see_covariance_matrix(s,0, 0.01)
     #emp_cov_to_file(cov, 'emp_cov_10_0_3_3.txt')
-    s_tree='a.a.a.w.w.w.a.w.w-a.a.w.w.w.w.w.w.c.a.8.w.a-a.w.w.w.w.c.c.c.w.6.w.5.7.w.w.w-w.w.w.w.c.4.c.c.w.7.w.6.w.w-w.w.w.c.c.3.w.4.w.w.w-c.w.w.0.c.w.4.w.w-c.c.w.1.w.0.w-c.c.w.0.1-c.w.0-c.0;1.003-0.423-0.833-0.055-0.898-0.624-0.171-1.274-1.223-0.724-0.686-0.105-0.202-0.05-0.757-0.109-1.003-0.467-1.328-1.234-0.541-1.566-0.11-0.549-0.287-0.099-0.015-1.245-0.068-0.826-0.335-0.423-0.357-2.784-2.184-0.919-0.656-1.384-0.187-2.054-1.742-1.522-0.035;0.393-0.67-0.322-0.292-0.385-0.195-0.393-0.549-0.467'
-    print_tree(s_tree)
-    plot_big_tree(s_tree)
+    #s_tree='a.a.a.w.w.w.a.w.w-a.a.w.w.w.w.w.w.c.a.8.w.a-a.w.w.w.w.c.c.c.w.6.w.5.7.w.w.w-w.w.w.w.c.4.c.c.w.7.w.6.w.w-w.w.w.c.c.3.w.4.w.w.w-c.w.w.0.c.w.4.w.w-c.c.w.1.w.0.w-c.c.w.0.1-c.w.0-c.0;1.003-0.423-0.833-0.055-0.898-0.624-0.171-1.274-1.223-0.724-0.686-0.105-0.202-0.05-0.757-0.109-1.003-0.467-1.328-1.234-0.541-1.566-0.11-0.549-0.287-0.099-0.015-1.245-0.068-0.826-0.335-0.423-0.357-2.784-2.184-0.919-0.656-1.384-0.187-2.054-1.742-1.522-0.035;0.393-0.67-0.322-0.292-0.385-0.195-0.393-0.549-0.467'
+    #print_tree(s_tree)
+    #plot_big_tree(s_tree)
     

@@ -1,5 +1,5 @@
 from prior import prior
-from likelihood import likelihood, n_mark, likelihood_from_matrix, likelihood_treemix
+from likelihood import likelihood, n_mark, likelihood_from_matrix, likelihood_treemix, likelihood_treemix_from_matrix
 from scipy.stats import norm, multivariate_normal
 from math import log
 from generate_prior_trees import generate_phylogeny
@@ -131,10 +131,21 @@ def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplie
 
 class posterior_class(object):
     
-    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False):
+    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False, treemix=False):
+        '''
+        M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
+        or M can be a matrix - the same size of emp_cov where each entry is the variance of that entry. 
+        '''
         self.emp_cov=emp_cov
         self.M=M
         self.p=p
+        if treemix:
+            self.lik=likelihood_treemix
+            self.likmat=likelihood_treemix_from_matrix
+        else:
+            self.lik=likelihood
+            self.likmat=likelihood_from_matrix
+            
         self.use_skewed_distr=use_skewed_distr
         self.multiplier=multiplier
         self.nodes=nodes
@@ -144,14 +155,17 @@ class posterior_class(object):
         prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
-        likelihood_value=likelihood(x, self.emp_cov,M=self.M, nodes=self.nodes)
+        likelihood_value=self.lik(x, self.emp_cov,self.M, nodes=self.nodes, pks=pks)
         pks['prior']=prior_value
         pks['likelihood']=likelihood_value
         #pks['posterior']=prior_value+likelihood_value
         return likelihood_value, prior_value
     
     def get_likelihood_from_matrix(self, matrix, pks={}):
-        return likelihood_from_matrix(matrix, self.emp_cov, M=self.M, pks=pks)
+        return self.likmat(matrix, self.emp_cov, self.M, pks=pks)
+    
+    def get_max_likelihood(self, pks={}):
+        return self.likmat(self.emp_cov, self.emp_cov, self.M, pks=pks)
         
 def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     if M is None:

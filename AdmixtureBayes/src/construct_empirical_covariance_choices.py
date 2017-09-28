@@ -1,5 +1,5 @@
 import subprocess
-from numpy import array, mean, zeros
+from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
 from reduce_covariance import reduce_covariance
 
 def reorder_rows(p, names,nodes):
@@ -40,13 +40,27 @@ def make_uncompressed_copy(filename):
     subprocess.call(move_back_args)
     return new_filename
 
+def scale_m(m, scale_type, allele_freqs, n_outgroup=None):
+    if scale_type.startswith('outgroup'):
+        s=allele_freqs[n_outgroup,:]
+    else:
+        s=mean(allele_freqs, axis=0)
+    if scale_type.endswith('product'):
+        mu=mean(s)
+        scaler=mu*(1.0-mu)
+    else:
+        scaler=mean(s*(1.0-s))
+    return m/scaler
+        
+
 def treemix_to_cov(filename='treemix_in.txt.gz', 
                    reduce_method=['no', 'average', 'outgroup'], 
                    reducer='', 
-                   noss='not implemented', 
-                   blocksize='unused', 
+                   variance_correction=False, 
                    nodes=None,
-                   method_of_weighing_alleles=['None', 'Jade']):
+                   arcsin_transform=False,
+                   method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product']
+                   ):
 #unzip
     new_filename=make_uncompressed_copy(filename)
     
@@ -58,25 +72,39 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
     
     if not isinstance(reduce_method, basestring):
         reduce_method=reduce_method[0]
+    if not isinstance(method_of_weighing_alleles, basestring):
+        method_of_weighing_alleles=method_of_weighing_alleles[0]
     
-    if reduce_method=='outgroup':
-        n_outgroup=next((n for n, e in enumerate(names) if e==reducer))
-        print n_outgroup
-        p=p-p[n_outgroup,:]
-    elif reduce_method=='average':
-        n_outgroup=next((n for n, e in enumerate(names) if e==reducer))
-        print n_outgroup
-        p=p-mean(p, axis=0)
-    elif reduce_method:
-        pass
-    
-    
+    if arcsin_transform:
+        p2=arcsin(sqrt(p))*2
+    else:
+        p2=p
         
-    m=p.dot(p.T)/p.shape[1]
+    if reduce_method=='outgroup':
+        n_outgroup=next((n for n, e in enumerate(nodes) if e==reducer))
+        print n_outgroup
+        p2=p2-p2[n_outgroup,:]
+    elif reduce_method=='average':
+        n_outgroup=next((n for n, e in enumerate(nodes) if e==reducer))
+        total_mean2=mean(p, axis=0)
+        if arcsin_transform:
+            total_mean2=arcsin(sqrt(total_mean2))*2
+        p2=p2-total_mean2
+    else:
+        n_outgroup=None
     
-    if noss:
+    if method_of_weighing_alleles=='Jade':
+        mu=mean(p, axis=0)
+        p2=p2/sqrt(mu*(1.0-mu))
+        
+    m=p2.dot(p2.T)/p2.shape[1]
+    
+    if variance_correction:
         m=bias_correction(m,p, pop_sizes)
-    #print m
+        
+    if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade':
+        m=scale_m(m, method_of_weighing_alleles, p, n_outgroup)
+
     if reduce_method != 'no':
         m=reduce_covariance(m, n_outgroup)
         
@@ -91,15 +119,30 @@ def B(allele_frequency, pop_size):
 
 def adjuster(Bs):
     m=len(Bs)
-    res=zeros((m,m))
+    res=diag(array(Bs))
     res=res-array(Bs)/m
-    res=res-array(Bs).T/m
-    
+    res=(res.T-array(Bs)/m).T
+    res=res+sum(Bs)/m**2
+    return res
     
 
 def bias_correction(m, p, pop_sizes):
     #pop sizes are the number of chromosome for each SNP. It is also called the haploid population size
     Bs=[B(prow, pop_size) for prow, pop_size in zip(p, pop_sizes)]
     adjusting_matrix=adjuster(Bs)
+    return m-adjusting_matrix
+
+if __name__=='__main__':
     
+    m=adjuster([0.1,0.2])
+    assert sum(m-array([[0.075,-0.075],[-0.075,0.075]]), axis=None)==0, 'adjusting wrong'
+    from numpy import set_printoptions
+    set_printoptions(precision=5)
+    filename='sletmig/_treemix_in.txt.gz'
+    nodes=['s'+str(i) for i in range(1,10)]+['out']
+    print treemix_to_cov(filename, reduce_method='outgroup', reducer='out', variance_correction=False, nodes=nodes, arcsin_transform=False, method_of_weighing_alleles='outgroup_product')
+    
+    from load_data import read_data
+    
+    print read_data(filename, blocksize=1, nodes=nodes, variance_correction=True, normalize=False, reduce_also=True, reducer='out', return_muhat=False)
     

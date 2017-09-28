@@ -6,11 +6,12 @@ from construct_nodes_choices import get_nodes
 from construct_summary_choices import get_summary_scheme
 from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
-from posterior import initialize_posterior, initialize_treemix_posterior
+from posterior import posterior_class
 from MCMCMC import MCMCMC
 from wishart_distribution_estimation import estimate_degrees_of_freedom
 from MCMC import basic_chain
 from stop_criteria import stop_criteria
+from one_evaluation import one_evaluation
 
 import os 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -21,14 +22,17 @@ os.environ["MKL_NUM_THREADS"] = "1"
 
 parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 
-#overall options
+#input/output options
 parser.add_argument('--input_file', type=str, default='(4,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
 parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
+
+#special run options
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
 parser.add_argument('--treemix_instead', action= 'store_true', default=False, help='this will call treemix instead of AdmixtureBayes')
 parser.add_argument('--treemix_also', action='store_true', default=False, help='this will call treemix in addition to AdmixtureBayes')
 parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
+parser.add_argument('--evaluate_likelihood', action='store_true', default=False, help='this will evaluate the likelihood in the starting tree and then stop, writing just a single file with three values, prior, likelihood and posterior.')
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -43,6 +47,11 @@ parser.add_argument('--outgroup_name', type=str, default='out', help='the name o
 parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
 parser.add_argument('--wishart_noise', action='store_true', default=False)
+
+#empirical_covariance matrix 
+parser.add_argument('--arcsin', action='store_true', default=False)
+parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'], default='None', help='this is the way of weighing the covariance matrix')
+
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -238,37 +247,25 @@ summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summa
                                           no_chains=options.MCMC_chains)
 
 sim_lengths=[options.m]*options.n
-if 9 in options.covariance_pipeline:
-    if options.likelihood_treemix:
-        posterior, multiplier=initialize_treemix_posterior(covariance[0], variances=wishart_df, p=options.p, 
-                                                   use_skewed_distr=options.sap_analysis, 
-                                                   multiplier=covariance[1], nodes=reduced_nodes,
-                                                   use_uniform_prior=options.uniform_prior)
-    else:
-        posterior, multiplier=initialize_posterior(covariance[0], M=wishart_df, p=options.p, 
-                                                   use_skewed_distr=options.sap_analysis, 
-                                                   multiplier=covariance[1], nodes=reduced_nodes,
-                                                   use_uniform_prior=options.uniform_prior)
-else:
-    if options.likelihood_treemix:
-        posterior=initialize_posterior(covariance, variances=wishart_df, p=options.p, 
-                                   use_skewed_distr=options.sap_analysis, 
-                                   multiplier=None, nodes=reduced_nodes,
-                                   use_uniform_prior=options.uniform_prior)
-        multiplier=None
-    else:
-        posterior=initialize_posterior(covariance, M=wishart_df, p=options.p, 
-                                       use_skewed_distr=options.sap_analysis, 
-                                       multiplier=None, nodes=reduced_nodes,
-                                       use_uniform_prior=options.uniform_prior)
-        multiplier=None
+if 9 not in options.covariance_pipeline:
+    multiplier=None
+    covariance=(covariance, multiplier)
+posterior= posterior_class(emp_cov=covariance[0], 
+                           M=wishart_df, 
+                           p=options.p, 
+                           use_skewed_distr=options.sap_analysis, 
+                           multiplier=covariance[1], 
+                           nodes=reduced_nodes, 
+                           use_uniform_prior=options.uniform_prior, 
+                           treemix=options.likelihood_treemix)
+
     
 print 'starting_trees', starting_trees
 print 'posterior', posterior
 print 'summaries',summaries
 print 'temperature_scheme', fixed_geometrical(options.max_temp,options.MCMC_chains)
 print 'summary_verbose_scheme',summary_verbose_scheme
-print 'sim_lengths',sim_lengths
+#print 'sim_lengths',sim_lengths
 print 'int(options.thinning_coef)',int(options.thinning_coef)
 print 'mp',mp
 print 'options.MCMC_chains',options.MCMC_chains
@@ -281,7 +278,7 @@ if options.stop_criteria:
 else:
     sc=None
 
-def f():
+def multi_chain_run():
     res=MCMCMC(starting_trees=starting_trees, 
            posterior_function= posterior,
            summaries=summaries, 
@@ -297,7 +294,7 @@ def f():
            store_permuts=options.store_permuts, 
            stop_criteria=sc)
     
-def g():
+def single_chain_run():
     basic_chain(start_x= starting_trees[0],
                 summaries=summaries,
                 posterior_function=posterior,
@@ -313,15 +310,24 @@ def g():
                 appending_result_file=options.result_file,
                 appending_result_frequency=sim_lengths[0])
     
-if options.profile:
-    import cProfile
-    cProfile.run('g()')
-elif options.MCMC_chains==1:
-    g()
+def single_evaluation_run():
+    one_evaluation(starting_trees[0], 
+                   posterior, 
+                   options.result_file,
+                   multiplier)
+    
+if options.evaluate_likelihood:
+    single_evaluation_run()
 else:
-    res=f()
-    if options.store_permuts:
-        save_permuts_to_csv(res, get_permut_filename(options.result_file))
+    if options.profile:
+        import cProfile
+        cProfile.run('single_chain_run()')
+    elif options.MCMC_chains==1:
+        single_chain_run()
+    else:
+        res=multi_chain_run()
+        if options.store_permuts:
+            save_permuts_to_csv(res, get_permut_filename(options.result_file))
 
 
         

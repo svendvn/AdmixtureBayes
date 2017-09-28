@@ -22,10 +22,10 @@ def get_muhat(filename):
         
         
 
-def read_data(filename, blocksize=1, nodes=None, noss=False, normalize=False, reduce_also=False, reducer='', return_muhat=False, outfile='tmp'):
+def read_data(filename, blocksize=1, nodes=None, variance_correction=False, normalize=False, reduce_also=False, reducer='', return_muhat=False, outfile='tmp'):
     
     args=['treemix', '-i', filename, '-o', outfile,  '-m', '0','-k', str(blocksize)]
-    if noss:
+    if not variance_correction:
         args.append('-noss')
     #print args
     subprocess.call(args)#, shell=True)
@@ -42,8 +42,7 @@ def read_data(filename, blocksize=1, nodes=None, noss=False, normalize=False, re
         res=[]
         for l in f.readlines():
             numbers=map(float,l.split()[1:])
-            res.append(numbers)
-    set_printoptions(precision=4, suppress=True)        
+            res.append(numbers)       
     mapping={val:key for key, val in enumerate(cats)}
     #print nodes
     #print mapping
@@ -61,7 +60,7 @@ def read_data(filename, blocksize=1, nodes=None, noss=False, normalize=False, re
     
     if reduce_also:
         if isinstance(reducer, basestring):
-            reduce_index=mapping[reducer]
+            reduce_index=next((n for n, e in enumerate(nodes) if e==reducer))
         else:
             reduce_index=reducer
         print 'reduce index', reduce_index, 'of', cats

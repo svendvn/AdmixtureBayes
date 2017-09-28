@@ -4,6 +4,7 @@ from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, ca
                           calculate_covariance_matrix2)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from generate_sadmix_trees import generate_sadmix_tree
+from construct_empirical_covariance_choices import treemix_to_cov
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
@@ -75,31 +76,43 @@ def ms_simulate_wrapper(tree, **kwargs):
     #kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
     print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
-    if kwargs['via_treemix']:
-        filename_gz=ms_to_treemix3(kwargs['ms_file'], 
-                       samples_per_pop=kwargs['sample_per_pop'], 
-                       no_pops=no_pops, 
-                       n_reps=kwargs['nreps'], 
-                       filename2=kwargs['treemix_file'],
-                       nodes=kwargs['full_nodes'])
-    else:
-        return kwargs['ms_file']
+    filename_gz=ms_to_treemix3(kwargs['ms_file'], 
+                    samples_per_pop=kwargs['sample_per_pop'], 
+                    no_pops=no_pops, 
+                    n_reps=kwargs['nreps'], 
+                    filename2=kwargs['treemix_file'],
+                    nodes=kwargs['full_nodes'])
     return filename_gz
 
 def empirical_covariance_wrapper(snp_data_file, **kwargs):
-    if not kwargs['via_treemix']:
-        outgroup_number=any((n for n,e in enumerate(kwargs['full_nodes']) if e==kwargs['reduce_covariance_node']))
-        return calculate_covariance_matrix2(snp_data_file, 
-                                            samples_per_pop=kwargs['sample_per_pop'], 
-                                            no_pops=len(kwargs['full_nodes']), 
-                                            n_reps=kwargs['nreps'],
-                                            outgroup_number= outgroup_number)
-    cov=read_data(snp_data_file, 
-                     blocksize=kwargs['blocksize_empirical_covariance'],
-                     nodes=kwargs['full_nodes'], 
-                     noss=kwargs['ms_variance_correction'],
-                     outfile=kwargs['treemix_out_files'])
+    cov=treemix_to_cov(filename=snp_data_file, 
+                   reduce_method='outgroup', 
+                   reducer=kwargs['reduce_covariance_node'], 
+                   variance_correction=kwargs['ms_variance_correction'], 
+                   nodes=kwargs['full_nodes'],
+                   arcsin_transform=kwargs,
+                   method_of_weighing_alleles=['None', 'Jade'],
+                   muhat_scaling=['None', 'outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'],
+                   muhat_before_after=['before', 'after']
+                   )
     return cov
+
+# def empirical_covariance_wrapper(snp_data_file, **kwargs):
+#     if not kwargs['via_treemix']:
+#         outgroup_number=any((n for n,e in enumerate(kwargs['full_nodes']) if e==kwargs['reduce_covariance_node']))
+#         return calculate_covariance_matrix2(snp_data_file, 
+#                                             samples_per_pop=kwargs['sample_per_pop'], 
+#                                             no_pops=len(kwargs['full_nodes']), 
+#                                             n_reps=kwargs['nreps'],
+#                                             outgroup_number= outgroup_number)
+#     cov=read_data(snp_data_file, 
+#                      blocksize=kwargs['blocksize_empirical_covariance'],
+#                      nodes=kwargs['full_nodes'], 
+#                      noss=kwargs['ms_variance_correction'],
+#                      outfile=kwargs['treemix_out_files'])
+#     return cov
+
+
     
 def scale_tree_wrapper(tree, **kwargs):
     if kwargs['time_adjust']:
@@ -124,7 +137,7 @@ dictionary_of_transformations={
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
-    (6,7):empirical_covariance_wrapper,
+    #(6,7):empirical_covariance_wrapper,
     (6,8):empirical_covariance_wrapper,
     (7,8):reduce_covariance_wrapper,
     (7,9):normaliser_wrapper,
@@ -175,7 +188,7 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
         with open(filename, 'a') as f:
             f.write('multiplier='+str(value[1]))
 
-def rescale_empirical_covariance(m):
+def rescale_empirical_covariance(m, norm= ['min', 'max']):
     '''
     It is allowed to rescale the empirical covariance matrix such that the inferred covariance matrix takes values that are closer to the mean of the prior.
     
@@ -184,11 +197,19 @@ def rescale_empirical_covariance(m):
     
     '''
     
+    if not isinstance(norm, basestring):
+        norm=norm[0]
+    
     n=m.shape[0]
     actual_trace=m.trace()
     min_expected_trace=log(n)/log(2)*n
     max_expected_trace=n*(n+1)/2-1
-    multiplier= max_expected_trace/actual_trace
+    
+    if norm=='min':
+        multiplier= min_expected_trace/actual_trace
+    elif norm=='max':
+        multiplier= max_expected_trace/actual_trace
+    
     return m*multiplier, multiplier
 
 
