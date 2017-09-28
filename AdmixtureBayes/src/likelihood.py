@@ -1,7 +1,8 @@
 from Rtree_to_covariance_matrix import make_covariance
 
-from scipy.stats import wishart
+from scipy.stats import wishart, norm
 from numpy.linalg import eig, LinAlgError
+from numpy import sum, sqrt
 
 def n_mark(cov_mat):
     m=cov_mat.shape[0]
@@ -12,6 +13,27 @@ def n_mark(cov_mat):
     print USS
     return (m-1)*S**2 / ( (m+1)*USS-S**2 )
     
+def likelihood_treemix(x, emp_cov, variances, nodes=None, pks={}):
+    tree, add= x
+    r=emp_cov.shape[0]
+    if nodes is None:
+        nodes=["s"+str(i) for i in range(1,r+1)]
+    par_cov=make_covariance(tree, nodes)
+    #print (par_cov, emp_cov, add)
+    pks['covariance']=par_cov
+    if par_cov is None:
+        print 'illegal tree'
+        return -float('inf')
+    try:
+        #print emp_cov-add
+        #print add
+        #print par_cov
+        d=sum(norm.logpdf((emp_cov-par_cov-add)/sqrt(variances)))
+    except (ValueError, LinAlgError) as e:
+        #print "illegal par_cov matrix or to large add"
+        #print e
+        return -float("inf")
+    return d
 
 def likelihood(x, emp_cov, nodes=None, M=12, pks={}):
     tree, add= x
@@ -62,8 +84,10 @@ if __name__=="__main__":
     print 'm,nmark',emp_cov.shape[0], nmark
     print emp_cov
     print make_covariance(s_tree, Rtree_operations.get_trivial_nodes(4))
-    print 'likelihood(M=12)', likelihood(s_tree, emp_cov)
-    print 'likelihood(M=nmark)', likelihood(s_tree, emp_cov,M=nmark)
+    print 'likelihood(M=12)', likelihood((s_tree,0), emp_cov)
+    print 'likelihood(M=nmark)', likelihood((s_tree,0), emp_cov,M=nmark)
+    print 'likelihood(M=12)', likelihood_treemix((true_tree,0), emp_cov, (emp_cov+1)/0.5)
+    print 'likelihood(M=nmark)', likelihood_treemix((true_tree,0), emp_cov*1.1, (emp_cov+1)/0.5)
 #     from tree_operations import make_flat_list_no_admix
 #     from numpy import diag
 #     N=5

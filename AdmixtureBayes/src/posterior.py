@@ -1,5 +1,5 @@
 from prior import prior
-from likelihood import likelihood, n_mark, likelihood_from_matrix
+from likelihood import likelihood, n_mark, likelihood_from_matrix, likelihood_treemix
 from scipy.stats import norm, multivariate_normal
 from math import log
 from generate_prior_trees import generate_phylogeny
@@ -95,6 +95,23 @@ def initialize_posterior2(emp_cov=None,
     if rescale:
         return posterior, multiplier
     return posterior
+
+def initialize_treemix_posterior(emp_cov, variances, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False):
+    def posterior(x,pks={}):
+        #print tot_branch_length
+        #print get_number_of_leaves(x[0]), emp_cov.shape[0]
+        prior_value=prior(x,p=p, use_skewed_distr=use_skewed_distr,pks=pks, use_uniform_prior=use_uniform_prior)
+        if prior_value==-float('inf'):
+            return -float('inf'), prior_value
+        likelihood_value=likelihood_treemix(x, emp_cov, variances=variances, nodes=nodes)
+        pks['prior']=prior_value
+        pks['likelihood']=likelihood_value
+        #pks['posterior']=prior_value+likelihood_value
+        return likelihood_value, prior_value
+    if multiplier is not None:
+        return posterior, multiplier
+    return posterior
+
 
 def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False):
     def posterior(x,pks={}):

@@ -5,7 +5,7 @@ from tree_operations import get_number_of_admixes_on_branch
 from itertools import izip
 
 from Rtree_operations import node_is_non_admixture, node_is_coalescence, get_leaf_keys
-from covariance_matrix_wrapper import Covariance_Matrix2
+#from covariance_matrix_wrapper import Covariance_Matrix2
 
 class Population:
     
@@ -147,7 +147,7 @@ def make_covariance(tree, node_keys=None, old_cov=False):
         node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
-    covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})
+    covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
     if old_cov:
         covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
     waiting_nodes={}
