@@ -105,8 +105,8 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
     if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade':
         m=scale_m(m, method_of_weighing_alleles, p, n_outgroup)
 
-    if reduce_method != 'no':
-        m=reduce_covariance(m, n_outgroup)
+    #if reduce_method != 'no':
+    #    m=reduce_covariance(m, n_outgroup)
         
     return m
 

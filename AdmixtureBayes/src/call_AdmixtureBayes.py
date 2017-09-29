@@ -40,7 +40,6 @@ parser.add_argument('--treemix_no_admixtures', type=int, nargs='+', default=[0,1
 parser.add_argument('--treemix_processes', type=int, default=1, help='the number of parallel processes to run treemix over.')
 parser.add_argument('--alternative_treemix_infile', type=str, default='', help='By default the program will use the treemix file generated in the covariance pipeline (or go looking for the file that would have been made if 6 was part of the pipeline). This will override that')
 
-
 #covariance matrix options
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
@@ -51,7 +50,7 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 #empirical_covariance matrix 
 parser.add_argument('--arcsin', action='store_true', default=False)
 parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'], default='None', help='this is the way of weighing the covariance matrix')
-
+parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -84,9 +83,11 @@ parser.add_argument('--cancel_preserve_root_distance', default=False, action='st
 
 #mc3 arguments
 parser.add_argument('--MCMC_chains', type=int, default=7, help='The number of chains to run the MCMCMC with.')
-parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty the trees will either be simulated with the flag --random_start or the so-called trivial tree')
-parser.add_argument('--starting_add', type=str, default='', help="filename of file with the optimal add")
-parser.add_argument('--random_start', action='store_true', default=False, help='If supplied, the starting trees will be simulated from the prior (unless the starting trees are specified)')
+parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty, the trees will either be simulated with the flag --random_start or the so-called trivial tree')
+parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="filename of the adds to use on the starting trees.")
+parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
+parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace'], default=['None'], nargs='+', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
+parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true', help='this will scale the tree with the specified scale_tree_factor.')
 
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
@@ -179,7 +180,9 @@ covariance=get_covariance(options.covariance_pipeline,
                           sadmix=options.sadmix_tree,
                           add_wishart_noise_to_covariance=options.wishart_noise,
                           df_of_wishart_noise_to_covariance=options.wishart_df,
-                          add_file=options.starting_add)
+                          cov_weight=options.cov_weight,
+                          arcsin=options.arcsin,
+                          scale_goal=options.scale_goal)
 
 if options.treemix_instead or options.treemix_also:
     if options.alternative_treemix_infile:
@@ -202,7 +205,7 @@ if options.treemix_instead or options.treemix_also:
         import sys
         sys.exit()
 
-no_pops=len(reduced_nodes)
+
 
 if options.estimate_bootstrap_df:
     #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
@@ -226,18 +229,39 @@ if not options.likelihood_treemix:
 else:
     print wishart_df
 
-if not options.starting_trees:
-    starting_trees=map(str, [no_pops]*options.MCMC_chains)
-else:
-    starting_trees=options.starting_trees
 
-scaling=1
-if 5 in options.covariance_pipeline:
-    scaling*=options.scale_tree_factor    
-if 9 in options.covariance_pipeline:
-    scaling*=covariance[1]
+if 9 not in options.covariance_pipeline:
+    multiplier=None
+    covariance=(covariance, multiplier)
+else:
+    multiplier=covariance[1]
+posterior= posterior_class(emp_cov=covariance[0], 
+                           M=wishart_df, 
+                           p=options.p, 
+                           use_skewed_distr=options.sap_analysis, 
+                           multiplier=covariance[1], 
+                           nodes=reduced_nodes, 
+                           use_uniform_prior=options.uniform_prior, 
+                           treemix=options.likelihood_treemix)
+
+# if not options.starting_trees:
+#     no_pops=len(reduced_nodes)
+#     starting_trees=map(str, [no_pops]*options.MCMC_chains)
+# else:
+#     starting_trees=options.starting_trees
+
     
-starting_trees=get_starting_trees(starting_trees, options.MCMC_chains, options.random_start, nodes=reduced_nodes, add=options.starting_add, scaling=scaling)
+starting_trees=get_starting_trees(options.starting_trees, 
+                                  options.MCMC_chains, 
+                                  adds=options.starting_adds,
+                                  nodes=reduced_nodes, 
+                                  pipeline=options.covariance_pipeline,
+                                  multiplier=multiplier,
+                                  scale_tree_factor=options.scale_tree_factor,
+                                  start=options.start, 
+                                  prefix=options.prefix,
+                                  starting_tree_scaling=options.starting_tree_scaling,
+                                  starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor)
 
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.
@@ -247,17 +271,7 @@ summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summa
                                           no_chains=options.MCMC_chains)
 
 sim_lengths=[options.m]*options.n
-if 9 not in options.covariance_pipeline:
-    multiplier=None
-    covariance=(covariance, multiplier)
-posterior= posterior_class(emp_cov=covariance[0], 
-                           M=wishart_df, 
-                           p=options.p, 
-                           use_skewed_distr=options.sap_analysis, 
-                           multiplier=covariance[1], 
-                           nodes=reduced_nodes, 
-                           use_uniform_prior=options.uniform_prior, 
-                           treemix=options.likelihood_treemix)
+
 
     
 print 'starting_trees', starting_trees
@@ -313,11 +327,13 @@ def single_chain_run():
 def single_evaluation_run():
     one_evaluation(starting_trees[0], 
                    posterior, 
-                   options.result_file,
-                   multiplier)
+                   options.result_file)
     
 if options.evaluate_likelihood:
     single_evaluation_run()
+    with open(options.result_file, 'r') as f:
+        for r in f.readlines():
+            print r
 else:
     if options.profile:
         import cProfile

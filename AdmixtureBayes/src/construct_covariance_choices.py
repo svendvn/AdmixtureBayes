@@ -28,9 +28,8 @@ def simulate_tree_wrapper(nk_tuple, **kwargs):
 def add_outgroup_wrapper(tree_without_outgroup, **kwargs):
     v=expon.rvs()
     new_length_1, new_length_2= v/2, v/2
-    if kwargs['add_file']:
-        with open(kwargs['add_file'], 'w') as f:
-            f.write(str(v))
+    with open(kwargs['add_file'], 'w') as f:
+        f.write(str(v))
     tree_with_outgroup= add_outgroup(tree_without_outgroup,  inner_node_name='new_node', to_new_root_length=new_length_1, to_outgroup_length=new_length_2, outgroup_name=kwargs['outgroup_name'])
     return tree_with_outgroup
 
@@ -90,10 +89,8 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
                    reducer=kwargs['reduce_covariance_node'], 
                    variance_correction=kwargs['ms_variance_correction'], 
                    nodes=kwargs['full_nodes'],
-                   arcsin_transform=kwargs,
-                   method_of_weighing_alleles=['None', 'Jade'],
-                   muhat_scaling=['None', 'outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'],
-                   muhat_before_after=['before', 'after']
+                   arcsin_transform=kwargs['arcsin'],
+                   method_of_weighing_alleles=kwargs['cov_weight']
                    )
     return cov
 
@@ -120,7 +117,7 @@ def scale_tree_wrapper(tree, **kwargs):
     return scale_tree(tree, kwargs['scale_tree_factor'])
 
 def normaliser_wrapper(covariance, **kwargs):
-    return rescale_empirical_covariance(covariance)
+    return rescale_empirical_covariance(covariance, normalizer=kwargs['scale_goal'])
 
 
 
@@ -137,7 +134,7 @@ dictionary_of_transformations={
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
-    #(6,7):empirical_covariance_wrapper,
+    (6,7):empirical_covariance_wrapper,
     (6,8):empirical_covariance_wrapper,
     (7,8):reduce_covariance_wrapper,
     (7,9):normaliser_wrapper,
@@ -188,7 +185,7 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
         with open(filename, 'a') as f:
             f.write('multiplier='+str(value[1]))
 
-def rescale_empirical_covariance(m, norm= ['min', 'max']):
+def rescale_empirical_covariance(m, normalizer= ['min', 'max']):
     '''
     It is allowed to rescale the empirical covariance matrix such that the inferred covariance matrix takes values that are closer to the mean of the prior.
     
@@ -197,7 +194,7 @@ def rescale_empirical_covariance(m, norm= ['min', 'max']):
     
     '''
     
-    if not isinstance(norm, basestring):
+    if not isinstance(normalizer, basestring):
         norm=norm[0]
     
     n=m.shape[0]
@@ -205,9 +202,9 @@ def rescale_empirical_covariance(m, norm= ['min', 'max']):
     min_expected_trace=log(n)/log(2)*n
     max_expected_trace=n*(n+1)/2-1
     
-    if norm=='min':
+    if normalizer=='min':
         multiplier= min_expected_trace/actual_trace
-    elif norm=='max':
+    elif normalizer=='max':
         multiplier= max_expected_trace/actual_trace
     
     return m*multiplier, multiplier
@@ -234,7 +231,9 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    via_treemix=True,
                    treemix_out_files='tmp',
                    sadmix=False,
-                   add_file=''):
+                   arcsin=False,
+                   cov_weight='None',
+                   scale_goal='min'):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -277,7 +276,10 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['time_adjust']=t_adjust_tree
     kwargs['final_pop_size']=final_pop_size
     kwargs['via_treemix']=via_treemix
-    kwargs['add_file']=add_file
+    kwargs['add_file']=prefix+'true_add.txt'
+    kwargs['arcsin']=arcsin
+    kwargs['cov_weight']=cov_weight
+    kwargs['scale_goal']=scale_goal
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

@@ -151,21 +151,32 @@ class posterior_class(object):
         self.nodes=nodes
         self.use_uniform_prior=use_uniform_prior
         
-    def __call__(self, x, pks={}):
+    def __call__(self, x, pks={}, verbose=False):
         prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         likelihood_value=self.lik(x, self.emp_cov,self.M, nodes=self.nodes, pks=pks)
+        if verbose:
+            print 'empirical_matrix=', self.emp_cov
+            print 'input_matrix=', pks['covariance']+x[1]
         pks['prior']=prior_value
         pks['likelihood']=likelihood_value
         #pks['posterior']=prior_value+likelihood_value
         return likelihood_value, prior_value
     
-    def get_likelihood_from_matrix(self, matrix, pks={}):
-        return self.likmat(matrix, self.emp_cov, self.M, pks=pks)
+    def get_likelihood_from_matrix(self, matrix, pks={}, verbose=False):
+        val=self.likmat(matrix, self.emp_cov, self.M, pks=pks)
+        if verbose:
+            print 'empirical_matrix=', self.emp_cov
+            print 'input_matrix=', matrix
+        return val
     
-    def get_max_likelihood(self, pks={}):
-        return self.likmat(self.emp_cov, self.emp_cov, self.M, pks=pks)
+    def get_max_likelihood(self, pks={}, verbose=False):
+        val=self.likmat(self.emp_cov, self.emp_cov, self.M, pks=pks)
+        if verbose:
+            print 'empirical_matrix=', self.emp_cov
+            print 'input_matrix=', self.emp_cov
+        return val
         
 def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     if M is None:
