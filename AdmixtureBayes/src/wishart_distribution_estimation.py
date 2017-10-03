@@ -83,8 +83,10 @@ def estimate_degrees_of_freedom(filename, bootstrap_blocksize=100, no_blocks=Non
     covs=make_covariances(filenames, nodes=nodes, **kwargs)
     print covs[1]
     if estimate_m:
-        return estimate(covs)
-    return optimize(covs)
+        res=estimate(covs)
+    else:
+        res=optimize(covs)
+    return res
     
 
 

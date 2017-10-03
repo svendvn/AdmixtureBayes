@@ -1,5 +1,6 @@
 from copy import deepcopy
 from Rtree_operations import get_trivial_nodes
+from construct_empirical_covariance_choices import make_uncompressed_copy
 
 def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
     
@@ -27,6 +28,8 @@ def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8
     return before_added_outgroup, nodes, reduced_nodes
         
 def read_one_line(filename):
+    if filename.endswith('.gz'):
+        filename=make_uncompressed_copy(filename)
     with open(filename, 'r') as f:
         return f.readline().rstrip().split()
         

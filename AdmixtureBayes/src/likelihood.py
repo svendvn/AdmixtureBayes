@@ -44,7 +44,7 @@ def likelihood_treemix_from_matrix(matrix, emp_cov, variances,  pks={}):
         #print emp_cov-add
         #print add
         #print par_cov
-        d=sum(norm.logpdf((emp_cov-matrix-add)/sqrt(variances)))
+        d=sum(norm.logpdf((emp_cov-matrix)/sqrt(variances)))
     except (ValueError, LinAlgError) as e:
         #print "illegal par_cov matrix or to large add"
         #print e

@@ -63,6 +63,8 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
                    ):
 #unzip
     new_filename=make_uncompressed_copy(filename)
+    print 'FILENAME', filename
+    print 'NEW FILENAME', new_filename
     
     allele_counts, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
     

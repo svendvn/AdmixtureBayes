@@ -12,6 +12,7 @@ from wishart_distribution_estimation import estimate_degrees_of_freedom
 from MCMC import basic_chain
 from stop_criteria import stop_criteria
 from one_evaluation import one_evaluation
+from tree_to_data import emp_cov_to_file, file_to_emp_cov
 
 import os 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -49,7 +50,7 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 
 #empirical_covariance matrix 
 parser.add_argument('--arcsin', action='store_true', default=False)
-parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'], default='None', help='this is the way of weighing the covariance matrix')
+parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='None', help='this is the way of weighing the covariance matrix')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 
 #prior options
@@ -60,8 +61,9 @@ parser.add_argument('--no_add', action='store_true', default=False, help='this w
 
 #degrees of freedom arguments
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
-parser.add_argument('--wishart_df_file', type=str, default='', help='file with the number of degrees of freedom in the wishart distribution.')
-parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined.')
+parser.add_argument('--df_file', type=str, default='', help='file with the number of degrees of freedom in the wishart distribution OR the file of entrywise variances of the covariance matrix.')
+parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined (and treemix_likelihood is not specified).')
+parser.add_argument('--save_df_file', type=str, default='DF.txt', help='the prefix is put before this string and the degrees of freedom is saved to this file.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 
@@ -86,7 +88,7 @@ parser.add_argument('--MCMC_chains', type=int, default=7, help='The number of ch
 parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty, the trees will either be simulated with the flag --random_start or the so-called trivial tree')
 parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="filename of the adds to use on the starting trees.")
 parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
-parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace'], default=['None'], nargs='+', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
+parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace','scalar'], default='None', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
 parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true', help='this will scale the tree with the specified scale_tree_factor.')
 
 #tree simulation
@@ -210,24 +212,27 @@ if options.treemix_instead or options.treemix_also:
 if options.estimate_bootstrap_df:
     #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     reduce_also= (8 in options.covariance_pipeline)
-    wishart_df=estimate_degrees_of_freedom(treemix_file, 
+    df=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            reduce_also=reduce_also,
                                            reducer=options.reduce_node,
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            outfile=treemix_out_files,
                                            estimate_m=options.likelihood_treemix)
-elif options.wishart_df_file:
-    with open(options.wishart_df_file, 'r') as f:
-        wishart_df=float(f.readline().rstrip())
+elif options.df_file:
+    if options.likelihood_treemix:
+        df=file_to_emp_cov(options.df_file, nodes=reduced_nodes)
+    else:
+        with open(options.df_file, 'r') as f:
+            df=float(f.readline().rstrip())
 else:
-    wishart_df=options.wishart_df
+    df=options.wishart_df
 
 if not options.likelihood_treemix:
-    with open(prefix+'wishart_DF.txt', 'w') as f:
-        f.write(str(wishart_df))
+    with open(prefix+options.save_df_file, 'w') as f:
+        f.write(str(df))
 else:
-    print wishart_df
+    emp_cov_to_file(df, prefix+options.save_df_file, nodes=reduced_nodes)
 
 
 if 9 not in options.covariance_pipeline:
@@ -236,7 +241,7 @@ if 9 not in options.covariance_pipeline:
 else:
     multiplier=covariance[1]
 posterior= posterior_class(emp_cov=covariance[0], 
-                           M=wishart_df, 
+                           M=df, 
                            p=options.p, 
                            use_skewed_distr=options.sap_analysis, 
                            multiplier=covariance[1], 
@@ -259,9 +264,10 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   multiplier=multiplier,
                                   scale_tree_factor=options.scale_tree_factor,
                                   start=options.start, 
-                                  prefix=options.prefix,
+                                  prefix=prefix,
                                   starting_tree_scaling=options.starting_tree_scaling,
-                                  starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor)
+                                  starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
+                                  scale_goal=options.scale_goal)
 
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.

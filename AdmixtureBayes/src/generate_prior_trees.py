@@ -74,6 +74,9 @@ def generate_phylogeny(size,admixes=None, p=0.5, leaf_nodes=None, skewed_admixtu
         node=_resimulate(node, factor, skewed_admixture_prior)
     return tree
 
+def generate_add():
+    return expon.rvs()
+
 
 def _resimulate(node, factor=1.0, skewed_admixture_prior=False):
     if node[2] is not None:
