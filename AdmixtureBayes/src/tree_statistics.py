@@ -596,7 +596,7 @@ def unique_identifier_and_branch_lengths(tree, leaf_order=None):
         if len(ready_lineages)==1 and ready_lineages[0][0]=='r':
             break
     return ';'.join([_list_identifier_to_string(list_of_gens),
-                     _list_double_to_string(branch_lengths, 3),
+                     _list_double_to_string(branch_lengths, 9),
                      _list_double_to_string(admixture_proportions, 3)])
 
 

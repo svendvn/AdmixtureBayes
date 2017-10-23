@@ -53,23 +53,15 @@ def scale_m(m, scale_type, allele_freqs, n_outgroup=None):
     return m/scaler
         
 
-def treemix_to_cov(filename='treemix_in.txt.gz', 
+def alleles_to_cov(p,
+                   names, 
+                   pop_sizes=None, 
                    reduce_method=['no', 'average', 'outgroup'], 
-                   reducer='', 
                    variance_correction=False, 
-                   nodes=None,
-                   arcsin_transform=False,
-                   method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product']
-                   ):
-#unzip
-    new_filename=make_uncompressed_copy(filename)
-    print 'FILENAME', filename
-    print 'NEW FILENAME', new_filename
-    
-    allele_counts, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
-    
-    p=array(allele_counts)
-    p=p.T
+                   nodes=None, 
+                   arcsin_transformation=False, 
+                   method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'], 
+                   reducer=''):
     p=reorder_rows(p, names, nodes)
     
     if not isinstance(reduce_method, basestring):
@@ -107,10 +99,33 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
     if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade':
         m=scale_m(m, method_of_weighing_alleles, p, n_outgroup)
 
-    #if reduce_method != 'no':
-    #    m=reduce_covariance(m, n_outgroup)
-        
-    return m
+def treemix_to_cov(filename='treemix_in.txt.gz', 
+                   reduce_method=['no', 'average', 'outgroup'], 
+                   reducer='', 
+                   variance_correction=False, 
+                   nodes=None,
+                   arcsin_transform=False,
+                   method_of_weighing_alleles='None'
+                   ):
+#unzip
+    new_filename=make_uncompressed_copy(filename)
+    print 'FILENAME', filename
+    print 'NEW FILENAME', new_filename
+    
+    allele_counts, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
+    
+    p=array(allele_counts)
+    p=p.T
+    
+    return alleles_to_cov(p, 
+                          names, 
+                          pop_sizes, 
+                          reduce_method, 
+                          variance_correction, 
+                          nodes, 
+                          arcsin_transformation, 
+                          method_of_weighing_alleles, 
+                          reducer)
 
 def heterogeneity(allele_frequency, pop_size):
     mult=2.0/float(len(allele_frequency))*float(pop_size)/float(pop_size-1)

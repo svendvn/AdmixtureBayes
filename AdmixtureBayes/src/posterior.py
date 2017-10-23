@@ -7,6 +7,7 @@ from tree_statistics import identifier_to_tree_clean
 from Rtree_operations import get_number_of_leaves, get_number_of_admixes, remove_outgroup, simple_reorder_the_leaves_after_removal_of_s1
 from tree_to_data import reduce_covariance
 from Rtree_to_covariance_matrix import make_covariance
+from numpy import median
 
 
 def initialize_posterior2(emp_cov=None, 
@@ -177,6 +178,22 @@ class posterior_class(object):
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', self.emp_cov
         return val
+    
+    def get_non_empirical_max_likelihood(self, x, pks={}, verbose=False):
+        p_cov=make_covariance(x[0])+x[1]
+        val=self.likmat(p_cov, p_cov, self.M, pks=pks)
+        if verbose:
+            print 'empirical_matrix=', p_cov
+            print 'input_matrix=', p_cov
+        return val
+    
+    def get_size_diff(self, x):
+        t,add=x
+        p_cov=make_covariance(t)+add
+        diffs=p_cov-self.emp_cov
+        max_dif=max(diffs)
+        min_dif=min(diffs)
+        return median(p_cov/self.emp_cov), (max_dif+min_dif)/(abs(max_dif)+abs(min_dif))
         
 def initialize_big_posterior(emp_cov, M=None, use_skewed_distr=False, p=0.5):
     if M is None:

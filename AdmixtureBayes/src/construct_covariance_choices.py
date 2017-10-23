@@ -13,6 +13,7 @@ from copy import deepcopy
 from math import log
 from rescale_covariance import rescale_empirical_covariance
 import time
+from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p
 
 
 
@@ -95,6 +96,17 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
                    )
     return cov
 
+def simulate_brownian_motion_wrapper(tree, **kwargs):
+    N=kwargs['nreps'] #number of independent SNPs. 
+    ps=produce_p_matrix(tree,N)
+    return ps
+
+def alleles_to_cov_wrapper(ps, **kwargs):
+    cov=calculate_covariance_matrix_from_p(ps, nodes=kwargs['full_nodes'])
+    return cov
+    
+    
+
 # def empirical_covariance_wrapper(snp_data_file, **kwargs):
 #     if not kwargs['via_treemix']:
 #         outgroup_number=any((n for n,e in enumerate(kwargs['full_nodes']) if e==kwargs['reduce_covariance_node']))
@@ -132,6 +144,10 @@ dictionary_of_transformations={
     (3,7):theoretical_covariance_wrapper,
     (4,7):theoretical_covariance_wrapper,
     (5,7):theoretical_covariance_wrapper,
+    (3,21):simulate_brownian_motion_wrapper,
+    (4,21):simulate_brownian_motion_wrapper,
+    (5,21):simulate_brownian_motion_wrapper,
+    (21,7):alleles_to_cov_wrapper,
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
@@ -181,6 +197,8 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
         emp_cov_to_file(value, filename, full_nodes)
     elif stage_number==8:
         emp_cov_to_file(value, filename, after_reduce_nodes)
+    elif stage_number==21:
+        print 'Stage 21 not saved'
     else:
         emp_cov_to_file(value[0], filename, after_reduce_nodes)
         with open(filename, 'a') as f:

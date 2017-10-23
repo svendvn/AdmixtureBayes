@@ -79,11 +79,22 @@ if __name__=='__main__':
     #save_tree(s, 'tree.txt')
     #print_tree(s)
     
-    s=load_tree('tree.txt')
-    s=add_random_admix(s)
-    print_tree(s)
+    designed_tree={
+                   's1':['n1',None, None, 0.1,None,None, None],
+                   's2':['n2',None,None,1,None,None,None],
+                   's3':['n1',None, None, 0.05, None, None, None],
+                   'out':['r',None, None, 1, None, None, None],
+                   'n1':['n2',None, None, 4, None, 's1', 's3'],
+                   'n2':['r',None, None, 1,None,'s2','n1' ]}
+    s=unique_identifier_and_branch_lengths(designed_tree)
+    save_tree(s, 'tree_d.txt')
+    #print(s)
+    
+    #s=load_tree('tree.txt')
+    #s=add_random_admix(s)
+    #print_tree(s)
     #plot_big_tree(s)
-    save_tree(s, 'tree2.txt')
+    #save_tree(s, 'tree2.txt')
     
     #s=load_tree('tree2.txt')
     #s=add_random_admix(s)
