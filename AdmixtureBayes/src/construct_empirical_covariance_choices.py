@@ -43,12 +43,14 @@ def make_uncompressed_copy(filename):
 def scale_m(m, scale_type, allele_freqs, n_outgroup=None):
     if scale_type.startswith('outgroup'):
         s=allele_freqs[n_outgroup,:]
-    else:
+    elif scale_type.startswith('average'):
         s=mean(allele_freqs, axis=0)
+    else:
+        scaler=1.0
     if scale_type.endswith('product'):
         mu=mean(s)
         scaler=mu*(1.0-mu)
-    else:
+    elif scale_type.endswith('sum'):
         scaler=mean(s*(1.0-s))
     return m/scaler
         
@@ -59,9 +61,10 @@ def alleles_to_cov(p,
                    reduce_method=['no', 'average', 'outgroup'], 
                    variance_correction=False, 
                    nodes=None, 
-                   arcsin_transformation=False, 
-                   method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product'], 
-                   reducer=''):
+                   arcsin_transform=False, 
+                   method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade-o'], 
+                   reducer='',
+                   jade_cutoff=1e-5):
     p=reorder_rows(p, names, nodes)
     
     if not isinstance(reduce_method, basestring):
@@ -76,7 +79,7 @@ def alleles_to_cov(p,
         
     if reduce_method=='outgroup':
         n_outgroup=next((n for n, e in enumerate(nodes) if e==reducer))
-        print n_outgroup
+        #print n_outgroup
         p2=p2-p2[n_outgroup,:]
     elif reduce_method=='average':
         n_outgroup=next((n for n, e in enumerate(nodes) if e==reducer))
@@ -89,15 +92,24 @@ def alleles_to_cov(p,
     
     if method_of_weighing_alleles=='Jade':
         mu=mean(p, axis=0)
-        p2=p2/sqrt(mu*(1.0-mu))
+        
+        i=array([v > jade_cutoff and v<1.0-jade_cutoff for v in mu ])
+        p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
+    if method_of_weighing_alleles=='Jade-o':
+        mu=p[n_outgroup,:]
+        
+        i=array([v > jade_cutoff and v<1.0-jade_cutoff for v in mu ])
+        p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
         
     m=p2.dot(p2.T)/p2.shape[1]
     
     if variance_correction:
-        m=bias_correction(m,p, pop_sizes)
+        m=bias_correction(m,p, pop_sizes,None)
         
-    if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade':
+    if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade' and method_of_weighing_alleles != 'Jade-o':
         m=scale_m(m, method_of_weighing_alleles, p, n_outgroup)
+        
+    return m
 
 def treemix_to_cov(filename='treemix_in.txt.gz', 
                    reduce_method=['no', 'average', 'outgroup'], 
@@ -105,12 +117,13 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
                    variance_correction=False, 
                    nodes=None,
                    arcsin_transform=False,
-                   method_of_weighing_alleles='None'
+                   method_of_weighing_alleles='None',
+                   jade_cutoff=1e-5
                    ):
 #unzip
     new_filename=make_uncompressed_copy(filename)
-    print 'FILENAME', filename
-    print 'NEW FILENAME', new_filename
+#     print 'FILENAME', filename
+#     print 'NEW FILENAME', new_filename
     
     allele_counts, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
     
@@ -123,12 +136,13 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
                           reduce_method, 
                           variance_correction, 
                           nodes, 
-                          arcsin_transformation, 
+                          arcsin_transform, 
                           method_of_weighing_alleles, 
-                          reducer)
+                          reducer,
+                          jade_cutoff)
 
 def heterogeneity(allele_frequency, pop_size):
-    mult=2.0/float(len(allele_frequency))*float(pop_size)/float(pop_size-1)
+    mult=2.0/float(len(allele_frequency))*float(pop_size)/float(pop_size)#/float(pop_size-1)
     return sum([p*(1-p) for p in allele_frequency])*mult
 
 def B(allele_frequency, pop_size):
@@ -143,23 +157,43 @@ def adjuster(Bs):
     return res
     
 
-def bias_correction(m, p, pop_sizes):
+def bias_correction(m, p, pop_sizes, n_outgroup=None):
     #pop sizes are the number of chromosome for each SNP. It is also called the haploid population size
     Bs=[B(prow, pop_size) for prow, pop_size in zip(p, pop_sizes)]
+    print 'Bs',Bs
     adjusting_matrix=adjuster(Bs)
+    print 'adjusting matrix',adjusting_matrix
+    if n_outgroup is not None:
+        adjusting_matrix[n_outgroup,:]=0
+        adjusting_matrix[:,n_outgroup]=0
+    print 'adjusting matrix',adjusting_matrix
     return m-adjusting_matrix
 
 if __name__=='__main__':
     
-    m=adjuster([0.1,0.2])
-    assert sum(m-array([[0.075,-0.075],[-0.075,0.075]]), axis=None)==0, 'adjusting wrong'
-    from numpy import set_printoptions
-    set_printoptions(precision=5)
-    filename='sletmig/_treemix_in.txt.gz'
-    nodes=['s'+str(i) for i in range(1,10)]+['out']
-    print treemix_to_cov(filename, reduce_method='outgroup', reducer='out', variance_correction=False, nodes=nodes, arcsin_transform=False, method_of_weighing_alleles='outgroup_product')
+    if False:
+        m=adjuster([0.1,0.2])
+        assert sum(m-array([[0.075,-0.075],[-0.075,0.075]]), axis=None)==0, 'adjusting wrong'
+        from numpy import set_printoptions
+        set_printoptions(precision=5)
+        filename='sletmig/_treemix_in.txt.gz'
+        nodes=['s'+str(i) for i in range(1,10)]+['out']
+        print treemix_to_cov(filename, reduce_method='outgroup', reducer='out', variance_correction=False, nodes=nodes, arcsin_transform=False, method_of_weighing_alleles='outgroup_product')
+        
+        from load_data import read_data
+        
+        print read_data(filename, blocksize=1, nodes=nodes, variance_correction=True, normalize=False, reduce_also=True, reducer='out', return_muhat=False)
     
-    from load_data import read_data
     
-    print read_data(filename, blocksize=1, nodes=nodes, variance_correction=True, normalize=False, reduce_also=True, reducer='out', return_muhat=False)
     
+    if True:
+        import numpy as np
+
+        from scipy.stats import uniform
+        def is_pos_def(x):
+            print np.linalg.eigvals(x)
+            return np.all(np.linalg.eigvals(x) > 0)
+        p=[uniform.rvs(size=1000) for _ in xrange(5)]
+        a=-bias_correction(np.zeros((5,5)), p, [5,5,5,5,5])
+        print a
+        print is_pos_def(a)

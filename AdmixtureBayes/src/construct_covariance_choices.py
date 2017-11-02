@@ -4,7 +4,7 @@ from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, ca
                           calculate_covariance_matrix2)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from generate_sadmix_trees import generate_sadmix_tree
-from construct_empirical_covariance_choices import treemix_to_cov
+from construct_empirical_covariance_choices import treemix_to_cov, alleles_to_cov
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
@@ -13,7 +13,8 @@ from copy import deepcopy
 from math import log
 from rescale_covariance import rescale_empirical_covariance
 import time
-from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p
+from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p, simulate_with_binomial, remove_non_snps
+from numpy import array
 
 
 
@@ -92,17 +93,41 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
                    variance_correction=kwargs['ms_variance_correction'], 
                    nodes=kwargs['full_nodes'],
                    arcsin_transform=kwargs['arcsin'],
-                   method_of_weighing_alleles=kwargs['cov_weight']
+                   method_of_weighing_alleles=kwargs['cov_weight'],
+                   jade_cutoff=kwargs['jade_cutoff']
                    )
     return cov
 
 def simulate_brownian_motion_wrapper(tree, **kwargs):
     N=kwargs['nreps'] #number of independent SNPs. 
-    ps=produce_p_matrix(tree,N)
+    ps=produce_p_matrix(tree,N, clip=(not kwargs['unbounded_brownian']), middle_start=kwargs['favorable_init_brownian'])
+    return ps
+
+def simulate_binomial_wrapper(p_dic, **kwargs):
+    npop=kwargs['sample_per_pop']
+    ps=simulate_with_binomial(p_dic, npop, p_clip_value=0)
     return ps
 
 def alleles_to_cov_wrapper(ps, **kwargs):
-    cov=calculate_covariance_matrix_from_p(ps, nodes=kwargs['full_nodes'])
+    mat=[]
+    names=[]
+    for k,p in ps.items():
+        mat.append(p)
+        names.append(k)
+#     for k,p in kwargs.items():
+#         print k, ':', p
+    pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
+    mat=array(mat)
+    cov=alleles_to_cov(mat,
+                       names, 
+                       pop_sizes=pop_sizes, 
+                       reduce_method='average',
+                       variance_correction=kwargs['ms_variance_correction'], 
+                       nodes=kwargs['full_nodes'],
+                       arcsin_transform=kwargs['arcsin'],
+                       method_of_weighing_alleles=kwargs['cov_weight'],
+                       reducer=kwargs['reduce_covariance_node'],
+                       jade_cutoff=kwargs['jade_cutoff'])
     return cov
     
     
@@ -122,7 +147,11 @@ def alleles_to_cov_wrapper(ps, **kwargs):
 #                      outfile=kwargs['treemix_out_files'])
 #     return cov
 
-
+def remove_non_snps_wrapper(ps, **kwargs):
+    outg=''
+    if kwargs['filter_on_outgroup']:
+        outg=kwargs['reduce_covariance_node']
+    return remove_non_snps(ps, outg)
     
 def scale_tree_wrapper(tree, **kwargs):
     if kwargs['time_adjust']:
@@ -147,7 +176,15 @@ dictionary_of_transformations={
     (3,21):simulate_brownian_motion_wrapper,
     (4,21):simulate_brownian_motion_wrapper,
     (5,21):simulate_brownian_motion_wrapper,
+    (21,22):simulate_binomial_wrapper,
+    (21,23):remove_non_snps_wrapper,
+    (22,23):remove_non_snps_wrapper,
     (21,7):alleles_to_cov_wrapper,
+    (21,8):alleles_to_cov_wrapper,
+    (22,7): alleles_to_cov_wrapper,
+    (22,8): alleles_to_cov_wrapper,
+    (23,7): alleles_to_cov_wrapper,
+    (23,8): alleles_to_cov_wrapper,
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
@@ -197,8 +234,8 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
         emp_cov_to_file(value, filename, full_nodes)
     elif stage_number==8:
         emp_cov_to_file(value, filename, after_reduce_nodes)
-    elif stage_number==21:
-        print 'Stage 21 not saved'
+    elif stage_number in [21,22,23]:
+        print 'Stage not saved'
     else:
         emp_cov_to_file(value[0], filename, after_reduce_nodes)
         with open(filename, 'a') as f:
@@ -230,7 +267,11 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    sadmix=False,
                    arcsin=False,
                    cov_weight='None',
-                   scale_goal='min'):
+                   scale_goal='min',
+                   favorable_init_brownian=False,
+                   unbounded_brownian=False,
+                   filter_on_outgroup=False,
+                   jade_cutoff=1e-5):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -277,6 +318,10 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['arcsin']=arcsin
     kwargs['cov_weight']=cov_weight
     kwargs['scale_goal']=scale_goal
+    kwargs['favorable_init_brownian']=favorable_init_brownian
+    kwargs['unbounded_brownian']=unbounded_brownian
+    kwargs['filter_on_outgroup']=filter_on_outgroup
+    kwargs['jade_cutoff']=jade_cutoff
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
@@ -286,12 +331,12 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
         save_stage(statistic, stages_to_go_through[0], prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
     
     for stage_from, stage_to in zip(stages_to_go_through[:-1], stages_to_go_through[1:]):
-        print (stage_from, stage_to)
+        #print (stage_from, stage_to)
         transformer_function=dictionary_of_transformations[(stage_from, stage_to)]
         statistic=transformer_function(statistic, **kwargs)
         if stage_to in save_stages:
             save_stage(statistic, stage_to, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes)
-        print statistic
+        #print statistic
     
     end=time.time()
     

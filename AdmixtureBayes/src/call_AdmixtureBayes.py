@@ -50,8 +50,10 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 
 #empirical_covariance matrix 
 parser.add_argument('--arcsin', action='store_true', default=False)
-parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='None', help='this is the way of weighing the covariance matrix')
+parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o'], default='None', help='this is the way of weighing the covariance matrix')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
+parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
+
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -66,6 +68,7 @@ parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of
 parser.add_argument('--save_df_file', type=str, default='DF.txt', help='the prefix is put before this string and the degrees of freedom is saved to this file.')
 parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
+parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False, help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -101,6 +104,12 @@ parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The s
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
 parser.add_argument('--sadmix_tree', default=False, action='store_true', help='this will simulate trees where all admixture events are important in the sense that they expand the space of possible covariance matrices.')
+
+#covariance simulation
+parser.add_argument('--favorable_init_brownian', default=False, action='store_true', help='This will start the brownian motion(only if 21 in workflow) between 0.4 and 0.6')
+parser.add_argument('--unbounded_brownian', default=False, action='store_true', help='This will start the brownian motion(only if 21 in workflow) between 0.4 and 0.6')
+parser.add_argument('--filter_on_outgroup', default=False, action='store_true', help='If applied (and 23 in the pipeline) SNPs that are not polymorphic in the outgroup are removed. If not, the default is that polymorphic in no population are removed. ')
+
 
 #chain data collection
 parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
@@ -151,9 +160,12 @@ proportions, proposals = get_proposals(options)
 mp= [simple_adaptive_proposal(proposals, proportions, extras) for _ in xrange(options.MCMC_chains)]
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
-print 'before_nodes', before_added_outgroup
-print 'full_nodes', full_nodes
-print 'reduced_nodes', reduced_nodes
+# print 'before_nodes', before_added_outgroup
+# print 'full_nodes', full_nodes
+# print 'reduced_nodes', reduced_nodes
+
+
+
 
 if options.prefix[-1]!='_':
     prefix=options.prefix+'_'
@@ -184,7 +196,11 @@ covariance=get_covariance(options.covariance_pipeline,
                           df_of_wishart_noise_to_covariance=options.wishart_df,
                           cov_weight=options.cov_weight,
                           arcsin=options.arcsin,
-                          scale_goal=options.scale_goal)
+                          scale_goal=options.scale_goal,
+                          favorable_init_brownian=options.favorable_init_brownian,
+                          unbounded_brownian=options.unbounded_brownian,
+                          filter_on_outgroup=options.filter_on_outgroup,
+                          jade_cutoff=options.Jade_cutoff)
 
 if options.treemix_instead or options.treemix_also:
     if options.alternative_treemix_infile:
@@ -220,7 +236,7 @@ if options.estimate_bootstrap_df:
                                            outfile=treemix_out_files,
                                            estimate_m=options.likelihood_treemix)
 elif options.df_file:
-    if options.likelihood_treemix:
+    if options.likelihood_treemix and not options.df_treemix_adjust_to_wishart:
         df=file_to_emp_cov(options.df_file, nodes=reduced_nodes)
     else:
         with open(options.df_file, 'r') as f:
@@ -228,11 +244,7 @@ elif options.df_file:
 else:
     df=options.wishart_df
 
-if not options.likelihood_treemix:
-    with open(prefix+options.save_df_file, 'w') as f:
-        f.write(str(df))
-else:
-    emp_cov_to_file(df, prefix+options.save_df_file, nodes=reduced_nodes)
+
 
 
 if 9 not in options.covariance_pipeline:
@@ -269,6 +281,13 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
                                   scale_goal=options.scale_goal)
 
+if (not options.likelihood_treemix) or options.df_treemix_adjust_to_wishart:
+    with open(prefix+options.save_df_file, 'w') as f:
+        f.write(str(df))
+else:
+    emp_cov_to_file(df, prefix+options.save_df_file, nodes=reduced_nodes)
+    
+
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
                                           full_tree=True, #can not think of a moment where you don't want this.
                                           proposals=mp[0], 
@@ -280,18 +299,18 @@ sim_lengths=[options.m]*options.n
 
 
     
-print 'starting_trees', starting_trees
-print 'posterior', posterior
-print 'summaries',summaries
-print 'temperature_scheme', fixed_geometrical(options.max_temp,options.MCMC_chains)
-print 'summary_verbose_scheme',summary_verbose_scheme
-#print 'sim_lengths',sim_lengths
-print 'int(options.thinning_coef)',int(options.thinning_coef)
-print 'mp',mp
-print 'options.MCMC_chains',options.MCMC_chains
-print 'multiplier', multiplier
-print 'result_file', options.result_file
-print 'options.store_permuts', options.store_permuts
+# print 'starting_trees', starting_trees
+# print 'posterior', posterior
+# print 'summaries',summaries
+# print 'temperature_scheme', fixed_geometrical(options.max_temp,options.MCMC_chains)
+# print 'summary_verbose_scheme',summary_verbose_scheme
+# #print 'sim_lengths',sim_lengths
+# print 'int(options.thinning_coef)',int(options.thinning_coef)
+# print 'mp',mp
+# print 'options.MCMC_chains',options.MCMC_chains
+# print 'multiplier', multiplier
+# print 'result_file', options.result_file
+# print 'options.store_permuts', options.store_permuts
 
 if options.stop_criteria:
     sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt')

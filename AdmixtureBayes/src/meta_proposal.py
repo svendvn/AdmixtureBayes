@@ -219,7 +219,7 @@ def initialize_proposals(proposals, extras={}):
                rescale_marginally_class, sliding_rescale_class, rescale_add_class,
                rescale_constrained_class,  rescale_admixtures_class, rescale_admix_correction_class]
     all_props_dic={cl.proposal_name:cl for cl in all_props}
-    print all_props_dic
+    #print all_props_dic
     res=[]
     for proposal in proposals:
         if proposal in extras:
