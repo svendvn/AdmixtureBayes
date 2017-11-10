@@ -2,6 +2,14 @@ import subprocess
 from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
 from reduce_covariance import reduce_covariance
 
+default_scale_dic={'None':'None',
+                   'Jade-o':'outgroup_sum', 
+                   'Jade':'average_sum',
+                   'outgroup_sum':'outgroup_sum',
+                   'outgroup_product':'outgroup_product',
+                   'average_sum':'average_sum',
+                   'average_product':'average_product'}
+
 def reorder_rows(p, names,nodes):
     mapping={val:key for key, val in enumerate(names)}
     if nodes is None:
@@ -40,7 +48,9 @@ def make_uncompressed_copy(filename):
     subprocess.call(move_back_args)
     return new_filename
 
-def scale_m(m, scale_type, allele_freqs, n_outgroup=None):
+def m_scaler(m, scale_type, allele_freqs, n_outgroup=None):
+    if scale_type=='None' or scale_type=='Jade' or scale_type=='Jade-o':
+        return 1.0
     if scale_type.startswith('outgroup'):
         s=allele_freqs[n_outgroup,:]
     elif scale_type.startswith('average'):
@@ -52,20 +62,25 @@ def scale_m(m, scale_type, allele_freqs, n_outgroup=None):
         scaler=mu*(1.0-mu)
     elif scale_type.endswith('sum'):
         scaler=mean(s*(1.0-s))
-    return m/scaler
+    return scaler
         
 
 def alleles_to_cov(p,
                    names, 
                    pop_sizes=None, 
                    reduce_method=['no', 'average', 'outgroup'], 
-                   variance_correction=False, 
+                   variance_correction=['None', 'unbiased', 'mle'], 
                    nodes=None, 
                    arcsin_transform=False, 
                    method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade-o'], 
                    reducer='',
-                   jade_cutoff=1e-5):
+                   jade_cutoff=1e-5,
+                   reduce_also=False,
+                   bias_c_weight='default'):
     p=reorder_rows(p, names, nodes)
+    
+    if not isinstance(variance_correction, basestring):
+        type_of_scaling=variance_correction[0]
     
     if not isinstance(reduce_method, basestring):
         reduce_method=reduce_method[0]
@@ -95,21 +110,55 @@ def alleles_to_cov(p,
         
         i=array([v > jade_cutoff and v<1.0-jade_cutoff for v in mu ])
         p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
+        #p=p[:,i]
     if method_of_weighing_alleles=='Jade-o':
         mu=p[n_outgroup,:]
         
         i=array([v > jade_cutoff and v<1.0-jade_cutoff for v in mu ])
+        #p=p[:,i]
         p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
         
     m=p2.dot(p2.T)/p2.shape[1]
     
-    if variance_correction:
-        m=bias_correction(m,p, pop_sizes,None)
-        
+    if bias_c_weight=='default':
+        bias_c_weight=default_scale_dic[method_of_weighing_alleles]
+    
     if method_of_weighing_alleles != 'None' and method_of_weighing_alleles!='Jade' and method_of_weighing_alleles != 'Jade-o':
-        m=scale_m(m, method_of_weighing_alleles, p, n_outgroup)
+        m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
+    
+    if reduce_also:
+        assert False, 'DEPRECATED! due to possible mis calculations'
+        m=reduce_covariance(m, n_outgroup)
+        if variance_correction:
+            m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+    elif variance_correction!='None':
+        changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=variance_correction)/m_scaler(m, bias_c_weight, p, n_outgroup)
+        m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
+        print 'm',reduce_covariance(m,n_outgroup)
+        print 'changer', reduce_covariance(changer, n_outgroup)
+        m-=changer
         
     return m
+
+def avg_var(ps):
+    return sum((p*(1-p) for p in ps))/float(len(ps))
+
+def other_bias_correction(m,p,pop_sizes,n_outgroup):
+    counter=0
+    p_vars=[]
+    for i in range(len(pop_sizes)):
+        if i==n_outgroup:
+            p0_var=avg_var(p[n_outgroup,:])/(pop_sizes[n_outgroup])
+        else:
+            p_vars.append(avg_var(p[i,:])/(pop_sizes[i]))
+    adjusting_matrix=diag(array(p_vars))+p0_var
+    print 'adjusting_matrix', adjusting_matrix
+    print 'm', m
+    res=m-adjusting_matrix
+    print 'm-adjusting_matrix', res
+    return res
+    
+    
 
 def treemix_to_cov(filename='treemix_in.txt.gz', 
                    reduce_method=['no', 'average', 'outgroup'], 
@@ -141,12 +190,15 @@ def treemix_to_cov(filename='treemix_in.txt.gz',
                           reducer,
                           jade_cutoff)
 
-def heterogeneity(allele_frequency, pop_size):
-    mult=2.0/float(len(allele_frequency))*float(pop_size)/float(pop_size)#/float(pop_size-1)
+def heterogeneity(allele_frequency, pop_size, type_of_scaling='unbiased'):
+    if type_of_scaling=='mle':
+        mult=2.0/float(len(allele_frequency))#*float(pop_size)/float(pop_size-1)
+    else:
+        mult=2.0/float(len(allele_frequency))*float(pop_size)/float(pop_size-1)
     return sum([p*(1-p) for p in allele_frequency])*mult
 
-def B(allele_frequency, pop_size):
-    return heterogeneity(allele_frequency, pop_size)/2.0/float(pop_size)
+def B(allele_frequency, pop_size, type_of_scaling='unbiased'):
+    return heterogeneity(allele_frequency, pop_size, type_of_scaling)/2.0/float(pop_size)
 
 def adjuster(Bs):
     m=len(Bs)
@@ -157,17 +209,25 @@ def adjuster(Bs):
     return res
     
 
-def bias_correction(m, p, pop_sizes, n_outgroup=None):
+def bias_correction(m, p, pop_sizes, n_outgroup=None, type_of_scaling='unbiased'):
     #pop sizes are the number of chromosome for each SNP. It is also called the haploid population size
-    Bs=[B(prow, pop_size) for prow, pop_size in zip(p, pop_sizes)]
+    Bs=[B(prow, pop_size, type_of_scaling=type_of_scaling) for prow, pop_size in zip(p, pop_sizes)]
     print 'Bs',Bs
     adjusting_matrix=adjuster(Bs)
     print 'adjusting matrix',adjusting_matrix
-    if n_outgroup is not None:
-        adjusting_matrix[n_outgroup,:]=0
-        adjusting_matrix[:,n_outgroup]=0
+    print 'm',m
+    #if n_outgroup is not None:
+    #    adjusting_matrix[n_outgroup,:]=0
+    #    adjusting_matrix[:,n_outgroup]=0
     print 'adjusting matrix',adjusting_matrix
-    return m-adjusting_matrix
+    res=m-adjusting_matrix
+    print 'm-adjusting', res
+    from reduce_covariance import reduce_covariance
+    print 'mreduced', reduce_covariance(m, n_outgroup)
+    print 'adjustingreduced', reduce_covariance(adjusting_matrix, n_outgroup)
+    print 'mreduced -adjusting reduced', reduce_covariance(m, n_outgroup)-reduce_covariance(adjusting_matrix, n_outgroup)
+    print '(m -adjusting) reduced', reduce_covariance(res, n_outgroup)
+    return adjusting_matrix
 
 if __name__=='__main__':
     
@@ -193,7 +253,7 @@ if __name__=='__main__':
         def is_pos_def(x):
             print np.linalg.eigvals(x)
             return np.all(np.linalg.eigvals(x) > 0)
-        p=[uniform.rvs(size=1000) for _ in xrange(5)]
-        a=-bias_correction(np.zeros((5,5)), p, [5,5,5,5,5])
+        p=array([uniform.rvs(size=1000) for _ in xrange(5)])
+        a=-other_bias_correction(np.zeros((4,4)), p, [5,5,5,5,5],0)
         print a
         print is_pos_def(a)

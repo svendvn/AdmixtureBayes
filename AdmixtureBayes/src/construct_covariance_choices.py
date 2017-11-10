@@ -117,17 +117,44 @@ def alleles_to_cov_wrapper(ps, **kwargs):
 #     for k,p in kwargs.items():
 #         print k, ':', p
     pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
+    print pop_sizes
     mat=array(mat)
     cov=alleles_to_cov(mat,
                        names, 
                        pop_sizes=pop_sizes, 
-                       reduce_method='average',
+                       reduce_method='outgroup',
                        variance_correction=kwargs['ms_variance_correction'], 
                        nodes=kwargs['full_nodes'],
                        arcsin_transform=kwargs['arcsin'],
                        method_of_weighing_alleles=kwargs['cov_weight'],
                        reducer=kwargs['reduce_covariance_node'],
-                       jade_cutoff=kwargs['jade_cutoff'])
+                       jade_cutoff=kwargs['jade_cutoff'],
+                       bias_c_weight=kwargs['bias_c_weight'])
+    return cov
+
+def alleles_to_cov_directly_wrapper(ps, **kwargs):
+    mat=[]
+    names=[]
+    for k,p in ps.items():
+        mat.append(p)
+        names.append(k)
+#     for k,p in kwargs.items():
+#         print k, ':', p
+    pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
+    print pop_sizes
+    mat=array(mat)
+    cov=alleles_to_cov(mat,
+                       names, 
+                       pop_sizes=pop_sizes, 
+                       reduce_method='outgroup',
+                       variance_correction=kwargs['ms_variance_correction'], 
+                       nodes=kwargs['full_nodes'],
+                       arcsin_transform=kwargs['arcsin'],
+                       method_of_weighing_alleles=kwargs['cov_weight'],
+                       reducer=kwargs['reduce_covariance_node'],
+                       jade_cutoff=kwargs['jade_cutoff'],
+                       reduce_also=True,
+                       bias_c_weight=kwargs['bias_c_weight'])
     return cov
     
     
@@ -180,11 +207,11 @@ dictionary_of_transformations={
     (21,23):remove_non_snps_wrapper,
     (22,23):remove_non_snps_wrapper,
     (21,7):alleles_to_cov_wrapper,
-    (21,8):alleles_to_cov_wrapper,
+    (21,8):alleles_to_cov_directly_wrapper,
     (22,7): alleles_to_cov_wrapper,
-    (22,8): alleles_to_cov_wrapper,
+    (22,8): alleles_to_cov_directly_wrapper,
     (23,7): alleles_to_cov_wrapper,
-    (23,8): alleles_to_cov_wrapper,
+    (23,8): alleles_to_cov_directly_wrapper,
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
@@ -256,7 +283,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    ms_file=None,
                    treemix_file=None,
                    blocksize_empirical_covariance=100,
-                   ms_variance_correction=False,
+                   ms_variance_correction='None',
                    scale_tree_factor=0.05,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp',
@@ -271,7 +298,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    favorable_init_brownian=False,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
-                   jade_cutoff=1e-5):
+                   jade_cutoff=1e-5,
+                   bias_c_weight='default'):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -322,6 +350,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['unbounded_brownian']=unbounded_brownian
     kwargs['filter_on_outgroup']=filter_on_outgroup
     kwargs['jade_cutoff']=jade_cutoff
+    kwargs['bias_c_weight']=bias_c_weight
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

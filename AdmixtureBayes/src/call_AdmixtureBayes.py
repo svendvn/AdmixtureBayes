@@ -51,8 +51,10 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 #empirical_covariance matrix 
 parser.add_argument('--arcsin', action='store_true', default=False)
 parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o'], default='None', help='this is the way of weighing the covariance matrix')
+parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
+parser.add_argument('--ms_variance_correction', default=False, choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
 
 
 #prior options
@@ -99,7 +101,6 @@ parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of th
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
 parser.add_argument('--nreps', type=int, default=50, help='How many pieces of size 500 kb should be simualted')
 parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
-parser.add_argument('--ms_variance_correction', default=False, action='store_true', help= 'Should the empirical covariance matrix be adjusted for finite sample size.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
@@ -200,7 +201,8 @@ covariance=get_covariance(options.covariance_pipeline,
                           favorable_init_brownian=options.favorable_init_brownian,
                           unbounded_brownian=options.unbounded_brownian,
                           filter_on_outgroup=options.filter_on_outgroup,
-                          jade_cutoff=options.Jade_cutoff)
+                          jade_cutoff=options.Jade_cutoff,
+                          bias_c_weight=options.bias_c_weight)
 
 if options.treemix_instead or options.treemix_also:
     if options.alternative_treemix_infile:
