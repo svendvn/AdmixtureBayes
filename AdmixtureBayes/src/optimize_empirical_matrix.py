@@ -1,13 +1,14 @@
 
 import autograd.numpy as np
 from autograd import grad
+from copy import deepcopy
 
 def loglik(Sigmai, ps, xs, ns):
     
-    ps2=np.tanh(ps)*0.5+0.5
+    ps2=transf(ps)
     p_start=ps2[0,:]
     p_rest=ps2[1:,:]
-    p_diffs=p_start-p_rest
+    p_diffs=p_rest-p_start
     n,N=p_diffs.shape
 #     print 'p_start', p_start
 #     print 'p_rest', p_rest
@@ -59,29 +60,72 @@ def get_clean_log_lik(xs,ns, Sigma=None):
         return loglik(Sigmai, ps, xs,ns)
     return to_return
 
-def substitute_part_of_y(ps, sigma):
+def substitute_part_of_y(y, n):
+    sigma,ps=vector_to_matrices(y,n)
     
+    opt_sigma=np.linalg.inv(sigma_opt(ps))
+    
+    return matrices_to_vector((opt_sigma, ps))
+
+def transf(p):
+    return np.tanh(p)*0.49+0.5
 
 def sigma_opt(ps):
-    ps2=np.tanh(ps)*0.5+0.5
+    ps2=transf(ps)
     p_start=ps2[0,:]
     p_rest=ps2[1:,:]
-    p_diffs=p_start-p_rest
-    p_diffs_scaled=p_diffs/p_start
+    p_diffs=p_rest-p_start
+    p_diffs_scaled=p_diffs/np.sqrt(p_start*(1-p_start))
     return p_diffs_scaled.dot(p_diffs_scaled.T)/p_diffs_scaled.shape[1]
 
 def full_maximization(xs,ns, initial_Sigma=None):
     initial_ps=xs/ns
     n=xs.shape[0]-1
     if initial_Sigma is None:
-        initial_Sigma=np.identity(n)
-    y=matrices_to_vector((initial_Sigma,np.arctanh(initial_ps)))
+        initial_Sigma=(np.identity(n)-0.1)
+    y=matrices_to_vector((initial_Sigma,transf(initial_ps)))
     f=get_clean_log_lik(xs,ns)
     gr=grad(f)
-    for _ in xrange(10000):
-        y+=gr(y)*0.05
-        sigma,ps=vector_to_matrices(y, n)
-        print f(y)
+    step_size=0.01
+    x_old=f(y)
+    for i in xrange(10000):
+        z=deepcopy(y)
+        try:
+            y+=gr(y)*step_size
+        except:
+            print 'linalg error'
+            y=z
+            step_size*=0.5
+            continue
+        x=f(y)
+        if x_old>x:
+            y=z
+            step_size*=0.5
+            continue
+        else:
+            step_size*=2
+        if i%10==0:
+            z=deepcopy(y)
+            try:
+                y=substitute_part_of_y(y,n)
+            except:
+                y=z
+                continue
+            x_new=f(y)
+            print 'step_size', step_size
+            #print x,x_new
+            if x_new<x:
+                y=z
+                continue
+            else:
+                x=x_new
+        print x, x_old
+        x_old=x
+        
+    sigma,ps=vector_to_matrices(y, n)
+    print transf(ps)
+        
+            
     return np.linalg.inv(sigma)
     
 if __name__=='__main__':
@@ -95,6 +139,7 @@ if __name__=='__main__':
     ps=xs/ns
     Sigma=np.array([[200,-100],[-100,200]])
     print full_maximization(xs, ns)
+    print ps
     
     from sys import exit
     exit()

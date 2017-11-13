@@ -299,7 +299,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
                    jade_cutoff=1e-5,
-                   bias_c_weight='default'):
+                   bias_c_weight='default',
+                   optimized_covariance=False):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -351,6 +352,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['filter_on_outgroup']=filter_on_outgroup
     kwargs['jade_cutoff']=jade_cutoff
     kwargs['bias_c_weight']=bias_c_weight
+    kwargs['optimized_covariance']=optimized_covariance
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

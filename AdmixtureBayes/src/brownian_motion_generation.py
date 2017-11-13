@@ -4,6 +4,7 @@ from Rtree_operations import (find_rooted_nodes, get_leaf_keys, node_is_admixtur
 from scipy.stats import uniform, norm, binom
 from copy import deepcopy
 from numpy import clip, cov, array, mean, sqrt, vstack
+from optimize_empirical_matrix import full_maximization
 
 def add_noise(p,branch_length):
     #return add_noise2(p, branch_length)
@@ -123,6 +124,14 @@ def simulate_with_binomial(ps, Ns, p_clip_value=0.01):
         sims[k]=simulate_row_with_binomial(clip(ps[k],p_clip_value, 1.0-p_clip_value), Ns[k])
     return sims
 
+def optimize_covariance_matrix_from_p(ps, n, nodes=None):
+    p_mat=[]
+    if nodes is None:
+        nodes=ps.keys()
+    for node in nodes:
+        p_mat.append(ps[node])
+    x=array(p_mat)*n
+    return full_maximization(x,n)
 
 def calculate_covariance_matrix_from_p(ps, nodes=None):
     p_mat=[]
@@ -130,6 +139,7 @@ def calculate_covariance_matrix_from_p(ps, nodes=None):
         nodes=ps.keys()
     for node in nodes:
         p_mat.append(ps[node])
+        
     m=array(p_mat)-mean(p_mat, axis=0)
     return cov(m)
 
