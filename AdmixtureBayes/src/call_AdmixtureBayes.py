@@ -54,8 +54,8 @@ parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'out
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
-parser.add_argument('--ms_variance_correction', default=False, choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
-
+parser.add_argument('--ms_variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--optimized_covariance', default=False, action='store_true', help='this will override all the other empirical matrix arguments (unless 7 is in the covariance pipeline) and use an optimization scheme to estimate the empirical covariance matrix of a hierarchical likelihood.')
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -202,7 +202,8 @@ covariance=get_covariance(options.covariance_pipeline,
                           unbounded_brownian=options.unbounded_brownian,
                           filter_on_outgroup=options.filter_on_outgroup,
                           jade_cutoff=options.Jade_cutoff,
-                          bias_c_weight=options.bias_c_weight)
+                          bias_c_weight=options.bias_c_weight,
+                          optimized_covariance=options.optimized_covariance)
 
 if options.treemix_instead or options.treemix_also:
     if options.alternative_treemix_infile:

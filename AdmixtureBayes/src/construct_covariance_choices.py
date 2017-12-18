@@ -4,7 +4,7 @@ from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, ca
                           calculate_covariance_matrix2)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from generate_sadmix_trees import generate_sadmix_tree
-from construct_empirical_covariance_choices import treemix_to_cov, alleles_to_cov
+from construct_empirical_covariance_choices import treemix_to_cov, alleles_to_cov, alleles_to_cov_optimizing
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
@@ -143,18 +143,25 @@ def alleles_to_cov_directly_wrapper(ps, **kwargs):
     pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
     print pop_sizes
     mat=array(mat)
-    cov=alleles_to_cov(mat,
-                       names, 
-                       pop_sizes=pop_sizes, 
-                       reduce_method='outgroup',
-                       variance_correction=kwargs['ms_variance_correction'], 
-                       nodes=kwargs['full_nodes'],
-                       arcsin_transform=kwargs['arcsin'],
-                       method_of_weighing_alleles=kwargs['cov_weight'],
-                       reducer=kwargs['reduce_covariance_node'],
-                       jade_cutoff=kwargs['jade_cutoff'],
-                       reduce_also=True,
-                       bias_c_weight=kwargs['bias_c_weight'])
+    if kwargs['optimized_covariance']:
+        cov=alleles_to_cov_optimizing(mat,
+                                      names,
+                                      pop_sizes=pop_sizes,
+                                      nodes=kwargs['full_nodes'],
+                                      cutoff=kwargs['optimized_covariance_cutoff'])
+    else:
+        cov=alleles_to_cov(mat,
+                           names, 
+                           pop_sizes=pop_sizes, 
+                           reduce_method='outgroup',
+                           variance_correction=kwargs['ms_variance_correction'], 
+                           nodes=kwargs['full_nodes'],
+                           arcsin_transform=kwargs['arcsin'],
+                           method_of_weighing_alleles=kwargs['cov_weight'],
+                           reducer=kwargs['reduce_covariance_node'],
+                           jade_cutoff=kwargs['jade_cutoff'],
+                           reduce_also=True,
+                           bias_c_weight=kwargs['bias_c_weight'])
     return cov
     
     
@@ -300,7 +307,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    filter_on_outgroup=False,
                    jade_cutoff=1e-5,
                    bias_c_weight='default',
-                   optimized_covariance=False):
+                   optimized_covariance=False,
+                   optimized_covariance_cutoff=0.01):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -353,6 +361,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['jade_cutoff']=jade_cutoff
     kwargs['bias_c_weight']=bias_c_weight
     kwargs['optimized_covariance']=optimized_covariance
+    kwargs['optimized_covariance_cutoff']=optimized_covariance_cutoff
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

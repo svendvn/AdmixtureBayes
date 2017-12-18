@@ -1,6 +1,8 @@
 import subprocess
 from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
 from reduce_covariance import reduce_covariance
+#from optimize_empirical_matrix import full_maximization, transform_allele_freqs
+from copy import deepcopy
 
 default_scale_dic={'None':'None',
                    'Jade-o':'outgroup_sum', 
@@ -63,6 +65,30 @@ def m_scaler(m, scale_type, allele_freqs, n_outgroup=None):
     elif scale_type.endswith('sum'):
         scaler=mean(s*(1.0-s))
     return scaler
+
+def alleles_to_cov_optimizing(p, 
+                              names, 
+                              pop_sizes=None,
+                              nodes=None,
+                              cutoff=0.01):
+    p=reorder_rows(p, names, nodes)
+    print 'p',p
+    xs=p
+    ns=deepcopy(p)
+    
+    for n in range(len(pop_sizes)):
+        popsize=pop_sizes[n]
+        xs[n,:]*=popsize
+        print 'xs',xs
+        ns[n,:]=popsize
+        
+    print 'xs',xs
+    print 'ns',ns
+    
+    trans=transform_allele_freqs(cutoff)
+    
+    return full_maximization(xs,ns, trans=trans)
+    
         
 
 def alleles_to_cov(p,
@@ -81,6 +107,8 @@ def alleles_to_cov(p,
     
     if not isinstance(variance_correction, basestring):
         type_of_scaling=variance_correction[0]
+    else:
+        type_of_scaling=variance_correction
     
     if not isinstance(reduce_method, basestring):
         reduce_method=reduce_method[0]
@@ -127,12 +155,12 @@ def alleles_to_cov(p,
         m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
     
     if reduce_also:
-        assert False, 'DEPRECATED! due to possible mis calculations'
+        #assert False, 'DEPRECATED! due to possible mis calculations'
         m=reduce_covariance(m, n_outgroup)
-        if variance_correction:
+        if type_of_scaling!='None':
             m=other_bias_correction(m,p, pop_sizes,n_outgroup)
-    elif variance_correction!='None':
-        changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=variance_correction)/m_scaler(m, bias_c_weight, p, n_outgroup)
+    elif type_of_scaling!='None':
+        changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=type_of_scaling)/m_scaler(m, bias_c_weight, p, n_outgroup)
         m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
         print 'm',reduce_covariance(m,n_outgroup)
         print 'changer', reduce_covariance(changer, n_outgroup)
