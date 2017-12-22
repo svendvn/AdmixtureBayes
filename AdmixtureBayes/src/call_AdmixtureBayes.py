@@ -50,12 +50,12 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 
 #empirical_covariance matrix 
 parser.add_argument('--arcsin', action='store_true', default=False)
-parser.add_argument('--cov_weight', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o'], default='None', help='this is the way of weighing the covariance matrix')
-parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
+parser.add_argument('--cov_estimation', choices=['unweighted', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o', 'EM'], default='None', help='this is the way of estimating the empirical covariance matrix.')
+parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
-parser.add_argument('--ms_variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
-parser.add_argument('--optimized_covariance', default=False, action='store_true', help='this will override all the other empirical matrix arguments (unless 7 is in the covariance pipeline) and use an optimization scheme to estimate the empirical covariance matrix of a hierarchical likelihood.')
+parser.add_argument('--variance_correction', default='None', choices=['indirect', 'unbiased','mle','None'], help= 'The type of adjustment used on the empirical covariance.')
+#parser.add_argument('--optimized_covariance', default=False, action='store_true', help='this will override all the other empirical matrix arguments (unless 7 is in the covariance pipeline) and use an optimization scheme to estimate the empirical covariance matrix of a hierarchical likelihood.')
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -188,14 +188,14 @@ covariance=get_covariance(options.covariance_pipeline,
                           nreps=options.nreps,
                           treemix_file=treemix_file,
                           treemix_out_files=treemix_out_files,
-                          ms_variance_correction=options.ms_variance_correction,
+                          variance_correction=options.variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
                           t_adjust_tree=options.time_adjusted_tree,
                           sadmix=options.sadmix_tree,
                           add_wishart_noise_to_covariance=options.wishart_noise,
                           df_of_wishart_noise_to_covariance=options.wishart_df,
-                          cov_weight=options.cov_weight,
+                          cov_estimation=options.cov_estimation,
                           arcsin=options.arcsin,
                           scale_goal=options.scale_goal,
                           favorable_init_brownian=options.favorable_init_brownian,

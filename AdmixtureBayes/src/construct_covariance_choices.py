@@ -90,7 +90,7 @@ def empirical_covariance_wrapper(snp_data_file, **kwargs):
     cov=treemix_to_cov(filename=snp_data_file, 
                    reduce_method='outgroup', 
                    reducer=kwargs['reduce_covariance_node'], 
-                   variance_correction=kwargs['ms_variance_correction'], 
+                   variance_correction=kwargs['variance_correction']=='unbiased', 
                    nodes=kwargs['full_nodes'],
                    arcsin_transform=kwargs['arcsin'],
                    method_of_weighing_alleles=kwargs['cov_weight'],
@@ -123,7 +123,7 @@ def alleles_to_cov_wrapper(ps, **kwargs):
                        names, 
                        pop_sizes=pop_sizes, 
                        reduce_method='outgroup',
-                       variance_correction=kwargs['ms_variance_correction'], 
+                       variance_correction=kwargs['variance_correction']=='unbiased', 
                        nodes=kwargs['full_nodes'],
                        arcsin_transform=kwargs['arcsin'],
                        method_of_weighing_alleles=kwargs['cov_weight'],
@@ -290,7 +290,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    ms_file=None,
                    treemix_file=None,
                    blocksize_empirical_covariance=100,
-                   ms_variance_correction='None',
+                   variance_correction='None',
                    scale_tree_factor=0.05,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp',
@@ -306,9 +306,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
                    jade_cutoff=1e-5,
-                   bias_c_weight='default',
-                   optimized_covariance=False,
-                   optimized_covariance_cutoff=0.01):
+                   bias_c_weight='default'):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -345,7 +343,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['ms_file']=ms_file
     kwargs['treemix_file']=treemix_file
     kwargs['blocksize_empirical_covariance']=blocksize_empirical_covariance
-    kwargs['ms_variance_correction']=ms_variance_correction
+    kwargs['variance_correction']=variance_correction
     kwargs['scale_tree_factor']=scale_tree_factor
     kwargs['pks']={}
     kwargs['time_adjust']=t_adjust_tree
@@ -360,8 +358,6 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['filter_on_outgroup']=filter_on_outgroup
     kwargs['jade_cutoff']=jade_cutoff
     kwargs['bias_c_weight']=bias_c_weight
-    kwargs['optimized_covariance']=optimized_covariance
-    kwargs['optimized_covariance_cutoff']=optimized_covariance_cutoff
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

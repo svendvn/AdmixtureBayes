@@ -117,21 +117,7 @@ if __name__=='__main__':
 #                  [23,43,8,10,6],
 #                  [23,41,8,10,14]])
     from scipy.stats import uniform, norm, multivariate_normal, binom
-    def simulate_xs_and_ns(n,N, Sigma, ns, normal_xval=False):
-        p0s=uniform.rvs(size=N)
-        pij=np.zeros((n+1,N))
-        for s,p0 in enumerate(p0s):
-            pij[1:,s]=multivariate_normal.rvs(mean=[p0]*n, cov=Sigma*p0*(1-p0))
-            pij[0,s]=p0
-        pij2=np.clip(pij,0,1)
-        ##print ns
-       # print pij
-        if normal_xval:
-            xs=norm.rvs(loc= ns*pij2, scale=np.sqrt(pij2*(1-pij2)*ns) ) 
-        else:
-            xs=binom.rvs(ns.astype(int), p=pij2)
-        #xs=np.clip(xs, 0,ns)
-        return xs, p0s, pij
+    from brownian_motion_generation import simulate_xs_and_ns 
 
 
     Sigma = np.identity(3)*0.03+0.02

@@ -1,10 +1,25 @@
 from Rtree_operations import (find_rooted_nodes, get_leaf_keys, node_is_admixture, node_is_leaf_node, 
                               get_branch_length, get_admixture_proportion_from_key, get_children,
                               mother_or_father, other_branch)
-from scipy.stats import uniform, norm, binom
+from scipy.stats import uniform, norm, binom, multivariate_normal
 from copy import deepcopy
-from numpy import clip, cov, array, mean, sqrt, vstack
-from optimize_empirical_matrix import full_maximization
+from numpy import clip, cov, array, mean, sqrt, vstack, zeros
+
+def simulate_xs_and_ns(n,N, Sigma, ns, normal_xval=False):
+    p0s=uniform.rvs(size=N)
+    pij=zeros((n+1,N))
+    for s,p0 in enumerate(p0s):
+        pij[1:,s]=multivariate_normal.rvs(mean=[p0]*n, cov=Sigma*p0*(1-p0))
+        pij[0,s]=p0
+    pij2=clip(pij,0,1)
+    ##print ns
+   # print pij
+    if normal_xval:
+        xs=norm.rvs(loc= ns*pij2, scale=np.sqrt(pij2*(1-pij2)*ns) ) 
+    else:
+        xs=binom.rvs(ns.astype(int), p=pij2)
+    #xs=np.clip(xs, 0,ns)
+    return xs, p0s, pij
 
 def add_noise(p,branch_length):
     #return add_noise2(p, branch_length)
@@ -124,14 +139,14 @@ def simulate_with_binomial(ps, Ns, p_clip_value=0.01):
         sims[k]=simulate_row_with_binomial(clip(ps[k],p_clip_value, 1.0-p_clip_value), Ns[k])
     return sims
 
-def optimize_covariance_matrix_from_p(ps, n, nodes=None):
-    p_mat=[]
-    if nodes is None:
-        nodes=ps.keys()
-    for node in nodes:
-        p_mat.append(ps[node])
-    x=array(p_mat)*n
-    return full_maximization(x,n)
+# def optimize_covariance_matrix_from_p(ps, n, nodes=None):
+#     p_mat=[]
+#     if nodes is None:
+#         nodes=ps.keys()
+#     for node in nodes:
+#         p_mat.append(ps[node])
+#     x=array(p_mat)*n
+#     return full_maximization(x,n)
 
 def calculate_covariance_matrix_from_p(ps, nodes=None):
     p_mat=[]

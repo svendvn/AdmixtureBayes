@@ -3,6 +3,7 @@ from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
 from reduce_covariance import reduce_covariance
 #from optimize_empirical_matrix import full_maximization, transform_allele_freqs
 from copy import deepcopy
+import warnings
 
 default_scale_dic={'None':'None',
                    'Jade-o':'outgroup_sum', 
@@ -11,6 +12,108 @@ default_scale_dic={'None':'None',
                    'outgroup_product':'outgroup_product',
                    'average_sum':'average_sum',
                    'average_product':'average_product'}
+
+def initor(a):
+    if not isinstance(a, basestring):
+        return a[0]
+    else:
+        return a
+    
+class Estimator(object):
+    
+    def __init__(self, outgroup_name='', 
+                 names=None, 
+                 full_nodes=None, 
+                 reduce_also=True,
+                 arcsin_transform=False):
+        self.arcsin_transform=arcsin_transform
+        self.outgroup=''
+        self.full_nodes=full_nodes
+        self.names=names
+        self.reduce_also=reduce_also
+        pass
+    
+        
+    def get_reduce_index(self):
+        n_outgroup=next((n for n, e in enumerate(self.full_nodes) if e==self.outgroup))
+        return n_outgroup
+    
+    def __call__(self,xs,ns):
+        pass
+    
+class ScaledEstimator(object):
+    
+    def __init__(self, outgroup='', 
+                 reduce_method=['outgroup','average','None'],
+                 scaling=['None','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade','Jade-o'],
+                 full_nodes=None,
+                 reduce_also=True,
+                 variance_correction=['None','unbiased','mle'],
+                 jade_cutoff=1e-5,
+                 bias_c_weight='default',
+                 names=None):
+        super(ScaledEstimator, self).__init__(outgroup_name=reducer, 
+                                              full_nodes=full_nodes, 
+                                              reduce_also=reduce_also, 
+                                              names=names)
+        self.scaling=initor(scaling)
+        self.variance_correction=initor(variance_correction)
+        self.jade_cutoff=jade_cutoff
+        self.bias_c_weight=default_scale_dic[bias_c_weight]
+        self.reduce_method=reduce_method
+        
+    def subtract_ancestral_and_get_outgroup(self,p):
+        if self.reduce_method=='outgroup':
+            n_outgroup=self.get_reduce_index()
+            #print n_outgroup
+            return p-p[n_outgroup,:], n_outgroup
+        elif self.reduce_method=='average':
+            n_outgroup=n_outgroup=self.get_reduce_index()
+            total_mean2=mean(p, axis=0)
+            return p2-total_mean2, n_outgroup
+        else:
+            return p, None
+        
+    def __call__(self, xs, ns):
+        p=xs/ns
+        p=reorder_rows(p, self.names, self.nodes)
+        
+        p2,n_outgroup = self.subtract_ancestral_and_get_outgroup(p)
+        
+        
+    
+        if self.scaling=='Jade':
+            mu=mean(p, axis=0)
+            
+            i=array([v > self.jade_cutoff and v<1.0-self.jade_cutoff for v in mu ])
+            p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
+        elif method_of_weighing_alleles=='Jade-o':
+            mu=p[n_outgroup,:]
+            
+            i=array([v > self.jade_cutoff and v<1.0-self.jade_cutoff for v in mu ])
+            #p=p[:,i]
+            p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
+        
+        m=p2.dot(p2.T)/p2.shape[1]
+        m=m/m_scaler(m, self.scaling, p, n_outgroup)
+        
+    
+        if reduce_also:
+            m=reduce_covariance(m, n_outgroup)
+            if self.variance_correction!='None':
+                warnings.warn('assuming the same population size for all SNPs', UserWarning)
+                pop_sizes=mean(ns, axis=1)
+                m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+        elif self.variance_correction!='None':
+            warnings.warn('assuming the same population size for all SNPs', UserWarning)
+            pop_sizes=mean(ns, axis=1)
+            changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)/self.bias_c_weight(m, self.bias_c_weight, p, n_outgroup)
+            m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
+            #print 'm',reduce_covariance(m,n_outgroup)
+            #print 'changer', reduce_covariance(changer, n_outgroup)
+            m-=changer
+        
+    return m
 
 def reorder_rows(p, names,nodes):
     mapping={val:key for key, val in enumerate(names)}
@@ -95,7 +198,7 @@ def alleles_to_cov(p,
                    names, 
                    pop_sizes=None, 
                    reduce_method=['no', 'average', 'outgroup'], 
-                   variance_correction=['None', 'unbiased', 'mle'], 
+                   variance_correction=['None','unbiased','mle'], 
                    nodes=None, 
                    arcsin_transform=False, 
                    method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade-o'], 
@@ -155,7 +258,6 @@ def alleles_to_cov(p,
         m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
     
     if reduce_also:
-        #assert False, 'DEPRECATED! due to possible mis calculations'
         m=reduce_covariance(m, n_outgroup)
         if type_of_scaling!='None':
             m=other_bias_correction(m,p, pop_sizes,n_outgroup)
@@ -185,6 +287,53 @@ def other_bias_correction(m,p,pop_sizes,n_outgroup):
     res=m-adjusting_matrix
     print 'm-adjusting_matrix', res
     return res
+
+#wrapper to handle both treemix file input and numpy array input
+def to_cov(snps='',
+           names=None,
+           reduce_method=['no', 'average', 'outgroup'], 
+           variance_correction=['None', 'unbiased', 'mle', 'indirect'], 
+           nodes=None, 
+           arcsin_transform=False, 
+           method_of_weighing_alleles=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade-o', 'EM'], 
+           reducer='',
+           jade_cutoff=1e-5,
+           reduce_also=False,
+           bias_c_weight='default'):
+    
+    if isinstance(snps, basestring):
+        new_filename=make_uncompressed_copy(snps)
+        xij, nij, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
+        allele_counts=array(allele_counts).T
+    else:
+        alle_counts=snps
+        
+    if not isinstance(variance_correction, basestring):
+        variance_correction=variance_correction[0]
+    else:
+        variance_correction=variance_correction
+    
+    if not isinstance(method_of_weighing_alleles, basestring):
+        method_of_weighing_alleles=method_of_weighing_alleles[0]
+    
+    if variance_correction=='indirect':
+        
+    else:
+        if method_of_weighing_alleles=='EM':
+            
+        return alleles_to_cov(allele_counts, 
+                              names, 
+                              pop_sizes, 
+                              reduce_method, 
+                              variance_correction, 
+                              nodes, 
+                              arcsin_transform, 
+                              method_of_weighing_alleles, 
+                              reducer,
+                              jade_cutoff)
+        
+        
+    
     
     
 
