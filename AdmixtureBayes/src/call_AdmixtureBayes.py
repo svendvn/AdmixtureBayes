@@ -54,7 +54,8 @@ parser.add_argument('--cov_estimation', choices=['unweighted', 'Jade','outgroup_
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
-parser.add_argument('--variance_correction', default='None', choices=['indirect', 'unbiased','mle','None'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
 #parser.add_argument('--optimized_covariance', default=False, action='store_true', help='this will override all the other empirical matrix arguments (unless 7 is in the covariance pipeline) and use an optimization scheme to estimate the empirical covariance matrix of a hierarchical likelihood.')
 
 #prior options

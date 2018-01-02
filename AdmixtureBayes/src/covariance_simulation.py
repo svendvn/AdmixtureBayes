@@ -4,16 +4,14 @@ from construct_empirical_covariance_choices import alleles_to_cov
 
 class Simulator(object):
     
-    def __init__(self, ns,fixed_seed=True, reduce_method = 'outgroup', method_of_weighing_alleles = 'outgroup_product', load_from_file=''):
+    def __init__(self, ns,fixed_seed=True,  load_from_file='', estimator=None):
         self.ns=ns
         self.n=ns.shape[0]-1
         self.N=ns.shape[1]
         self.fixed_seed=fixed_seed
         self.initialize_sims(load_from_file)
-        self.triv_nodes=map(str, range(self.n+1))
-        self.reduce_method=reduce_method
-        self.method_of_weighing_alleles=method_of_weighing_alleles
         self.initialize_nvals()
+        self.estimator=estimator
         
     def initialize_nvals(self):
         self.nvals=np.unique(self.ns)
@@ -41,15 +39,7 @@ class Simulator(object):
     
     def get_implied_Sigma(self, Sigma):
         x_ij=self.get_xs(Sigma)
-        e_pij=x_ij/self.ns
-        #print e_pij
-        cov=alleles_to_cov(e_pij, 
-                     names=self.triv_nodes,
-                     nodes=self.triv_nodes, 
-                     reducer='0', 
-                     reduce_also=True, 
-                     reduce_method=self.reduce_method, 
-                     method_of_weighing_alleles=self.method_of_weighing_alleles)
+        cov=self.estimator(x_ij, self.ns) #if this line fails, it could be because estimator has default value None
         return cov
             
     def initialize_sims(self, load_from_file):

@@ -1,4 +1,6 @@
 import numpy as np
+from copy import deepcopy
+from covariance_estimator import Estimator
 
 
 def update_pop(Sigma, hidden_states, i, freqs, vars, p0s):
@@ -8,7 +10,7 @@ def update_pop(Sigma, hidden_states, i, freqs, vars, p0s):
     Sigma_12=Sigma_21.T
     Sigma_22i=np.linalg.inv(np.delete(np.delete(Sigma, i,0),i,1))
     hidden_states_small=np.delete(hidden_states,i,0)
-   # print hidden_states_small[:,1]
+    #print hidden_states_small[:,1]
     N=hidden_states.shape[1]
     Sigma_prod=np.dot(Sigma_12, Sigma_22i)
     j=1
@@ -31,16 +33,21 @@ def heuristic_p0(xs,ns, alpha=1.0):
     freqs=xs/ns
     freqs=np.clip(freqs,0.01,0.99)
     return freqs[0,:]*alpha+np.mean(freqs[1:], axis=0)*(1-alpha)
-    
 
-def em(xs, ns, initial_Sigma=None, p0s=None, maxiter=100, true_pij=None):
+def initor(a):
+    if not isinstance(a, basestring):
+        return a[0]
+    else:
+        return a
+
+def em(xs, ns, initial_Sigma=None, p0s=None, alpha=1.0, maxiter=100):
     freqs=xs[1:,:]/ns[1:,:]
     freqs=np.clip(freqs,0.01,0.99)
     print np.min(freqs)
     hidden_states=xs[1:,:]/ns[1:,:]
     hidden_states=np.clip(hidden_states,0.01,0.99)
     if p0s is None:
-        p0s=heuristic_p0(xs, ns)
+        p0s=heuristic_p0(xs, ns, alpha=alpha)
     p0s=p0s.clip(0.01,0.99)
     if initial_Sigma is None:
         Sigma=update_sigma(hidden_states, p0s)
@@ -49,11 +56,20 @@ def em(xs, ns, initial_Sigma=None, p0s=None, maxiter=100, true_pij=None):
     vars=freqs*(1.0-freqs)
     n=xs.shape[0]-1
     count=0
+    old_Sigma=Sigma
+    first_dist=0
     while count<maxiter:
         for i in range(n):
             Sigma=update_sigma(hidden_states, p0s)
             hidden_states[i,:]=update_pop(Sigma, hidden_states, i, freqs, vars, p0s).T
-        print 'upd'
+        dist=np.linalg.norm(old_Sigma-Sigma)
+        print '{}: {:.6f}'.format(count,dist)
+        old_Sigma=Sigma
+        if dist<1e-5:
+            break
+            
+        
+        #print 'upd'
         #print Sigma
         #print p0s[:2]
         #if true_pij is not None:
@@ -62,7 +78,31 @@ def em(xs, ns, initial_Sigma=None, p0s=None, maxiter=100, true_pij=None):
         #print freqs[:,:2]
         count+=1
         #print np.linalg.det(Sigma)
+        
     return Sigma
+
+class EmEstimator(Estimator):
+    
+
+    def __init__(self, outgroup='', 
+                 full_nodes=None,
+                 reduce_also=True,
+                 names=None,
+                 maxiter=100,
+                 alpha=1.0,
+                 initial_Sigma=None,
+                 ):
+        super(EM_estimator, self).__init__(outgroup_name=outgroup, 
+                                              full_nodes=full_nodes, 
+                                              reduce_also=reduce_also, 
+                                              names=names)
+        self.alpha=alpha
+        self.maxiter=maxiter
+        self.initial_Sigma=initial_Sigma
+        
+    def __call__(self, xs,ns):
+        return em(xs, ns, initial_Sigma=self.initial_Sigma, alpha=self.alpha, maxiter=self.maxiter)
+        
 
 
 if __name__=='__main__':
@@ -75,7 +115,7 @@ if __name__=='__main__':
 #                  [10,10,20,11,10],
 #                  [23,43,8,10,6],
 #                  [23,41,8,10,14]])
-
+    est=EmEstimator()
     Sigma=np.identity(3)*0.03+0.02
     Sigma[2,1]=0
     Sigma[1,2]=0
@@ -83,5 +123,5 @@ if __name__=='__main__':
     ns=np.ones((4,N))*8
     from brownian_motion_generation import simulate_xs_and_ns
     xs,p0s_temp, true_pijs=simulate_xs_and_ns(3,N, Sigma, ns, normal_xval=False)
-    print em(xs, ns, initial_Sigma=None,  maxiter=100)
+    print est(xs, ns)
    

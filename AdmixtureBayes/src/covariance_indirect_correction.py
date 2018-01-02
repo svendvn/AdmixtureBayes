@@ -2,6 +2,7 @@ import numpy as np
 from covariance_simulation import Simulator, estimate_Sigma_wrapper
 from copy import deepcopy
 from scipy.stats import wishart
+from covariance_estimator import Estimator
 
 class Sigma_proposal(object):
     
@@ -71,10 +72,10 @@ def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, dista
     
 
 
-def search_sigmas(xs,ns,no_its = 100, s=1, reduce_method = 'outgroup', method_of_weighing_alleles = 'outgroup_product', init_Sigma=None, Sim=None):
+def search_sigmas(xs,ns,no_its = 100, s=1, estimator=est, init_Sigma=None, Sim=None):
     nss=np.tile(ns,s)
     if Sim is None:
-        Sim=Simulator(nss, reduce_method = reduce_method, method_of_weighing_alleles = method_of_weighing_alleles)
+        Sim=Simulator(nss, estimator=est)
     no,N=xs.shape
     n=no-1
     emp_pijs=xs/ns
@@ -101,6 +102,37 @@ def search_sigmas(xs,ns,no_its = 100, s=1, reduce_method = 'outgroup', method_of
 
     return Sigma
     
+class IndirectEstimator(Estimator):
+    
+
+    def __init__(self, outgroup='', 
+                 full_nodes=None,
+                 reduce_also=True,
+                 names=None,
+                 no_its=100,
+                 s=1,
+                 initial_Sigma=None,
+                 estimator=None,
+                 simulator=None,
+                 ):
+        super(IndirectEstimator, self).__init__(outgroup_name=outgroup, 
+                                              full_nodes=full_nodes, 
+                                              reduce_also=reduce_also, 
+                                              names=names)
+        self.s=s
+        self.no_its=no_its
+        self.initial_Sigma=initial_Sigma
+        self.estimator=estimator
+        self.simulator=simulator
+        
+    def __call__(self, xs,ns):
+        return search_sigmas(xs,
+                             ns,
+                             no_its = self.no_its, 
+                             s=self.s, 
+                             estimator=self.estimator, 
+                             init_Sigma=self.initial_Sigma, 
+                             Sim=self.simulator)
 
     
 if __name__=='__main__':
