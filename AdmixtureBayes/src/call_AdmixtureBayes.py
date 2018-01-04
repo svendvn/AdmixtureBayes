@@ -125,6 +125,7 @@ parser.add_argument('--summary_acceptance_rate', action='store_true', default=Tr
 parser.add_argument('--summary_admixture_proportion_string', action='store_true', default=True, help='this will save a string in each step indicating names and values of all admixture proportions')
 
 #MCMCMC setup
+parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of chains to run the MCMCMC with.')
 parser.add_argument('--n', type=int, default=200, help='the number of MCMCMC flips throughout the chain.')
 parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
 parser.add_argument('--max_temp', type=float, default=100, help='the maximum temperature used in the MCMCMC.')
