@@ -1,10 +1,10 @@
 from scipy.stats import norm, uniform, binom, multivariate_normal
 import numpy as np
-from construct_empirical_covariance_choices import alleles_to_cov
+#from construct_empirical_covariance_choices import alleles_to_cov
 
 class Simulator(object):
     
-    def __init__(self, ns,fixed_seed=True,  load_from_file='', estimator=None):
+    def __init__(self, ns,estimator=None, fixed_seed=True,  load_from_file='', ):
         self.ns=ns
         self.n=ns.shape[0]-1
         self.N=ns.shape[1]
@@ -23,7 +23,7 @@ class Simulator(object):
         
     def get_xs(self, Sigma):
         if not self.fixed_seed:
-            self.initialize_sims()
+            self.initialize_sims(False)
         #print Sigma
         #pijs=np.zeros((self.n+1,self.N))
         #for s,p0 in enumerate(self.p0s):
@@ -79,16 +79,16 @@ def adjust_scipy_error(pijs, ns, xs):
     xs[ids]=ns[ids]
     return xs
     
-def estimate_Sigma_wrapper(e_pij, reduce_method, method_of_weighing_alleles):
-    n=e_pij.shape[0]-1
-    triv_nodes=map(str, range(n+1))
-    return alleles_to_cov(e_pij, 
-                          names=triv_nodes,
-                          nodes=triv_nodes, 
-                          reducer='0', 
-                          reduce_also=True, 
-                          reduce_method=reduce_method, 
-                          method_of_weighing_alleles=method_of_weighing_alleles)
+# def estimate_Sigma_wrapper(e_pij, reduce_method, method_of_weighing_alleles):
+#     n=e_pij.shape[0]-1
+#     triv_nodes=map(str, range(n+1))
+#     return alleles_to_cov(e_pij, 
+#                           names=triv_nodes,
+#                           nodes=triv_nodes, 
+#                           reducer='0', 
+#                           reduce_also=True, 
+#                           reduce_method=reduce_method, 
+#                           method_of_weighing_alleles=method_of_weighing_alleles)
     
 
 def pure_sim_get_implied_Sigma(Sigma, ns):

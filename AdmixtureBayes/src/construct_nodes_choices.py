@@ -1,6 +1,6 @@
 from copy import deepcopy
 from Rtree_operations import get_trivial_nodes
-from construct_empirical_covariance_choices import make_uncompressed_copy
+from tree_to_data import make_uncompressed_copy
 
 def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
     

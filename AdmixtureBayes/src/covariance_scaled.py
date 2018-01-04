@@ -1,4 +1,6 @@
 from covariance_estimator import Estimator, initor
+from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
+from reduce_covariance import reduce_covariance
 
 default_scale_dic={'None':'None',
                    'Jade-o':'outgroup_sum', 
@@ -8,7 +10,7 @@ default_scale_dic={'None':'None',
                    'average_sum':'average_sum',
                    'average_product':'average_product'}
 
-def m_scaler(m, scale_type, allele_freqs, n_outgroup=None):
+def m_scaler(scale_type, allele_freqs, n_outgroup=None):
     if scale_type=='None' or scale_type=='Jade' or scale_type=='Jade-o':
         return 1.0
     if scale_type.startswith('outgroup'):
@@ -83,23 +85,21 @@ def other_bias_correction(m,p,pop_sizes,n_outgroup):
 
 class ScaledEstimator(Estimator):
     
-    def __init__(self, reducer='',
+    def __init__(self,
                  reduce_method=['outgroup','average','None'],
                  scaling=['None','outgroup_sum', 'outgroup_product', 'average_outgroup', 'average_product','Jade','Jade-o'],
-                 full_nodes=None,
                  reduce_also=True,
                  variance_correction=['None','unbiased','mle'],
                  jade_cutoff=1e-5,
-                 bias_c_weight='default',
-                 names=None):
-        super(ScaledEstimator, self).__init__(outgroup_name=reducer, 
-                                              full_nodes=full_nodes, 
-                                              reduce_also=reduce_also, 
-                                              names=names)
+                 bias_c_weight='default'):
+        super(ScaledEstimator, self).__init__(reduce_also=reduce_also)
         self.scaling=initor(scaling)
         self.variance_correction=initor(variance_correction)
         self.jade_cutoff=jade_cutoff
-        self.bias_c_weight=default_scale_dic[bias_c_weight]
+        if bias_c_weight=='default':
+            self.bias_c_weight=default_scale_dic[scaling]
+        else:
+            self.bias_c_weight=bias_c_weight
         self.reduce_method=reduce_method
         
     def subtract_ancestral_and_get_outgroup(self,p):
@@ -108,18 +108,18 @@ class ScaledEstimator(Estimator):
             #print n_outgroup
             return p-p[n_outgroup,:], n_outgroup
         elif self.reduce_method=='average':
-            n_outgroup=n_outgroup=self.get_reduce_index()
+            n_outgroup=self.get_reduce_index()
             total_mean2=mean(p, axis=0)
             return p2-total_mean2, n_outgroup
         else:
             return p, None
         
     def __call__(self, xs, ns):
-        p=xs/ns
-        return self.estimate_from_p(xs,ns)
+        ps=xs/ns
+        return self.estimate_from_p(ps, ns=ns)
         
-    def estimate_from_p(self, p):
-        p=reorder_rows(p, self.names, self.nodes)
+    def estimate_from_p(self, p, ns=None):
+        #p=reorder_rows(p, self.names, self.full_nodes)
         
         p2,n_outgroup = self.subtract_ancestral_and_get_outgroup(p)
         
@@ -130,7 +130,7 @@ class ScaledEstimator(Estimator):
             
             i=array([v > self.jade_cutoff and v<1.0-self.jade_cutoff for v in mu ])
             p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
-        elif method_of_weighing_alleles=='Jade-o':
+        elif self.scaling=='Jade-o':
             mu=p[n_outgroup,:]
             
             i=array([v > self.jade_cutoff and v<1.0-self.jade_cutoff for v in mu ])
@@ -138,22 +138,65 @@ class ScaledEstimator(Estimator):
             p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
         
         m=p2.dot(p2.T)/p2.shape[1]
-        m=m/m_scaler(m, self.scaling, p, n_outgroup)
+        m=m/m_scaler(self.scaling, p, n_outgroup)
         
     
-        if reduce_also:
+        if self.reduce_also:
             m=reduce_covariance(m, n_outgroup)
             if self.variance_correction!='None':
+                if ns is None:
+                    warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
+                elif isinstance(ns, int):
+                    pop_sizes=[ns]*p2.shape[0]
+                    m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+                else:
+                    warnings.warn('assuming the same population size for all SNPs', UserWarning)
+                    pop_sizes=mean(ns, axis=1)
+                    m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+        elif self.variance_correction!='None':
+            if ns is None:
+                warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
+            elif isinstance(ns, int):
+                pop_sizes=[ns]*p2.shape[0]
+                changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)/self.bias_c_weight(m, self.bias_c_weight, p, n_outgroup)
+                m=m/m_scaler(self.scaling, p, n_outgroup)
+                #print 'm',reduce_covariance(m,n_outgroup)
+                #print 'changer', reduce_covariance(changer, n_outgroup)
+                m-=changer
+            else:
                 warnings.warn('assuming the same population size for all SNPs', UserWarning)
                 pop_sizes=mean(ns, axis=1)
-                m=other_bias_correction(m,p, pop_sizes,n_outgroup)
-        elif self.variance_correction!='None':
-            warnings.warn('assuming the same population size for all SNPs', UserWarning)
-            pop_sizes=mean(ns, axis=1)
-            changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)/self.bias_c_weight(m, self.bias_c_weight, p, n_outgroup)
-            m=m/m_scaler(m, method_of_weighing_alleles, p, n_outgroup)
-            #print 'm',reduce_covariance(m,n_outgroup)
-            #print 'changer', reduce_covariance(changer, n_outgroup)
-            m-=changer
+                changer=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)/self.bias_c_weight(m, self.bias_c_weight, p, n_outgroup)
+                m=m/m_scaler(self.scaling, p, n_outgroup)
+                #print 'm',reduce_covariance(m,n_outgroup)
+                #print 'changer', reduce_covariance(changer, n_outgroup)
+                m-=changer
+            
         
         return m
+    
+if __name__=='__main__':
+    from brownian_motion_generation import simulate_xs_and_ns
+    import numpy as np
+    n=3
+    triv_nodes=map(str, range(n+1))
+    est= ScaledEstimator(reducer='0',
+                         reduce_method='outgroup',
+                         scaling='average_product',
+                         full_nodes=triv_nodes,
+                         reduce_also=True,
+                         variance_correction='None',
+                         jade_cutoff=1e-5,
+                         bias_c_weight='default')
+    Sigma = np.identity(n)*0.03+0.02
+    Sigma[2,1] = 0
+    Sigma[1,2] = 0
+    N = 10000
+    ns = np.ones((n+1,N))*2
+    print 'simulating xs...'
+    xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
+    print 'simulated'
+    print est(xs,ns)
+    
+    
+    

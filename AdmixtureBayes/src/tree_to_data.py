@@ -6,12 +6,106 @@ from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_
                               time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 import subprocess
-from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros
+from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones
 from numpy.linalg import det
 from copy import deepcopy
 from load_data import read_data
 from operator import itemgetter
 
+
+def read_freqs(new_filename):
+    with open(new_filename, 'r') as f:
+        names=f.readline().split()
+        allele_counts=[]
+        pop_sizes=[]
+        minors=[]
+        total_sum=0
+        for n,r in enumerate(f.readlines()):
+            minor_majors=r.split()
+            freqs=[]
+            pop_sizes_SNP=[]
+            for minor_major in minor_majors:
+                minor, major= map(float,minor_major.split(','))
+                freqs.append(float(minor)/float(major+minor))
+                total_sum+=major+minor
+                minors.append(minor)
+                pop_sizes_SNP.append(major+minor)
+            pop_sizes.append(pop_sizes_SNP)
+            allele_counts.append(freqs)
+    return allele_counts, names, pop_sizes, minors, total_sum
+
+def make_uncompressed_copy(filename):
+    take_copy_args=['cp', filename, filename+".tmp"]
+    move_back_args=['mv', filename+'.tmp', filename]
+    args=['gunzip', '-f', filename]
+    new_filename='.'.join(filename.split('.')[:-1])
+    subprocess.call(take_copy_args)
+    subprocess.call(args)
+    subprocess.call(move_back_args)
+    return new_filename
+
+def get_xs_and_ns_from_freqs(ps, npop):
+    #npop=kwargs['sample_per_pop']
+    mat=[]
+    names=[]
+    for k,p in ps.items():
+        mat.append(p)
+        names.append(k)
+    mat=array(mat)
+    ns=npop*ones(mat.shape)
+    xs=mat*npop
+    return xs,ns,names
+    
+def get_xs_and_ns_from_treemix_file(snp_file):
+    new_filename=make_uncompressed_copy(snp_file)
+    allele_freqs, ns, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
+    allele_freqs=array(allele_freqs).T
+    ns=array(ns).T
+    xs=ns*allele_freqs
+    return xs,ns,names
+
+def order_covariance(xnn_tuple, outgroup=''):
+    if not outgroup:
+        return xnn_tuple
+    xs,ns,names=xnn_tuple
+    #print self.full_nodes, self.outgroup
+    n_outgroup=next((n for n, e in enumerate(names) if e==outgroup))
+    xs_o=xs[n_outgroup,:]
+    ns_o=ns[n_outgroup,:]
+    names_o=names[n_outgroup]
+    xs=delete(xs, n_outgroup,0)
+    ns=delete(ns, n_outgroup,0)
+    names.remove(names_o)
+    xs=insert(xs, 0, xs_o, axis=0)
+    ns=insert(ns, 0, ns_o, axis=0)
+    names=[names_o]+names
+    return xs,ns,names
+    
+def _get_permutation(actual, target):
+    val_to_index={val:key for key, val in enumerate(actual)}
+    indices_to_get_target=[val_to_index[val] for val in target]
+    return indices_to_get_target
+
+def reorder_covariance(cov, names, full_nodes):
+    indices=_get_permutation(names, full_nodes)
+    return cov[ix_(indices,indices)]
+    
+def reorder_reduced_covariance(cov, names, full_nodes, outgroup=''):
+    n1=len(names)
+    n2=len(full_nodes)
+    m=cov.shape[0]
+    print 'cov', cov
+    print 'names',names
+    print 'full_nodes',full_nodes
+    print outgroup
+    assert n1==n2==(m+1), 'Unexpected input'
+    names2=deepcopy(names)
+    full_nodes2=deepcopy(full_nodes)
+    names2.remove(outgroup)
+    full_nodes2.remove(outgroup)
+    indices=_get_permutation(names2, full_nodes2)
+    print cov[ix_(indices, indices)]
+    return cov[ix_(indices, indices)]
 
 def tree_to_data_perfect_model(tree, df):
     m=make_covariance(tree)

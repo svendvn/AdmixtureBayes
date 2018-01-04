@@ -84,21 +84,17 @@ def em(xs, ns, initial_Sigma=None, p0s=None, alpha=1.0, maxiter=100):
 class EmEstimator(Estimator):
     
 
-    def __init__(self, outgroup='', 
-                 full_nodes=None,
-                 reduce_also=True,
-                 names=None,
+    def __init__(self, 
                  maxiter=100,
                  alpha=1.0,
-                 initial_Sigma=None,
+                 initial_Sigma_generator=None,
                  ):
-        super(EM_estimator, self).__init__(outgroup_name=outgroup, 
-                                              full_nodes=full_nodes, 
-                                              reduce_also=reduce_also, 
-                                              names=names)
+        super(EmEstimator, self).__init__(reduce_also=True)
         self.alpha=alpha
         self.maxiter=maxiter
-        self.initial_Sigma=initial_Sigma
+        self.initial_Sigma_generator=initial_Sigma_generator
+        self.initialize_Sigma()
+
         
     def __call__(self, xs,ns):
         return em(xs, ns, initial_Sigma=self.initial_Sigma, alpha=self.alpha, maxiter=self.maxiter)

@@ -1,5 +1,5 @@
 import numpy as np
-from covariance_simulation import Simulator, estimate_Sigma_wrapper
+from covariance_simulation import Simulator
 from copy import deepcopy
 from scipy.stats import wishart
 from covariance_estimator import Estimator
@@ -9,6 +9,7 @@ class Sigma_proposal(object):
     def __init__(self, step_size=0.5,wait=6, threshold=0.4):
         self.step_size=step_size
         self.no_smallers=0
+        self.reset_no_smallers=2
         self.wait=wait
         self.df=step_size
         self.threshold=threshold
@@ -28,13 +29,13 @@ class Sigma_proposal(object):
             prop_Sigma= wishart.rvs(df=df, scale=Sigma/df)
             return prop_Sigma
             prop_Sigma=deepcopy(Sigma)
-            n=Sigma.shape[0]
-            for i in range(n):
-                for j in range(i,n):
-                    if np.random.random()<self.threshold:
-                        prop_Sigma[i,j]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
-                        if j!=i:
-                            prop_Sigma[j,i]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
+#             n=Sigma.shape[0]
+#             for i in range(n):
+#                 for j in range(i,n):
+#                     if np.random.random()<self.threshold:
+#                         prop_Sigma[i,j]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
+#                         if j!=i:
+#                             prop_Sigma[j,i]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
         else:
             prop_Sigma=Sigma+(emp_Sigma-implied_Sigma)*self.step_size
         return prop_Sigma
@@ -43,7 +44,8 @@ class Sigma_proposal(object):
         if new_distance>old_distance:
             
             if self.is_wishart():
-                self.df*=0.5
+                #print old_Sigma.shape
+                self.df=min(0.5*self.df, 1)
             else:
                 self.step_size*=0.8
                 self.no_smallers+=1
@@ -51,7 +53,8 @@ class Sigma_proposal(object):
         else:
             if self.is_wishart():
                 self.no_smallers+=1
-                self.df*=5.0
+                self.df=min(5.0*self.df, 1)
+                self.no_smallers=self.reset_no_smallers
             else:
                 self.step_size*=1.1
             return new_distance, new_Sigma
@@ -65,21 +68,21 @@ def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, dista
     to_print+='Diagonal elements of emp Sigma and implied Sigma:'+'\n'
     to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(emp_Sigma)])+'\n'
     to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(implied_Sigma)])+'\n'
-    to_print+='Diagonal elements of emp Sigma and proposed Sigma:'+'\n'
+    to_print+='Diagonal elements of Sigma and proposed Sigma:'+'\n'
     to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(prop_Sigma)])+'\n'
     to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(Sigma)])+'\n'
     print to_print
     
 
 
-def search_sigmas(xs,ns,no_its = 100, s=1, estimator=est, init_Sigma=None, Sim=None):
+def search_sigmas(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, Sim=None):
     nss=np.tile(ns,s)
     if Sim is None:
-        Sim=Simulator(nss, estimator=est)
+        Sim=Simulator(nss, estimator=estimator)
     no,N=xs.shape
     n=no-1
     emp_pijs=xs/ns
-    emp_Sigma=estimate_Sigma_wrapper(emp_pijs, reduce_method=reduce_method, method_of_weighing_alleles=method_of_weighing_alleles)
+    emp_Sigma=estimator(xs,ns)#estimate_Sigma_wrapper(emp_pijs, reduce_method=reduce_method, method_of_weighing_alleles=method_of_weighing_alleles)
     if init_Sigma is None:
         Sigma=emp_Sigma
     else:
@@ -100,39 +103,41 @@ def search_sigmas(xs,ns,no_its = 100, s=1, estimator=est, init_Sigma=None, Sim=N
         distances.append(new_dist)
         Sigma=new_Sigma
 
-    return Sigma
+    return Sigma, distances[-1]
     
 class IndirectEstimator(Estimator):
     
 
-    def __init__(self, outgroup='', 
-                 full_nodes=None,
-                 reduce_also=True,
-                 names=None,
+    def __init__(self, 
                  no_its=100,
                  s=1,
-                 initial_Sigma=None,
+                 initial_Sigma_generator=None,
                  estimator=None,
                  simulator=None,
                  ):
-        super(IndirectEstimator, self).__init__(outgroup_name=outgroup, 
-                                              full_nodes=full_nodes, 
-                                              reduce_also=reduce_also, 
-                                              names=names)
+        super(IndirectEstimator, self).__init__(reduce_also=estimator.reduce_also)
         self.s=s
         self.no_its=no_its
-        self.initial_Sigma=initial_Sigma
+        self.initial_Sigma_generator=initial_Sigma_generator
+        self.initialize_Sigma()
+        
         self.estimator=estimator
         self.simulator=simulator
+    
+    
         
     def __call__(self, xs,ns):
-        return search_sigmas(xs,
+        cov,val= search_sigmas(xs,
                              ns,
                              no_its = self.no_its, 
                              s=self.s, 
                              estimator=self.estimator, 
                              init_Sigma=self.initial_Sigma, 
                              Sim=self.simulator)
+        self.fitted_value=val
+        return cov
+        
+
 
     
 if __name__=='__main__':
@@ -150,24 +155,49 @@ if __name__=='__main__':
 #                  [23,41,8,10,14]])
     from scipy.stats import uniform, norm, multivariate_normal, binom
     from brownian_motion_generation import simulate_xs_and_ns 
+    from covariance_scaled import ScaledEstimator
+    
+    n=3
+    triv_nodes=map(str, range(n+1))
+    est= ScaledEstimator(
+                 reduce_method='outgroup',
+                 scaling='average_product',
+                 reduce_also=True,
+                 variance_correction='None',
+                 jade_cutoff=1e-5,
+                 bias_c_weight='default')
 
-
-    Sigma = np.identity(3)*0.03+0.02
+    Sigma = np.identity(n)*0.03+0.02
     Sigma[2,1] = 0
     Sigma[1,2] = 0
-    N = 100000
-    ns = np.ones((4,N))*2
-    xs, p0s_temp, true_pijs = simulate_xs_and_ns(3, N, Sigma, ns, normal_xval=False)
-    np.savetxt('tmp_xs.txt', xs)
-    np.savetxt('tmp_p0strue.txt', p0s_temp)
-    nss = np.tile(ns,1)
-    Sim = Simulator(nss, reduce_method = 'outgroup', method_of_weighing_alleles = 'average_product')
-    est_Sigma=search_sigmas(xs,ns, no_its=240, s=1, Sim=Sim, method_of_weighing_alleles='average_product')
-    est_Sigma2=search_sigmas(xs,ns, no_its=240, s=1, init_Sigma=Sigma, Sim=Sim, method_of_weighing_alleles='average_product')
-    Sim.save_to_file('tmp_')
-    print est_Sigma
-    print est_Sigma2
-    print Sigma
+    print 'simulating xs ..'
+    N = 10000
+    ns = np.ones((n+1,N))*2
+    xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
+    print 'simulated xs'
+    #nss = np.tile(ns,1)
+    Sim = Simulator(ns, est)
+    
+    #i_est(xs,ns)
+    
+    from covariance_estimator import RepeatEstimator
+    from generate_prior_covariance import generate_covariance
+    def random_initial_Sigma(n, scale='beta'):
+        def f():
+            return generate_covariance(n, scale)
+        return f
+    
+    i_est=IndirectEstimator(no_its=20, estimator=est, simulator=Sim, initial_Sigma_generator= random_initial_Sigma(n))
+    
+    r_est=RepeatEstimator(i_est, 6)
+    print r_est(xs,ns)
+    
+    #est_Sigma=search_sigmas(xs,ns, no_its=240, s=1, Sim=Sim, method_of_weighing_alleles='average_product')
+    #est_Sigma2=search_sigmas(xs,ns, no_its=240, s=1, init_Sigma=Sigma, Sim=Sim, method_of_weighing_alleles='average_product')
+    #Sim.save_to_file('tmp_')
+#     print est_Sigma
+#     print est_Sigma2
+#     print Sigma
     #print simulate_Sigma(Sigma, ns, reduce_method='outgroup', method_of_weighing_alleles='outgroup_product')
 #     p0s_heu=[heuristic_p0(xs, ns, alpha=float(i)/10) for i in range(11)]
 #     print p0s_temp[1:10], p0s_heu[1:10]

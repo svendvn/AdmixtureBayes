@@ -48,15 +48,22 @@ parser.add_argument('--reduce_node', type=str, default='out', help='the name of 
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
 parser.add_argument('--wishart_noise', action='store_true', default=False)
 
-#empirical_covariance matrix 
+#empirical_covariance matrix. Base estimation
 parser.add_argument('--arcsin', action='store_true', default=False)
-parser.add_argument('--cov_estimation', choices=['unweighted', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o', 'EM'], default='None', help='this is the way of estimating the empirical covariance matrix.')
+parser.add_argument('--cov_estimation', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o', 'EM'], default='None', help='this is the way of estimating the empirical covariance matrix.')
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
-parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
 parser.add_argument('--variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
 parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
-#parser.add_argument('--optimized_covariance', default=False, action='store_true', help='this will override all the other empirical matrix arguments (unless 7 is in the covariance pipeline) and use an optimization scheme to estimate the empirical covariance matrix of a hierarchical likelihood.')
+parser.add_argument('--indirect_its', type=int, default=100, help='For how many iterations should the indirect optimization procedure be run. Only applicable if indirect_correction is True')
+parser.add_argument('--indirect_simulation_factor', type=int, default=1, help='How much more data than provided should be simulated in the indirect correction procedure. Only applicable if indirect_correction is True')
+parser.add_argument('--EM_maxits', type=int, default=100, help='The maximum number of iterations of the EM algorithm. There is another stopping criteria that may stop it before.')
+parser.add_argument('--EM_alpha', type=float, default=1.0, help='The EM algorithm assumes that the allele frequencies in the outgroup are known. In fact it is estimated with: if alpha=1.0: the empirical allele frequencies of the outgroup, alpha=0.0: the average empirical allele frequency in all the other populations.It can also be chosen as something in between. This estimator is biased because the outgroup allele frequencies are not known and because of extra normal distribution assumptions')
+parser.add_argument('--no_repeats_of_cov_est', type=int, default=1, help='The number of times the simulation procedure should be run.')
+parser.add_argument('--indirect_randomize_seed', action='store_true', default=False, help='This will make indirect estimation (if indirect_correction) use different seeds, slowing down and making maximization more troublesome yet being more correct.')
+parser.add_argument('--initial_Sigma', choices=['default','random'], default='default', help='This means that ')
+#empirical_covariance matrix. Post estimation
+parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 
 #prior options
 parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical parameter in the prior. The formula is p**x(1-p)')
@@ -90,7 +97,6 @@ parser.add_argument('--sliding_rescale', type=float, default=0, help='this state
 parser.add_argument('--cancel_preserve_root_distance', default=False, action='store_true', help="if applied there will not be made correction for root distance when adding and deleting admixtures")
 
 #mc3 arguments
-parser.add_argument('--MCMC_chains', type=int, default=7, help='The number of chains to run the MCMCMC with.')
 parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty, the trees will either be simulated with the flag --random_start or the so-called trivial tree')
 parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="filename of the adds to use on the starting trees.")
 parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
@@ -178,6 +184,22 @@ treemix_file=prefix+"treemix_in.txt"
 treemix_out_files=prefix+'treemix_out'
 
 
+estimator_arguments=dict(reducer=options.reduce_node,
+                         variance_correction=options.variance_correction,
+                         method_of_weighing_alleles=options.cov_estimation,
+                         arcsin_transform=options.arcsin,
+                         jade_cutoff=options.Jade_cutoff,
+                         bias_c_weight=options.bias_c_weight,
+                         nodes=full_nodes,
+                         indirect_correction=options.indirect_correction,
+                         Indirect_its=options.indirect_its,
+                         Indirect_multiplier_s=options.indirect_simulation_factor,
+                         EM_maxits=options.EM_maxits,
+                         EM_alpha=options.EM_alpha,
+                         no_repeats_of_cov_est=options.no_repeats_of_cov_est,
+                         Simulator_fixed_seed=options.indirect_randomize_seed,
+                         initial_Sigma_generator=options.initial_Sigma)
+
 covariance=get_covariance(options.covariance_pipeline, 
                           options.input_file, 
                           full_nodes=full_nodes, 
@@ -189,22 +211,18 @@ covariance=get_covariance(options.covariance_pipeline,
                           nreps=options.nreps,
                           treemix_file=treemix_file,
                           treemix_out_files=treemix_out_files,
-                          variance_correction=options.variance_correction,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
                           t_adjust_tree=options.time_adjusted_tree,
                           sadmix=options.sadmix_tree,
                           add_wishart_noise_to_covariance=options.wishart_noise,
                           df_of_wishart_noise_to_covariance=options.wishart_df,
-                          cov_estimation=options.cov_estimation,
-                          arcsin=options.arcsin,
                           scale_goal=options.scale_goal,
                           favorable_init_brownian=options.favorable_init_brownian,
                           unbounded_brownian=options.unbounded_brownian,
                           filter_on_outgroup=options.filter_on_outgroup,
-                          jade_cutoff=options.Jade_cutoff,
-                          bias_c_weight=options.bias_c_weight,
-                          optimized_covariance=options.optimized_covariance)
+                          estimator_arguments=estimator_arguments
+                          )
 
 if options.treemix_instead or options.treemix_also:
     if options.alternative_treemix_infile:

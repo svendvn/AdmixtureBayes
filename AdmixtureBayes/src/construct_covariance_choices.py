@@ -1,10 +1,10 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
 from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, 
                           tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command,
-                          calculate_covariance_matrix2)
+                          calculate_covariance_matrix2, read_freqs, make_uncompressed_copy, get_xs_and_ns_from_freqs, 
+                          get_xs_and_ns_from_treemix_file, order_covariance, reorder_covariance, reorder_reduced_covariance)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from generate_sadmix_trees import generate_sadmix_tree
-from construct_empirical_covariance_choices import treemix_to_cov, alleles_to_cov, alleles_to_cov_optimizing
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree, time_adjust_tree
 from scipy.stats import expon, wishart
 from Rtree_to_covariance_matrix import make_covariance
@@ -14,7 +14,8 @@ from math import log
 from rescale_covariance import rescale_empirical_covariance
 import time
 from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p, simulate_with_binomial, remove_non_snps
-from numpy import array
+from numpy import array, ones
+from construct_estimator_choices import make_estimator
 
 
 
@@ -45,7 +46,49 @@ def theoretical_covariance_wrapper(tree, **kwargs):
     if kwargs['add_wishart_noise_to_covariance']:
         covariance=add_wishart_noise(covariance, kwargs['df_of_wishart_noise_to_covariance'])
     return covariance
-        
+
+def empirical_covariance_wrapper(snp_data_file, **kwargs):
+    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file)
+    return xnn_to_covariance_wrapper(xnn_tuple, **kwargs)
+
+def alleles_to_cov_wrapper(ps, **kwargs):
+    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'])
+    return xnn_to_covariance_wrapper(xnn_tuple, **kwargs)
+
+def empirical_covariance_wrapper_directly(snp_data_file, **kwargs):
+    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file)
+    return xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs)
+
+def alleles_to_cov_wrapper_directly(ps, **kwargs):
+    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'])
+    return xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs)
+
+def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
+    xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
+    xs,ns,names=xnn_tuple
+    est_args=kwargs['est']
+    for e,a in est_args.items():
+        print e,a
+    est= make_estimator(reduce_method='outgroup', 
+                   reduce_also=False,
+                   ns=ns,**est_args)
+    cov=est(xs,ns)
+    cov=reorder_covariance(cov, names, kwargs['full_nodes'])
+    return cov
+    
+def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
+    est_args=kwargs['est']
+    xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
+    xs,ns,names=xnn_tuple
+
+    est= make_estimator(reduce_method='outgroup', 
+                   reduce_also=True,
+                   ns=ns,**est_args)
+    cov=est(xs,ns)
+    cov=reorder_reduced_covariance(cov, names, kwargs['full_nodes'], outgroup=est_args['reducer'])
+    return cov
+    
+
 def add_wishart_noise(matrix, df):
     r=matrix.shape[0]
     m=wishart.rvs(df=df, scale=matrix/df)
@@ -86,17 +129,7 @@ def ms_simulate_wrapper(tree, **kwargs):
                     nodes=kwargs['full_nodes'])
     return filename_gz
 
-def empirical_covariance_wrapper(snp_data_file, **kwargs):
-    cov=treemix_to_cov(filename=snp_data_file, 
-                   reduce_method='outgroup', 
-                   reducer=kwargs['reduce_covariance_node'], 
-                   variance_correction=kwargs['variance_correction']=='unbiased', 
-                   nodes=kwargs['full_nodes'],
-                   arcsin_transform=kwargs['arcsin'],
-                   method_of_weighing_alleles=kwargs['cov_weight'],
-                   jade_cutoff=kwargs['jade_cutoff']
-                   )
-    return cov
+
 
 def simulate_brownian_motion_wrapper(tree, **kwargs):
     N=kwargs['nreps'] #number of independent SNPs. 
@@ -108,62 +141,6 @@ def simulate_binomial_wrapper(p_dic, **kwargs):
     ps=simulate_with_binomial(p_dic, npop, p_clip_value=0)
     return ps
 
-def alleles_to_cov_wrapper(ps, **kwargs):
-    mat=[]
-    names=[]
-    for k,p in ps.items():
-        mat.append(p)
-        names.append(k)
-#     for k,p in kwargs.items():
-#         print k, ':', p
-    pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
-    print pop_sizes
-    mat=array(mat)
-    cov=alleles_to_cov(mat,
-                       names, 
-                       pop_sizes=pop_sizes, 
-                       reduce_method='outgroup',
-                       variance_correction=kwargs['variance_correction']=='unbiased', 
-                       nodes=kwargs['full_nodes'],
-                       arcsin_transform=kwargs['arcsin'],
-                       method_of_weighing_alleles=kwargs['cov_weight'],
-                       reducer=kwargs['reduce_covariance_node'],
-                       jade_cutoff=kwargs['jade_cutoff'],
-                       bias_c_weight=kwargs['bias_c_weight'])
-    return cov
-
-def alleles_to_cov_directly_wrapper(ps, **kwargs):
-    mat=[]
-    names=[]
-    for k,p in ps.items():
-        mat.append(p)
-        names.append(k)
-#     for k,p in kwargs.items():
-#         print k, ':', p
-    pop_sizes=[kwargs['sample_per_pop'] for _ in kwargs['full_nodes']]
-    print pop_sizes
-    mat=array(mat)
-    if kwargs['optimized_covariance']:
-        cov=alleles_to_cov_optimizing(mat,
-                                      names,
-                                      pop_sizes=pop_sizes,
-                                      nodes=kwargs['full_nodes'],
-                                      cutoff=kwargs['optimized_covariance_cutoff'])
-    else:
-        cov=alleles_to_cov(mat,
-                           names, 
-                           pop_sizes=pop_sizes, 
-                           reduce_method='outgroup',
-                           variance_correction=kwargs['ms_variance_correction'], 
-                           nodes=kwargs['full_nodes'],
-                           arcsin_transform=kwargs['arcsin'],
-                           method_of_weighing_alleles=kwargs['cov_weight'],
-                           reducer=kwargs['reduce_covariance_node'],
-                           jade_cutoff=kwargs['jade_cutoff'],
-                           reduce_also=True,
-                           bias_c_weight=kwargs['bias_c_weight'])
-    return cov
-    
     
 
 # def empirical_covariance_wrapper(snp_data_file, **kwargs):
@@ -214,16 +191,16 @@ dictionary_of_transformations={
     (21,23):remove_non_snps_wrapper,
     (22,23):remove_non_snps_wrapper,
     (21,7):alleles_to_cov_wrapper,
-    (21,8):alleles_to_cov_directly_wrapper,
+    (21,8):alleles_to_cov_wrapper_directly,
     (22,7): alleles_to_cov_wrapper,
-    (22,8): alleles_to_cov_directly_wrapper,
+    (22,8): alleles_to_cov_wrapper_directly,
     (23,7): alleles_to_cov_wrapper,
-    (23,8): alleles_to_cov_directly_wrapper,
+    (23,8): alleles_to_cov_wrapper_directly,
     (3,6):ms_simulate_wrapper,
     (4,6):ms_simulate_wrapper,
     (5,6):ms_simulate_wrapper,
     (6,7):empirical_covariance_wrapper,
-    (6,8):empirical_covariance_wrapper,
+    (6,8):empirical_covariance_wrapper_directly,
     (7,8):reduce_covariance_wrapper,
     (7,9):normaliser_wrapper,
     (8,9):normaliser_wrapper
@@ -290,7 +267,6 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    ms_file=None,
                    treemix_file=None,
                    blocksize_empirical_covariance=100,
-                   variance_correction='None',
                    scale_tree_factor=0.05,
                    save_stages=range(1,6)+range(7,10),
                    prefix='tmp',
@@ -299,14 +275,11 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    via_treemix=True,
                    treemix_out_files='tmp',
                    sadmix=False,
-                   arcsin=False,
-                   cov_weight='None',
                    scale_goal='min',
                    favorable_init_brownian=False,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
-                   jade_cutoff=1e-5,
-                   bias_c_weight='default'):
+                   estimator_arguments={}):
     
     if prefix[-1]!='_':
         prefix+='_'
@@ -343,21 +316,17 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['ms_file']=ms_file
     kwargs['treemix_file']=treemix_file
     kwargs['blocksize_empirical_covariance']=blocksize_empirical_covariance
-    kwargs['variance_correction']=variance_correction
     kwargs['scale_tree_factor']=scale_tree_factor
     kwargs['pks']={}
     kwargs['time_adjust']=t_adjust_tree
     kwargs['final_pop_size']=final_pop_size
     kwargs['via_treemix']=via_treemix
     kwargs['add_file']=prefix+'true_add.txt'
-    kwargs['arcsin']=arcsin
-    kwargs['cov_weight']=cov_weight
     kwargs['scale_goal']=scale_goal
     kwargs['favorable_init_brownian']=favorable_init_brownian
     kwargs['unbounded_brownian']=unbounded_brownian
     kwargs['filter_on_outgroup']=filter_on_outgroup
-    kwargs['jade_cutoff']=jade_cutoff
-    kwargs['bias_c_weight']=bias_c_weight
+    kwargs['est']=estimator_arguments
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).
