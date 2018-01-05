@@ -5,11 +5,11 @@ from covariance_scaled import ScaledEstimator
 from covariance_indirect_correction import IndirectEstimator
 from covariance_simulation import Simulator
 
-def create_initial_Sigma_generator(streng):
+def create_initial_Sigma_generator(n, streng):
     if streng=='default':
         return fixed_initial_Sigma(None)
     elif streng=='random':
-        return random_initial_Sigma(n, scale)
+        return random_initial_Sigma(n)
 
 def fixed_initial_Sigma(initial_Sigma):
     def f():
@@ -63,7 +63,8 @@ def make_estimator(reduce_method,
                    Simulator_from_file=''):
 
     if isinstance(initial_Sigma_generator, basestring):
-        initial_Sigma_generator=create_initial_Sigma_generator(initial_Sigma_generator)
+        n=len(nodes)-int(reduce_also)
+        initial_Sigma_generator=create_initial_Sigma_generator(n, initial_Sigma_generator)
         
 
     variance_correction=initor(variance_correction)
