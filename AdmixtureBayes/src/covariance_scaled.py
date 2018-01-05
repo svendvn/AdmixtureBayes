@@ -1,6 +1,7 @@
 from covariance_estimator import Estimator, initor
 from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
 from reduce_covariance import reduce_covariance
+import warnings
 
 default_scale_dic={'None':'None',
                    'Jade-o':'outgroup_sum', 
