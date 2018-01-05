@@ -4,6 +4,7 @@ from covariance_EM import EmEstimator
 from covariance_scaled import ScaledEstimator
 from covariance_indirect_correction import IndirectEstimator
 from covariance_simulation import Simulator
+from covariance_estimator import RepeatEstimator
 
 def create_initial_Sigma_generator(n, streng):
     if streng=='default':
@@ -93,7 +94,7 @@ def make_estimator(reduce_method,
         est2=est
         
     if no_repeats_of_cov_est>1:
-        est3=RepeatEstimator(est2, no_repeats)
+        est3=RepeatEstimator(est2, no_repeats_of_cov_est)
     else:
         est3=est2
     

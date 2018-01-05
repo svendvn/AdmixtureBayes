@@ -18,6 +18,11 @@ import os
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
+
+import sys
+print  sys.argv[1:]
+print 'HALLO'
+
 #famous tree:
 #w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485
 
@@ -198,7 +203,7 @@ estimator_arguments=dict(reducer=options.reduce_node,
                          EM_maxits=options.EM_maxits,
                          EM_alpha=options.EM_alpha,
                          no_repeats_of_cov_est=options.no_repeats_of_cov_est,
-                         Simulator_fixed_seed=options.indirect_randomize_seed,
+                         Simulator_fixed_seed=not options.indirect_randomize_seed,
                          initial_Sigma_generator=options.initial_Sigma)
 
 covariance=get_covariance(options.covariance_pipeline, 

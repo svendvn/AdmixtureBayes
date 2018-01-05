@@ -46,6 +46,7 @@ class Simulator(object):
         if load_from_file:
             self.initialize_from_file(filename_prefix=load_from_file)
             return
+        print 'SIMULATING'
         self.p0s=uniform.rvs(size=self.N)
         #self.x0s=self.qbinom(self.p0s)
         self.Us=norm.rvs(size=(self.n,self.N))
