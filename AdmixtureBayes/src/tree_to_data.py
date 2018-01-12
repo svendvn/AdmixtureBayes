@@ -1,19 +1,19 @@
 from Rtree_to_covariance_matrix import make_covariance
-from scipy.stats import wishart
 from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_parents, pretty_string, get_no_leaves, 
                               node_is_non_admixture, node_is_admixture, node_is_leaf_node, node_is_coalescence, 
                               get_real_children_root, get_trivial_nodes, scale_tree_copy, get_leaf_keys,
                               time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
-import subprocess
+from load_data import read_data
+
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones
 from numpy.linalg import det
 from copy import deepcopy
-from load_data import read_data
 from operator import itemgetter
+import subprocess
+from scipy.stats import wishart
 
-
-def read_freqs(new_filename):
+def read_freqs(new_filename, locus_filter):
     with open(new_filename, 'r') as f:
         names=f.readline().split()
         allele_counts=[]
@@ -26,12 +26,13 @@ def read_freqs(new_filename):
             pop_sizes_SNP=[]
             for minor_major in minor_majors:
                 minor, major= map(float,minor_major.split(','))
-                freqs.append(float(minor)/float(major+minor))
                 total_sum+=major+minor
+                freqs.append(float(minor)/float(major+minor))
                 minors.append(minor)
                 pop_sizes_SNP.append(major+minor)
-            pop_sizes.append(pop_sizes_SNP)
-            allele_counts.append(freqs)
+            if locus_filter(freqs,pop_sizes, names):
+                pop_sizes.append(pop_sizes_SNP)
+                allele_counts.append(freqs)
     return allele_counts, names, pop_sizes, minors, total_sum
 
 def make_uncompressed_copy(filename):
@@ -44,7 +45,9 @@ def make_uncompressed_copy(filename):
     subprocess.call(move_back_args)
     return new_filename
 
-def get_xs_and_ns_from_freqs(ps, npop):
+
+
+def get_xs_and_ns_from_freqs(ps, npop, locus_filter):
     #npop=kwargs['sample_per_pop']
     mat=[]
     names=[]
@@ -53,12 +56,13 @@ def get_xs_and_ns_from_freqs(ps, npop):
         names.append(k)
     mat=array(mat)
     ns=npop*ones(mat.shape)
+    mat, ns= locus_filter.apply_filter(mat, ns, names)
     xs=mat*npop
     return xs,ns,names
     
-def get_xs_and_ns_from_treemix_file(snp_file):
+def get_xs_and_ns_from_treemix_file(snp_file, locus_filter):
     new_filename=make_uncompressed_copy(snp_file)
-    allele_freqs, ns, names, pop_sizes, minors, total_sum= read_freqs(new_filename)
+    allele_freqs, names, ns, minors, total_sum= read_freqs(new_filename, locus_filter)
     allele_freqs=array(allele_freqs).T
     ns=array(ns).T
     xs=ns*allele_freqs
@@ -184,7 +188,7 @@ def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nrep
     return callstring
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=0.4, sites=500000, recomb_rate=1,
+                       theta=1.0, sites=500000, recomb_rate=1,
                        leaf_keys=None, final_pop_size=100.0):
     tree=deepcopy(rtree)
     drift_sum=sum(get_all_branch_lengths(tree))
@@ -221,7 +225,7 @@ def scaled_tupled_branches(tree, d):
     for key in tree.keys():
         tree[key][3]=(tree[key][3][0], tree[key][3][1]*d)
         if tree[key][4] is not None:
-            tree[key][4]=(tree[key][4][0], tree[key][3][1]*d)
+            tree[key][4]=(tree[key][4][0], tree[key][4][1]*d)
     return tree
     
     
@@ -301,7 +305,7 @@ def get_affected_populations(dic_of_lineages, children_branches):
     
 def calculate_pop_size(tup):
     drift, actual=tup
-    return actual/drift
+    return actual/drift*2
 
 def call_ms_string(ms_string, sequence_file):
     with open(sequence_file, 'w') as f:

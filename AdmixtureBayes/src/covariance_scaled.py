@@ -52,21 +52,21 @@ def adjuster(Bs):
 def bias_correction(m, p, pop_sizes, n_outgroup=None, type_of_scaling='unbiased'):
     #pop sizes are the number of chromosome for each SNP. It is also called the haploid population size
     Bs=[B(prow, pop_size, type_of_scaling=type_of_scaling) for prow, pop_size in zip(p, pop_sizes)]
-    print 'Bs',Bs
+    #print 'Bs',Bs
     adjusting_matrix=adjuster(Bs)
-    print 'adjusting matrix',adjusting_matrix
-    print 'm',m
+    #print 'adjusting matrix',adjusting_matrix
+    #print 'm',m
     #if n_outgroup is not None:
     #    adjusting_matrix[n_outgroup,:]=0
     #    adjusting_matrix[:,n_outgroup]=0
-    print 'adjusting matrix',adjusting_matrix
+    #print 'adjusting matrix',adjusting_matrix
     res=m-adjusting_matrix
-    print 'm-adjusting', res
+    #print 'm-adjusting', res
     from reduce_covariance import reduce_covariance
-    print 'mreduced', reduce_covariance(m, n_outgroup)
-    print 'adjustingreduced', reduce_covariance(adjusting_matrix, n_outgroup)
-    print 'mreduced -adjusting reduced', reduce_covariance(m, n_outgroup)-reduce_covariance(adjusting_matrix, n_outgroup)
-    print '(m -adjusting) reduced', reduce_covariance(res, n_outgroup)
+    #print 'mreduced', reduce_covariance(m, n_outgroup)
+    #print 'adjustingreduced', reduce_covariance(adjusting_matrix, n_outgroup)
+    #print 'mreduced -adjusting reduced', reduce_covariance(m, n_outgroup)-reduce_covariance(adjusting_matrix, n_outgroup)
+    #print '(m -adjusting) reduced', reduce_covariance(res, n_outgroup)
     return adjusting_matrix
 
 def other_bias_correction(m,p,pop_sizes,n_outgroup):
@@ -139,22 +139,28 @@ class ScaledEstimator(Estimator):
             p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
         
         m=p2.dot(p2.T)/p2.shape[1]
-        m=m/m_scaler(self.scaling, p, n_outgroup)
+        assert m.shape[0]<1000, 'sanity check failed, because of wrongly transposed matrices'
+        
         
     
         if self.reduce_also:
-            m=reduce_covariance(m, n_outgroup)
+            
             if self.variance_correction!='None':
                 if ns is None:
                     warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
                 elif isinstance(ns, int):
                     pop_sizes=[ns]*p2.shape[0]
-                    m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+                    b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
+                    m=m-b
                 else:
                     warnings.warn('assuming the same population size for all SNPs', UserWarning)
                     pop_sizes=mean(ns, axis=1)
-                    m=other_bias_correction(m,p, pop_sizes,n_outgroup)
+                    b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
+                    m=m-b
+            m=reduce_covariance(m, n_outgroup)
+            m=m/m_scaler(self.scaling, p, n_outgroup)            
         elif self.variance_correction!='None':
+            m=m/m_scaler(self.scaling, p, n_outgroup)     
             if ns is None:
                 warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
             elif isinstance(ns, int):

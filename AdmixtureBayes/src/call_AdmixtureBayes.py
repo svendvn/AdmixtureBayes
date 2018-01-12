@@ -1,9 +1,11 @@
 from argparse import ArgumentParser
+
 from meta_proposal import simple_adaptive_proposal
 from construct_starting_trees_choices import get_starting_trees
 from construct_covariance_choices import get_covariance
 from construct_nodes_choices import get_nodes
 from construct_summary_choices import get_summary_scheme
+from construct_filter_choices import make_filter
 from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import posterior_class
@@ -13,6 +15,7 @@ from MCMC import basic_chain
 from stop_criteria import stop_criteria
 from one_evaluation import one_evaluation
 from tree_to_data import emp_cov_to_file, file_to_emp_cov
+
 
 import os 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -66,7 +69,7 @@ parser.add_argument('--EM_maxits', type=int, default=100, help='The maximum numb
 parser.add_argument('--EM_alpha', type=float, default=1.0, help='The EM algorithm assumes that the allele frequencies in the outgroup are known. In fact it is estimated with: if alpha=1.0: the empirical allele frequencies of the outgroup, alpha=0.0: the average empirical allele frequency in all the other populations.It can also be chosen as something in between. This estimator is biased because the outgroup allele frequencies are not known and because of extra normal distribution assumptions')
 parser.add_argument('--no_repeats_of_cov_est', type=int, default=1, help='The number of times the simulation procedure should be run.')
 parser.add_argument('--indirect_randomize_seed', action='store_true', default=False, help='This will make indirect estimation (if indirect_correction) use different seeds, slowing down and making maximization more troublesome yet being more correct.')
-parser.add_argument('--initial_Sigma', choices=['default','random'], default='default', help='This means that ')
+parser.add_argument('--initial_Sigma', choices=['default','random', 'start'], default='default', help='This means that ')
 #empirical_covariance matrix. Post estimation
 parser.add_argument('--scale_goal', choices=['min','max'], default='max', help='If 9 is included in the pipeline, this is what there will be scaled to.')
 
@@ -75,6 +78,10 @@ parser.add_argument('--p', type=float, default=0.5, help= 'the geometrical param
 parser.add_argument('--sap_analysis',  action='store_true',default=False, help='skewed admixture proportion prior in the analysis')
 parser.add_argument('--uniform_prior', action='store_true', default=False, help='If applied a uniform prior will be used on the different topologies.')
 parser.add_argument('--no_add', action='store_true', default=False, help='this will remove the add contribution')
+
+#filter arguments, if 6 and higher is in the covariance pipeline, there will be applied a filter to the SNPs
+parser.add_argument('--filter_type', choices=['snp','none', 'outgroup_other','outgroup','all_pops'], default='snp', help='This will apply a filter to positions based on their value.')
+parser.add_argument('--filter_on_simulated', choices=['same', 'none', 'outgroup_other', 'outgroup', 'snp', 'all_pops'], default='same', help='In indirect inference, whole datasets are simulated under ')
 
 #degrees of freedom arguments
 parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
@@ -185,9 +192,32 @@ if options.prefix[-1]!='_':
     prefix=options.prefix+'_'
 else:
     prefix=options.prefix
-    
+
 treemix_file=prefix+"treemix_in.txt" 
 treemix_out_files=prefix+'treemix_out'
+
+preliminary_starting_trees=get_starting_trees(options.starting_trees, 
+                                  options.MCMC_chains, 
+                                  adds=options.starting_adds,
+                                  nodes=reduced_nodes, 
+                                  pipeline=options.covariance_pipeline,
+                                  multiplier=None,
+                                  scale_tree_factor=options.scale_tree_factor,
+                                  start=options.start, 
+                                  prefix=prefix,
+                                  starting_tree_scaling=options.starting_tree_scaling,
+                                  starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
+                                  scale_goal=options.scale_goal)
+
+locus_filter=make_filter(options.filter_type,
+                         outgroup_name=options.reduce_node,
+                         covariance_pipeline=options.covariance_pipeline)
+if options.filter_on_simulated=='same':
+    locus_filter_on_simulated=make_filter(options.filter_type)
+else:
+    locus_filter_on_simulated=make_filter(options.filter_on_simulated)
+    
+    
 
 
 estimator_arguments=dict(reducer=options.reduce_node,
@@ -204,7 +234,8 @@ estimator_arguments=dict(reducer=options.reduce_node,
                          EM_alpha=options.EM_alpha,
                          no_repeats_of_cov_est=options.no_repeats_of_cov_est,
                          Simulator_fixed_seed=not options.indirect_randomize_seed,
-                         initial_Sigma_generator=options.initial_Sigma)
+                         initial_Sigma_generator={options.initial_Sigma:(preliminary_starting_trees[0], reduced_nodes)},
+                         locus_filter_on_simulated=locus_filter_on_simulated)
 
 covariance=get_covariance(options.covariance_pipeline, 
                           options.input_file, 
@@ -227,6 +258,7 @@ covariance=get_covariance(options.covariance_pipeline,
                           favorable_init_brownian=options.favorable_init_brownian,
                           unbounded_brownian=options.unbounded_brownian,
                           filter_on_outgroup=options.filter_on_outgroup,
+                          locus_filter=locus_filter,
                           estimator_arguments=estimator_arguments
                           )
 
@@ -289,13 +321,6 @@ posterior= posterior_class(emp_cov=covariance[0],
                            use_uniform_prior=options.uniform_prior, 
                            treemix=options.likelihood_treemix)
 
-# if not options.starting_trees:
-#     no_pops=len(reduced_nodes)
-#     starting_trees=map(str, [no_pops]*options.MCMC_chains)
-# else:
-#     starting_trees=options.starting_trees
-
-    
 starting_trees=get_starting_trees(options.starting_trees, 
                                   options.MCMC_chains, 
                                   adds=options.starting_adds,
@@ -308,6 +333,15 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   starting_tree_scaling=options.starting_tree_scaling,
                                   starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
                                   scale_goal=options.scale_goal)
+
+# if not options.starting_trees:
+#     no_pops=len(reduced_nodes)
+#     starting_trees=map(str, [no_pops]*options.MCMC_chains)
+# else:
+#     starting_trees=options.starting_trees
+
+    
+
 
 if (not options.likelihood_treemix) or options.df_treemix_adjust_to_wishart:
     with open(prefix+options.save_df_file, 'w') as f:

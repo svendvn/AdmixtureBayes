@@ -48,19 +48,19 @@ def theoretical_covariance_wrapper(tree, **kwargs):
     return covariance
 
 def empirical_covariance_wrapper(snp_data_file, **kwargs):
-    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file)
+    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file, kwargs['locus_filter'])
     return xnn_to_covariance_wrapper(xnn_tuple, **kwargs)
 
 def alleles_to_cov_wrapper(ps, **kwargs):
-    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'])
+    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'], kwargs['locus_filter'])
     return xnn_to_covariance_wrapper(xnn_tuple, **kwargs)
 
 def empirical_covariance_wrapper_directly(snp_data_file, **kwargs):
-    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file)
+    xnn_tuple=get_xs_and_ns_from_treemix_file(snp_data_file, kwargs['locus_filter'])
     return xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs)
 
 def alleles_to_cov_wrapper_directly(ps, **kwargs):
-    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'])
+    xnn_tuple=get_xs_and_ns_from_freqs(ps, kwargs['sample_per_pop'], kwargs['locus_filter'])
     return xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs)
 
 def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
@@ -279,6 +279,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    favorable_init_brownian=False,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
+                   locus_filter=None,
                    estimator_arguments={}):
     
     if prefix[-1]!='_':
@@ -327,6 +328,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['unbounded_brownian']=unbounded_brownian
     kwargs['filter_on_outgroup']=filter_on_outgroup
     kwargs['est']=estimator_arguments
+    kwargs['locus_filter']=locus_filter
     
     start=time.time()
     #makes a necessary transformation of the input(if the input is a filename or something).

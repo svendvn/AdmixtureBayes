@@ -1,8 +1,9 @@
 import numpy as np
 from covariance_simulation import Simulator
 from copy import deepcopy
-from scipy.stats import wishart
+from scipy.stats import wishart, norm
 from covariance_estimator import Estimator
+
 
 class Sigma_proposal(object):
     
@@ -26,7 +27,8 @@ class Sigma_proposal(object):
         if self.is_wishart():
             print 'Check wishart'
             df=emp_Sigma.shape[0]/self.df
-            prop_Sigma= wishart.rvs(df=df, scale=Sigma/df)
+            d_Sigma= wishart.rvs(df=df, scale=Sigma/df)-Sigma
+            prop_Sigma=Sigma+np.absolute(d_Sigma)*np.sign(emp_Sigma-implied_Sigma)
             return prop_Sigma
             prop_Sigma=deepcopy(Sigma)
 #             n=Sigma.shape[0]
@@ -59,6 +61,67 @@ class Sigma_proposal(object):
                 self.step_size*=1.1
             return new_distance, new_Sigma
         
+        
+class Chol_proposal(object):
+    
+    def __init__(self, step_size=0.5,wait=6, threshold=0.4):
+        self.step_size=step_size
+        self.no_smallers=0
+        self.reset_no_smallers=2
+        self.wait=wait
+        self.df=step_size
+        self.threshold=threshold
+        
+    def is_wishart(self):
+        if self.no_smallers>self.wait and (self.no_smallers%2)==((self.wait+1)%2):
+            return True
+        return False
+    
+    def is_wishart_era(self):
+        return self.no_smallers>self.wait
+    
+    def __call__(self, emp_Sigma, implied_Sigma, Chol):
+        emp_Chol=np.linalg.cholesky(emp_Sigma)
+        implied_Chol=np.linalg.cholesky(implied_Sigma)
+        if self.is_wishart():
+            print 'Check wishart'
+            #df=emp_Sigma.shape[0]/self.df
+            print Chol.shape
+            d_Chol= norm.rvs(size=Chol.shape)*self.df
+            prop_Chol=Chol+np.absolute(d_Chol)*np.sign(emp_Chol-implied_Chol)
+            return prop_Chol
+            prop_chol=deepcopy(Sigma)
+#             n=Sigma.shape[0]
+#             for i in range(n):
+#                 for j in range(i,n):
+#                     if np.random.random()<self.threshold:
+#                         prop_Sigma[i,j]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
+#                         if j!=i:
+#                             prop_Sigma[j,i]+=(emp_Sigma[i,j]-implied_Sigma[i,j])*self.step_size
+        else:
+            prop_Chol=Chol+(emp_Chol-implied_Chol)*self.step_size
+        return prop_Chol
+        
+    def choose_next_and_adapt(self, old_distance, new_distance, old_Sigma, new_Sigma):
+        if new_distance>old_distance:
+            
+            if self.is_wishart():
+                #print old_Sigma.shape
+                self.df=min(0.5*self.df, 1)
+            else:
+                self.step_size*=0.8
+                self.no_smallers+=1
+            return old_distance, old_Sigma
+        else:
+            if self.is_wishart():
+                self.no_smallers+=1
+                self.df=min(5.0*self.df, 1)
+                self.no_smallers=self.reset_no_smallers
+            else:
+                self.step_size*=1.1
+            return new_distance, new_Sigma
+ 
+        
 def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, distances, prop_dist):
     to_print='Iteration '+str(i)+'\n'
     to_print+='Step size='+str(proposal.step_size)+'('+str(proposal.no_smallers)+")"+"\n"
@@ -73,12 +136,40 @@ def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, dista
     to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(Sigma)])+'\n'
     print to_print
     
+def search_choleskys(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, Sim=None):
+    #nss=np.tile(ns,s)
+    if Sim is None:
+        Sim=Simulator(nss, multiplier=s, estimator=estimator)
+    no,N=xs.shape
+    n=no-1
+    emp_pijs=xs/ns
+    emp_Sigma=estimator(xs,ns)#estimate_Sigma_wrapper(emp_pijs, reduce_method=reduce_method, method_of_weighing_alleles=method_of_weighing_alleles)
+    if init_Sigma is None:
+        Chol=np.linalg.cholesky(emp_Sigma)
+    else:
+        Chol=np.linalg.cholesky(init_Sigma)
+    implied_Sigma=Sim.get_implied_Sigma_from_chol(Chol)
+    distances=[np.linalg.norm(emp_Sigma-implied_Sigma)]
+    Proposal=Chol_proposal()
+    for i in range(no_its):
+        prop_Chol=Proposal(emp_Sigma, implied_Sigma, Chol)
+        try:
+            implied_Sigma=Sim.get_implied_Sigma_from_chol(prop_Chol)
+            prop_dist=np.linalg.norm(emp_Sigma-implied_Sigma)
+        except np.linalg.linalg.LinAlgError:
+            prop_dist=float('inf')
+        
+        status_print(i, Proposal, emp_Sigma, implied_Sigma, Chol.dot(Chol.T), prop_Chol.dot(prop_Chol.T), distances, prop_dist)
+        new_dist, Chol= Proposal.choose_next_and_adapt(distances[-1], prop_dist, Chol,prop_Chol)
+        distances.append(new_dist)
+
+    return Chol.dot(Chol.T), distances[-1]
 
 
 def search_sigmas(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, Sim=None):
-    nss=np.tile(ns,s)
+    #nss=np.tile(ns,s)
     if Sim is None:
-        Sim=Simulator(nss, estimator=estimator)
+        Sim=Simulator(nss, multiplier=s, estimator=estimator)
     no,N=xs.shape
     n=no-1
     emp_pijs=xs/ns
@@ -127,7 +218,7 @@ class IndirectEstimator(Estimator):
     
         
     def __call__(self, xs,ns):
-        cov,val= search_sigmas(xs,
+        cov,val= search_choleskys(xs,
                              ns,
                              no_its = self.no_its, 
                              s=self.s, 
