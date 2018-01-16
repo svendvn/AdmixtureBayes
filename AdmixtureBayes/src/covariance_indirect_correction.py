@@ -80,9 +80,8 @@ class Chol_proposal(object):
     def is_wishart_era(self):
         return self.no_smallers>self.wait
     
-    def __call__(self, emp_Sigma, implied_Sigma, Chol):
-        emp_Chol=np.linalg.cholesky(emp_Sigma)
-        implied_Chol=np.linalg.cholesky(implied_Sigma)
+    
+    def __call__(self, emp_Chol, implied_Chol, Chol):
         if self.is_wishart():
             print 'Check wishart'
             #df=emp_Sigma.shape[0]/self.df
@@ -121,6 +120,16 @@ class Chol_proposal(object):
                 self.step_size*=1.1
             return new_distance, new_Sigma
  
+def turn_postive_definite(sym_mat):
+    w,_ =np.linalg.eig(sym_mat)
+    minw,maxw=np.min(w), np.max(w)
+    add_on=max([-minw+maxw/10.0,0])
+    print 'add_on', add_on
+    print 'w',w
+    print 'sym_mat', sym_mat
+    print 'new', sym_mat+add_on*np.identity(sym_mat.shape[0])
+    return sym_mat+add_on*np.identity(sym_mat.shape[0]), add_on
+     
         
 def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, distances, prop_dist):
     to_print='Iteration '+str(i)+'\n'
@@ -144,18 +153,22 @@ def search_choleskys(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, S
     n=no-1
     emp_pijs=xs/ns
     emp_Sigma=estimator(xs,ns)#estimate_Sigma_wrapper(emp_pijs, reduce_method=reduce_method, method_of_weighing_alleles=method_of_weighing_alleles)
+    emp_Sigma, a=turn_postive_definite(emp_Sigma)
+    emp_Chol=np.linalg.cholesky(emp_Sigma)
     if init_Sigma is None:
-        Chol=np.linalg.cholesky(emp_Sigma)
+        Chol=emp_Chol
     else:
         Chol=np.linalg.cholesky(init_Sigma)
-    implied_Sigma=Sim.get_implied_Sigma_from_chol(Chol)
+    implied_Sigma=Sim.get_implied_Sigma_from_chol(Chol)+np.identity(emp_Chol.shape[0])*a
+    implied_Chol=np.linalg.cholesky(implied_Sigma)
     distances=[np.linalg.norm(emp_Sigma-implied_Sigma)]
     Proposal=Chol_proposal()
     for i in range(no_its):
-        prop_Chol=Proposal(emp_Sigma, implied_Sigma, Chol)
+        prop_Chol=Proposal(emp_Chol, implied_Chol, Chol)
         try:
-            implied_Sigma=Sim.get_implied_Sigma_from_chol(prop_Chol)
+            implied_Sigma=Sim.get_implied_Sigma_from_chol(prop_Chol)+np.identity(prop_Chol.shape[0])*a
             prop_dist=np.linalg.norm(emp_Sigma-implied_Sigma)
+            implied_Chol=np.linalg.cholesky(implied_Sigma)
         except np.linalg.linalg.LinAlgError:
             prop_dist=float('inf')
         
