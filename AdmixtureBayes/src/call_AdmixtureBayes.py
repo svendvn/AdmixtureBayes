@@ -196,18 +196,22 @@ else:
 treemix_file=prefix+"treemix_in.txt" 
 treemix_out_files=prefix+'treemix_out'
 
-preliminary_starting_trees=get_starting_trees(options.starting_trees, 
-                                  options.MCMC_chains, 
-                                  adds=options.starting_adds,
-                                  nodes=reduced_nodes, 
-                                  pipeline=options.covariance_pipeline,
-                                  multiplier=None,
-                                  scale_tree_factor=options.scale_tree_factor,
-                                  start=options.start, 
-                                  prefix=prefix,
-                                  starting_tree_scaling=options.starting_tree_scaling,
-                                  starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
-                                  scale_goal=options.scale_goal)
+if options.starting_trees:
+    preliminary_starting_trees=get_starting_trees(options.starting_trees, 
+                                      options.MCMC_chains, 
+                                      adds=options.starting_adds,
+                                      nodes=reduced_nodes, 
+                                      pipeline=options.covariance_pipeline,
+                                      multiplier=None,
+                                      scale_tree_factor=options.scale_tree_factor,
+                                      start=options.start, 
+                                      prefix=prefix,
+                                      starting_tree_scaling=options.starting_tree_scaling,
+                                      starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
+                                      scale_goal=options.scale_goal)
+else:
+    preliminary_starting_trees=[None]
+    assert options.initial_Sigma!='start', 'to make the filter start somewhere specific it should also be specified specifically'
 
 locus_filter=make_filter(options.filter_type,
                          outgroup_name=options.reduce_node,
