@@ -1,5 +1,5 @@
 from scipy.stats import wishart
-from numpy import mean,var
+from numpy import mean,var, savetxt
 from numpy.linalg import det, matrix_rank
 from scipy.optimize import minimize
 from load_data import read_data
@@ -7,6 +7,8 @@ import subprocess
 from numpy.random import choice
 from tree_to_data import treemix_to_cov
 
+from construct_covariance_choices import empirical_covariance_wrapper_directly
+from pathos.multiprocessing import Pool
 
 
 def optimize(sample_of_matrices):
@@ -68,19 +70,31 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
         filenames.append(new_filename_gz)
     return filenames, first_line.split()
                 
-def make_covariances(filenames, **kwargs):
+def make_covariances(filenames, cores, **kwargs):
     covs=[]
-    for filename in filenames:
-        print filename
-        res=treemix_to_cov(filename,  **kwargs)
-        covs.append(res*100)
+    p=Pool(cores)
+    def t(filename):
+        return empirical_covariance_wrapper_directly(filename, **kwargs)
+    covs=p.map(t, filenames)
     return covs
 
-def estimate_degrees_of_freedom(filename, bootstrap_blocksize=100, no_blocks=None, no_bootstrap_samples=10, estimate_m=False, **kwargs):
+
+def estimate_degrees_of_freedom(filename, 
+                                bootstrap_blocksize=100, 
+                                no_blocks=None, no_bootstrap_samples=10, 
+                                estimate_m=False,
+                                cores=1, 
+                                save_covs='',
+                                prefix='', 
+                                **kwargs):
     filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
     print 'nodes', nodes
     print filenames
-    covs=make_covariances(filenames, nodes=nodes, **kwargs)
+    covs=make_covariances(filenames, cores=cores, **kwargs)
+    if save_covs:
+        for i,cov in enumerate(covs):
+            filn=prefix+save_covs+str(i)+'.txt'
+            savetxt(filn, cov)
     print covs[1]
     if estimate_m:
         res=estimate(covs)

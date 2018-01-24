@@ -64,9 +64,9 @@ def alleles_to_cov_wrapper_directly(ps, **kwargs):
     return xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs)
 
 def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
+    est_args=kwargs['est']
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
     xs,ns,names=xnn_tuple
-    est_args=kwargs['est']
     for e,a in est_args.items():
         print e,a
     est= make_estimator(reduce_method='outgroup', 
@@ -85,7 +85,7 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
                    reduce_also=True,
                    ns=ns,**est_args)
     cov=est(xs,ns)
-    cov=reorder_reduced_covariance(cov, names, kwargs['full_nodes'], outgroup=est_args['reducer'])
+    cov=reorder_reduced_covariance(cov, names, est_args['nodes'], outgroup=est_args['reducer'])
     return cov
     
 

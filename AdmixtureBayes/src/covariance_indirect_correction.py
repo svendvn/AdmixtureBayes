@@ -101,7 +101,7 @@ class Chol_proposal(object):
             prop_Chol=Chol+(emp_Chol-implied_Chol)*self.step_size
         return prop_Chol
         
-    def choose_next_and_adapt(self, old_distance, new_distance, old_Sigma, new_Sigma):
+    def choose_next_and_adapt(self, old_distance, new_distance, old_Sigma, new_Sigma, old_implied_Chol, new_implied_Chol):
         if new_distance>old_distance:
             
             if self.is_wishart():
@@ -110,7 +110,7 @@ class Chol_proposal(object):
             else:
                 self.step_size*=0.8
                 self.no_smallers+=1
-            return old_distance, old_Sigma
+            return old_distance, old_Sigma, old_implied_Chol
         else:
             if self.is_wishart():
                 self.no_smallers+=1
@@ -118,12 +118,15 @@ class Chol_proposal(object):
                 self.no_smallers=self.reset_no_smallers
             else:
                 self.step_size*=1.1
-            return new_distance, new_Sigma
+            return new_distance, new_Sigma, new_implied_Chol
  
 def turn_postive_definite(sym_mat):
     w,_ =np.linalg.eig(sym_mat)
     minw,maxw=np.min(w), np.max(w)
-    add_on=max([-minw+maxw/10.0,0])
+    if minw>0:
+        add_on=0
+    else:
+        add_on=-minw+maxw/20.0
     print 'add_on', add_on
     print 'w',w
     print 'sym_mat', sym_mat
@@ -168,12 +171,13 @@ def search_choleskys(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, S
         try:
             implied_Sigma=Sim.get_implied_Sigma_from_chol(prop_Chol)+np.identity(prop_Chol.shape[0])*a
             prop_dist=np.linalg.norm(emp_Sigma-implied_Sigma)
-            implied_Chol=np.linalg.cholesky(implied_Sigma)
+            new_implied_Chol=np.linalg.cholesky(implied_Sigma)
         except np.linalg.linalg.LinAlgError:
             prop_dist=float('inf')
+            new_implied_Chol=implied_Chol
         
         status_print(i, Proposal, emp_Sigma, implied_Sigma, Chol.dot(Chol.T), prop_Chol.dot(prop_Chol.T), distances, prop_dist)
-        new_dist, Chol= Proposal.choose_next_and_adapt(distances[-1], prop_dist, Chol,prop_Chol)
+        new_dist, Chol, implied_Chol= Proposal.choose_next_and_adapt(distances[-1], prop_dist, Chol,prop_Chol, implied_Chol, new_implied_Chol)
         distances.append(new_dist)
 
     return Chol.dot(Chol.T), distances[-1]
