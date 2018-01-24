@@ -180,6 +180,13 @@ class posterior_class(object):
             print 'input_matrix=', self.emp_cov
         return val
     
+    def alternative_emp_cov_likelihood(self, alternative_emp_cov, x, pks={}, verbose=False):
+        val=self.lik(x,alternative_emp_cov,self.M, nodes=self.nodes, pks=pks)
+        if verbose: 
+            print 'empirical_matrix=', self.emp_cov
+            print 'input_matrix=', pks['covariance']+x[1]
+        return val
+    
     def get_non_empirical_max_likelihood(self, x, pks={}, verbose=False):
         p_cov=make_covariance(x[0])+x[1]
         val=self.likmat(p_cov, p_cov, self.M, pks=pks)

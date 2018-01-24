@@ -100,7 +100,7 @@ def estimate_degrees_of_freedom(filename,
         res=estimate(covs)
     else:
         res=optimize(covs)
-    return res
+    return res, covs
     
 
 

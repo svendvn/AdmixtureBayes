@@ -42,6 +42,8 @@ parser.add_argument('--treemix_instead', action= 'store_true', default=False, he
 parser.add_argument('--treemix_also', action='store_true', default=False, help='this will call treemix in addition to AdmixtureBayes')
 parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
 parser.add_argument('--evaluate_likelihood', action='store_true', default=False, help='this will evaluate the likelihood in the starting tree and then stop, writing just a single file with three values, prior, likelihood and posterior.')
+parser.add_argument('--evaluate_bootstrap_likelihoods', action='store_true', default=False, help='If evaluate likelihood is turned on this will calculate the likelihood of all bootstrapped covariances(if bootstrapping is also turned on)')
+
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -293,7 +295,7 @@ if options.treemix_instead or options.treemix_also:
 if options.estimate_bootstrap_df:
     #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     #reduce_also= (8 in options.covariance_pipeline)
-    df=estimate_degrees_of_freedom(treemix_file, 
+    df, boot_covs=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            outfile=treemix_out_files,
@@ -308,8 +310,10 @@ elif options.df_file:
     else:
         with open(options.df_file, 'r') as f:
             df=float(f.readline().rstrip())
+    boot_covs=[]
 else:
     df=options.wishart_df
+    boot_covs=[]
 
 
 
@@ -418,13 +422,17 @@ def single_chain_run():
                 appending_result_file=options.result_file,
                 appending_result_frequency=sim_lengths[0])
     
-def single_evaluation_run():
+def single_evaluation_run(alts=[]):
     one_evaluation(starting_trees[0], 
                    posterior, 
-                   options.result_file)
+                   options.result_file,
+                   alts)
     
 if options.evaluate_likelihood:
-    single_evaluation_run()
+    if options.evaluate_bootstrap_likelihoods and boot_covs:
+        single_evaluation_run(boot_covs)
+    else:
+        single_evaluation_run()
     with open(options.result_file, 'r') as f:
         for r in f.readlines():
             print r
