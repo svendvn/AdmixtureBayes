@@ -51,12 +51,14 @@ def likelihood_treemix_from_matrix(matrix, emp_cov, variances,  pks={}):
         return -float("inf")
     return d
 
-def likelihood(x, emp_cov, M=12,nodes=None,  pks={}):
+def likelihood(x, emp_cov, b, M=12,nodes=None,  pks={}):
     tree, add= x
     r=emp_cov.shape[0]
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
+    if b is not None:
+        par_cov+=b
     #print (par_cov, emp_cov, add)
     pks['covariance']=par_cov
     if par_cov is None:
@@ -73,16 +75,20 @@ def likelihood(x, emp_cov, M=12,nodes=None,  pks={}):
         return -float("inf")
     return d
 
-def likelihood_from_matrix(matrix, emp_cov, M,  pks={}):
-    pks['covariance']=matrix
-    if matrix is None:
+def likelihood_from_matrix(matrix, emp_cov, b, M,  pks={}):
+    if b is not None:
+        matrix2=matrix+b
+    else:
+        matrix2=matrix
+    pks['covariance']=matrix2
+    if matrix2 is None:
         print 'illegal tree'
         return -float('inf')
     try:
         #print emp_cov-add
         #print add
         #print par_cov
-        d=wishart.logpdf(emp_cov, df=M, scale= matrix/M)
+        d=wishart.logpdf(emp_cov, df=M, scale= matrix2/M)
     except (ValueError, LinAlgError) as e:
         #print "illegal par_cov matrix or to large add"
         #print e

@@ -64,6 +64,7 @@ parser.add_argument('--cov_estimation', choices=['None', 'Jade','outgroup_sum', 
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
 parser.add_argument('--variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--add_variance_correction_to_graph', default=False, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix.')
 parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
 parser.add_argument('--indirect_its', type=int, default=100, help='For how many iterations should the indirect optimization procedure be run. Only applicable if indirect_correction is True')
 parser.add_argument('--indirect_simulation_factor', type=int, default=1, help='How much more data than provided should be simulated in the indirect correction procedure. Only applicable if indirect_correction is True')
@@ -242,7 +243,9 @@ estimator_arguments=dict(reducer=options.reduce_node,
                          no_repeats_of_cov_est=options.no_repeats_of_cov_est,
                          Simulator_fixed_seed=not options.indirect_randomize_seed,
                          initial_Sigma_generator={options.initial_Sigma:(preliminary_starting_trees[0], reduced_nodes)},
-                         locus_filter_on_simulated=locus_filter_on_simulated)
+                         locus_filter_on_simulated=locus_filter_on_simulated,
+                         add_variance_correction_to_graph=options.add_variance_correction_to_graph,
+                         prefix=prefix)
 
 covariance=get_covariance(options.covariance_pipeline, 
                           options.input_file, 
@@ -295,6 +298,7 @@ if options.treemix_instead or options.treemix_also:
 if options.estimate_bootstrap_df:
     #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     #reduce_also= (8 in options.covariance_pipeline)
+    estimator_arguments['save_variance_correction']=False
     df, boot_covs=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
@@ -330,7 +334,9 @@ posterior= posterior_class(emp_cov=covariance[0],
                            multiplier=covariance[1], 
                            nodes=reduced_nodes, 
                            use_uniform_prior=options.uniform_prior, 
-                           treemix=options.likelihood_treemix)
+                           treemix=options.likelihood_treemix,
+                           add_variance_correction_to_graph=options.add_variance_correction_to_graph,
+                           prefix=prefix)
 
 starting_trees=get_starting_trees(options.starting_trees, 
                                   options.MCMC_chains, 

@@ -1,5 +1,5 @@
 from covariance_estimator import Estimator, initor
-from numpy import array, mean, zeros, diag, sum, arcsin, sqrt
+from numpy import array, mean, zeros, diag, sum, arcsin, sqrt, savetxt
 from reduce_covariance import reduce_covariance
 import warnings
 
@@ -92,11 +92,17 @@ class ScaledEstimator(Estimator):
                  reduce_also=True,
                  variance_correction=['None','unbiased','mle'],
                  jade_cutoff=1e-5,
-                 bias_c_weight='default'):
+                 bias_c_weight='default',
+                 add_variance_correction_to_graph=False,
+                 prefix_for_saving_variance_correction='',
+                 save_variance_correction=True):
         super(ScaledEstimator, self).__init__(reduce_also=reduce_also)
         self.scaling=initor(scaling)
         self.variance_correction=initor(variance_correction)
         self.jade_cutoff=jade_cutoff
+        self.add_variance_correction_to_graph=add_variance_correction_to_graph
+        self.prefix_for_saving_variance_correction=prefix_for_saving_variance_correction
+        self.save_variance_correction=save_variance_correction
         if bias_c_weight=='default':
             self.bias_c_weight=default_scale_dic[scaling]
         else:
@@ -148,15 +154,22 @@ class ScaledEstimator(Estimator):
             if self.variance_correction!='None':
                 if ns is None:
                     warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
-                elif isinstance(ns, int):
-                    pop_sizes=[ns]*p2.shape[0]
-                    b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
-                    m=m-b
                 else:
-                    warnings.warn('assuming the same population size for all SNPs', UserWarning)
-                    pop_sizes=mean(ns, axis=1)
-                    b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
-                    m=m-b
+                    if isinstance(ns, int):
+                        pop_sizes=[ns]*p2.shape[0]
+                        b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
+                        
+                    else:
+                        warnings.warn('assuming the same population size for all SNPs', UserWarning)
+                        pop_sizes=mean(ns, axis=1)
+                        b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
+                    if self.add_variance_correction_to_graph:
+                        b=reduce_covariance(b, n_outgroup)
+                        b=b/m_scaler(self.scaling, p, n_outgroup)
+                        if self.save_variance_correction:
+                            savetxt(self.prefix_for_saving_variance_correction+'variance_correction.txt', b)
+                    else:
+                        m=m-b
             m=reduce_covariance(m, n_outgroup)
             m=m/m_scaler(self.scaling, p, n_outgroup)            
         elif self.variance_correction!='None':

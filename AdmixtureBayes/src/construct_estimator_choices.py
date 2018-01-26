@@ -70,7 +70,10 @@ def make_estimator(reduce_method,
                    no_repeats_of_cov_est,
                    ns, #only necessary if indirect estimation is used.
                    Simulator_from_file='',
-                   locus_filter_on_simulated=None):
+                   locus_filter_on_simulated=None,
+                   add_variance_correction_to_graph=False,
+                   prefix='',
+                   save_variance_correction=True):
 
     n=len(nodes)-int(reduce_also)
     initial_Sigma_generator=create_initial_Sigma_generator(n, initial_Sigma_generator)
@@ -90,7 +93,10 @@ def make_estimator(reduce_method,
                  reduce_also=reduce_also,
                  variance_correction=variance_correction,
                  jade_cutoff=1e-5,
-                 bias_c_weight='default')
+                 bias_c_weight='default',
+                 add_variance_correction_to_graph=add_variance_correction_to_graph,
+                 prefix_for_saving_variance_correction=prefix,
+                 save_variance_correction=save_variance_correction)
     if indirect_correction:
         simulator=Simulator(ns, multiplier=Indirect_multiplier_s, estimator=est, fixed_seed=Simulator_fixed_seed,  load_from_file=Simulator_from_file, locus_filter=locus_filter_on_simulated)
         print 'MULTIPLIER', Indirect_multiplier_s

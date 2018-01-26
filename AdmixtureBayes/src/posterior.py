@@ -7,7 +7,7 @@ from tree_statistics import identifier_to_tree_clean
 from Rtree_operations import get_number_of_leaves, get_number_of_admixes, remove_outgroup, simple_reorder_the_leaves_after_removal_of_s1
 from tree_to_data import reduce_covariance
 from Rtree_to_covariance_matrix import make_covariance
-from numpy import median, amin, amax
+from numpy import median, amin, amax, loadtxt
 from numpy.linalg import norm
 
 
@@ -133,7 +133,17 @@ def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplie
 
 class posterior_class(object):
     
-    def __init__(self, emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplier=None, nodes=None, use_uniform_prior=False, treemix=False):
+    def __init__(self, 
+                 emp_cov, 
+                 M=10, 
+                 p=0.5, 
+                 use_skewed_distr=False, 
+                 multiplier=None, 
+                 nodes=None, 
+                 use_uniform_prior=False, 
+                 treemix=False,
+                 add_variance_correction_to_graph=False,
+                 prefix=''):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
         or M can be a matrix - the same size of emp_cov where each entry is the variance of that entry. 
@@ -153,11 +163,17 @@ class posterior_class(object):
         self.nodes=nodes
         self.use_uniform_prior=use_uniform_prior
         
+        if add_variance_correction_to_graph:
+            self.b=loadtxt(prefix+'variance_correction.txt')
+        else:
+            self.b=None
+        
     def __call__(self, x, pks={}, verbose=False):
         prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
-        likelihood_value=self.lik(x, self.emp_cov,self.M, nodes=self.nodes, pks=pks)
+        
+        likelihood_value=self.lik(x, self.emp_cov,self.b, self.M, nodes=self.nodes, pks=pks)
         if verbose:
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', pks['covariance']+x[1]
@@ -167,21 +183,21 @@ class posterior_class(object):
         return likelihood_value, prior_value
     
     def get_likelihood_from_matrix(self, matrix, pks={}, verbose=False):
-        val=self.likmat(matrix, self.emp_cov, self.M, pks=pks)
+        val=self.likmat(matrix, self.emp_cov, self.b, self.M, pks=pks)
         if verbose:
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', matrix
         return val
     
     def get_max_likelihood(self, pks={}, verbose=False):
-        val=self.likmat(self.emp_cov, self.emp_cov, self.M, pks=pks)
+        val=self.likmat(self.emp_cov, self.emp_cov,None, self.M, pks=pks)
         if verbose:
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', self.emp_cov
         return val
     
     def alternative_emp_cov_likelihood(self, alternative_emp_cov, x, pks={}, verbose=False):
-        val=self.lik(x,alternative_emp_cov,self.M, nodes=self.nodes, pks=pks)
+        val=self.lik(x,alternative_emp_cov,self.b, self.M, nodes=self.nodes, pks=pks)
         if verbose: 
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', pks['covariance']+x[1]
@@ -189,7 +205,9 @@ class posterior_class(object):
     
     def get_non_empirical_max_likelihood(self, x, pks={}, verbose=False):
         p_cov=make_covariance(x[0])+x[1]
-        val=self.likmat(p_cov, p_cov, self.M, pks=pks)
+        if self.b is not None:
+            p_cov+=self.b
+        val=self.likmat(p_cov, p_cov, None, self.M, pks=pks)
         if verbose:
             print 'empirical_matrix=', p_cov
             print 'input_matrix=', p_cov
@@ -198,6 +216,8 @@ class posterior_class(object):
     def get_size_diff(self, x):
         t,add=x
         p_cov=make_covariance(t)+add
+        if self.b is not None:
+            p_cov+=self.b
         diffs=p_cov-self.emp_cov
         max_dif=amax(diffs)
         min_dif=amin(diffs)
