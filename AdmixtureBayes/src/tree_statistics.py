@@ -176,7 +176,8 @@ def _list_identifier_to_string(list_of_gens):
     return '-'.join(['.'.join(map(str,[c for c in l if c!='_'])) for l in list_of_gens])
 
 def _list_double_to_string(list_of_doubles, digits=3):
-    return '-'.join(map(str, [round(double_, digits) for double_ in list_of_doubles]))
+    format_string='.'+str(digits)+'f'
+    return '-'.join(map(str, [format(double_, format_string) for double_ in list_of_doubles]))
 
 class generate_numbered_nodes(object):
     
@@ -514,6 +515,22 @@ def identifier_to_tree_clean(identifier, **kwargs):
                                    branch_lengths=string_to_generator(branch_lengths), 
                                    admixture_proportions=string_to_generator(admixture_proportions),
                                    **kwargs)
+    return tree_good2
+
+def identifier_file_to_tree_clean(filename, **kwargs):
+    with open(filename, 'r') as f:
+        ls=f.readlines()
+        if len(ls)>1 and len(ls[1])>5:
+            leaves=generate_predefined_list_string(ls[0].rstrip().split())
+            identifier=ls[1].rstrip()
+        else:
+            identifier=ls[0].rstrip()
+            leaves=None
+    ad2, branch_lengths, admixture_proportions=divide_triple_string(identifier)
+    tree_good2= identifier_to_tree(ad2, 
+                                   branch_lengths=string_to_generator(branch_lengths), 
+                                   admixture_proportions=string_to_generator(admixture_proportions),
+                                   leaves=leaves, **kwargs)
     return tree_good2
 
 def topological_identifier_to_tree_clean(identifier, **kwargs):
