@@ -140,12 +140,12 @@ def status_print(i, proposal, emp_Sigma, implied_Sigma, Sigma, prop_Sigma, dista
     to_print+='Degrees of freedom='+str(emp_Sigma.shape[0]/proposal.df)+"\n"
     to_print+='{:<22} {:>8.5f}\n'.format('Old distance=', distances[-1])
     to_print+='{:<22} {:>8.5f}\n'.format('Proposed distance=', prop_dist)
-    to_print+='Diagonal elements of emp Sigma and implied Sigma (diff= '+ str(np.linalg.norm(emp_Sigma-implied_Sigma))+"):"+'\n'
-    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(emp_Sigma)])+'\n'
-    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(implied_Sigma)])+'\n'
+    to_print+='emp Sigma and implied Sigma (diff= '+ str(np.linalg.norm(emp_Sigma-implied_Sigma))+"):"+'\n'
+    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(emp_Sigma)])+' det='+str(np.linalg.det(emp_Sigma))+'\n'
+    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(implied_Sigma)])+' det='+str(np.linalg.det(implied_Sigma))+'\n'
     to_print+='Diagonal elements of Sigma and proposed Sigma(diff= '+ str(np.linalg.norm(prop_Sigma-Sigma))+"):"+'\n'
-    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(prop_Sigma)])+'\n'
-    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(Sigma)])+'\n'
+    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(prop_Sigma)])+' det='+str(np.linalg.det(prop_Sigma))+'\n'
+    to_print+=''.join(['{:<9.4f}'.format(s) for s in np.diag(Sigma)])+' det='+str(np.linalg.det(Sigma))+'\n'
     print to_print
     
 def search_choleskys(xs,ns,no_its = 100, s=1, estimator=None, init_Sigma=None, Sim=None):
