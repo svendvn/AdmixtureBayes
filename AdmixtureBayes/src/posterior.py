@@ -165,6 +165,8 @@ class posterior_class(object):
         
         if add_variance_correction_to_graph:
             self.b=loadtxt(prefix+'variance_correction.txt')
+            if multiplier:
+                self.b*=multiplier
         else:
             self.b=None
         
