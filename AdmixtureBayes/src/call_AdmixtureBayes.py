@@ -95,6 +95,7 @@ parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the s
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False, help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
 parser.add_argument('--save_bootstrap_covariances', type=str, default='', help='if provided the bootstrapped covariance matrices will be saved to numbered files starting with {prefix}+_+{save_covariances}+{num}+.txt')
+parser.add_argument('--bootstrap_type_of_estimation', choices=['mle','var_opt'], default='mle', help='This is the way the bootstrap wishart estimate is estimated.')
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -299,11 +300,15 @@ if options.estimate_bootstrap_df:
     #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
     #reduce_also= (8 in options.covariance_pipeline)
     estimator_arguments['save_variance_correction']=False
+    if options.likelihood_treemix:
+        summarization='var'
+    else:
+        summarization=options.bootstrap_type_of_estimation
     df, boot_covs=estimate_degrees_of_freedom(treemix_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            outfile=treemix_out_files,
-                                           estimate_m=options.likelihood_treemix,
+                                           summarization=summarization,
                                            cores=options.MCMC_chains,
                                            save_covs=options.save_bootstrap_covariances,
                                            prefix=prefix,

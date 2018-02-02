@@ -1,11 +1,12 @@
 from scipy.stats import wishart
-from numpy import mean,var, savetxt
+from numpy import mean,var, savetxt, square, diag
 from numpy.linalg import det, matrix_rank
 from scipy.optimize import minimize
 from load_data import read_data
 import subprocess
 from numpy.random import choice
 from tree_to_data import treemix_to_cov
+from covariance_estimator import initor
 
 from construct_covariance_choices import empirical_covariance_wrapper_directly
 from pathos.multiprocessing import Pool
@@ -29,6 +30,15 @@ def optimize(sample_of_matrices):
     
     return minimize(joint_density, r, bounds=[(r,None)]).x[0]
 
+
+def optimize2(sample_of_matrices):
+    mean_wishart=  mean(sample_of_matrices, axis=0)
+    var_wishart= var(sample_of_matrices, axis=0)
+    
+    var_rom_mean_wishart=(square(mean_wishart)+diag(mean_wishart)).T+diag(mean_wishart)
+    
+    return max(mean(var_wishart)/mean(var_rom_mean_wishart), mean_wishart.shape[0])
+    
 def estimate(sample_of_matrices):
     return var(sample_of_matrices, axis=0)
 
@@ -82,7 +92,7 @@ def make_covariances(filenames, cores, **kwargs):
 def estimate_degrees_of_freedom(filename, 
                                 bootstrap_blocksize=100, 
                                 no_blocks=None, no_bootstrap_samples=10, 
-                                estimate_m=False,
+                                summarization=['mle','var_opt','var'],
                                 cores=1, 
                                 save_covs='',
                                 prefix='', 
@@ -95,11 +105,14 @@ def estimate_degrees_of_freedom(filename,
         for i,cov in enumerate(covs):
             filn=prefix+save_covs+str(i)+'.txt'
             savetxt(filn, cov)
-    print covs[1]
-    if estimate_m:
+    #print covs[1]
+    summarization=initor(summarization)
+    if summarization=='var':
         res=estimate(covs)
-    else:
+    elif summarization=='mle':
         res=optimize(covs)
+    elif summarization=='var':
+        res=optimize2(covs)
     return res, covs
     
 
