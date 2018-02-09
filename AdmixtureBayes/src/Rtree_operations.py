@@ -973,6 +973,9 @@ def get_parents(node):
     return node[:2]
 
 def insert_admixture_node_halfly(tree, source_key, source_branch, insertion_spot, admix_b_length, new_node_name, admixture_proportion=0.51):
+    '''
+    Source should be sink, I guess in hindsight.
+    '''
     node=tree[source_key]
     old_parent=node[source_branch]
     old_branch_length=node[source_branch+3]
