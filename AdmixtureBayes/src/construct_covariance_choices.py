@@ -14,7 +14,7 @@ from math import log
 from rescale_covariance import rescale_empirical_covariance
 import time
 from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p, simulate_with_binomial, remove_non_snps
-from numpy import array, ones
+from numpy import array, ones, loadtxt, savetxt
 from construct_estimator_choices import make_estimator
 
 
@@ -74,6 +74,15 @@ def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
                    ns=ns,**est_args)
     cov=est(xs,ns)
     cov=reorder_covariance(cov, names, kwargs['full_nodes'])
+    if ('add_variance_correction_to_graph' in est_args and 
+        est_args['add_variance_correction_to_graph']):
+        filename=est_args['prefix']+'variance_correction.txt'
+        print 'CHaningin VC'
+        vc=loadtxt(filename)
+        vc=reorder_covariance(vc, names, kwargs['full_nodes'])
+        savetxt(filename, vc)
+        
+        
     return cov
     
 def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
@@ -86,6 +95,13 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
                    ns=ns,**est_args)
     cov=est(xs,ns)
     cov=reorder_reduced_covariance(cov, names, est_args['nodes'], outgroup=est_args['reducer'])
+    if ('add_variance_correction_to_graph' in est_args and 
+        est_args['add_variance_correction_to_graph']):
+        print 'CHaninging VC'
+        filename=est_args['prefix']+'variance_correction.txt'
+        vc=loadtxt(filename)
+        vc=reorder_reduced_covariance(vc, names, est_args['nodes'], outgroup=est_args['reducer'])
+        savetxt(filename, vc)
     return cov
     
 
