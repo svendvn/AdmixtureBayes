@@ -124,11 +124,11 @@ class ScaledEstimator(Estimator):
         else:
             return p, None
         
-    def __call__(self, xs, ns):
+    def __call__(self, xs, ns, extra_info={}):
         ps=xs/ns
-        return self.estimate_from_p(ps, ns=ns)
+        return self.estimate_from_p(ps, ns=ns, extra_info=extra_info)
         
-    def estimate_from_p(self, p, ns=None):
+    def estimate_from_p(self, p, ns=None, extra_info={}):
         #p=reorder_rows(p, self.names, self.full_nodes)
         
         p2,n_outgroup = self.subtract_ancestral_and_get_outgroup(p)
@@ -174,9 +174,11 @@ class ScaledEstimator(Estimator):
                     else:
                         m=m-b
             m=reduce_covariance(m, n_outgroup)
-            m=m/m_scaler(self.scaling, p, n_outgroup)            
+            m=m/m_scaler(self.scaling, p, n_outgroup)      
+            extra_info['m_scale']=m_scaler(self.scaling, p, n_outgroup)      
         elif self.variance_correction!='None':
-            m=m/m_scaler(self.scaling, p, n_outgroup)     
+            m=m/m_scaler(self.scaling, p, n_outgroup)    
+            extra_info['m_scale']=m_scaler(self.scaling, p, n_outgroup)     
             if ns is None:
                 warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
             elif isinstance(ns, int):

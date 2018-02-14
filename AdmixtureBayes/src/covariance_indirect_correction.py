@@ -234,7 +234,7 @@ class IndirectEstimator(Estimator):
     
     
         
-    def __call__(self, xs,ns):
+    def __call__(self, xs,ns, extra_info={}):
         cov,val= search_choleskys(xs,
                              ns,
                              no_its = self.no_its, 

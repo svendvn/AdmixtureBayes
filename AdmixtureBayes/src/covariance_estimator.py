@@ -41,7 +41,7 @@ class Estimator(object):
 #         n_outgroup=next((n for n, e in enumerate(self.full_nodes) if e==self.outgroup))
 #         return n_outgroup
     
-    def __call__(self,xs,ns, names=None):
+    def __call__(self,xs,ns, names=None, extra_info={}):
         '''
         Should return the covariance estimate and possibly set the variable fitted_value
         '''
@@ -59,12 +59,12 @@ class RepeatEstimator(Estimator):
         self.est=est
         self.reps=reps
         
-    def __call__(self, xs,ns):
+    def __call__(self, xs,ns, extra_info={}):
         vals=[]
         covs=[]
         for i in range(self.reps):
             self.est.initialize_Sigma()
-            cov=self.est(xs,ns)
+            cov=self.est(xs,ns, extra_info=extra_info)
             vals.append(self.est.get_fitted_value())
             covs.append(cov)
         
