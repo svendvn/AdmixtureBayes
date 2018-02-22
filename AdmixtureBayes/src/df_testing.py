@@ -143,14 +143,14 @@ def grid_maker(*args):
     
     
 if __name__=='__main__':
-    popsizes, grid_maker([2,5,10,100], [1,2], ['t','s'])
+    no_ind, no_leaves, collapsing, no_snpss= grid_maker([2,5,10,100], [5,10], ['collapsing','Areduce','Rreduce'], [2000,20000])
     
     make_grid_data_set(filename='dfres.txt', 
-                       no_leavess=[5], 
-                       no_snpss=[2000], 
-                       no_individuals_per_populationss=[2,5,10,100], 
-                       rhos=[0.0], 
-                       collapsing=['nothing'], 
+                       no_leavess=no_leaves, 
+                       no_snpss=no_snpss, 
+                       no_individuals_per_populationss=no_ind, 
+                       rhos=[0.4], 
+                       collapsing=collapsing, 
                        blocksizes=[100], 
                        scale_factors=[0.01], 
                        repss=[100], 
