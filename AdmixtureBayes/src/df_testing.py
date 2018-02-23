@@ -71,11 +71,18 @@ def get_two_estimates(no_leaves, no_snps, no_individuals_per_population,
         Sigma=generate_covariance(no_leaves, scale_metod='None')*scale_factor
         Ps=simulate_ps(no_snps, Sigma, rho)
         #print Ps
+        #print Ps
         Ps, p0s=decentralize(Ps, no_individuals_per_population)
+        #print Ps
         bPs,b_p0s= draw_bootstrap_sample(Ps, no_bootstrap_samples, optional_p0=p0s, blocksize=blocksize)
+        #print bPs
         covs=np.array(calc_covs(bPs, b_p0s, collapsing))
+        #print covs
         lik_based.append(likelihood_mean_based(covs))
+        print lik_based[-1]
         var_based.append(variance_mean_based(covs))
+        
+        print var_based[-1]
     lik_summa=[summary(lik_based) for summary in summaries]
     var_summa=[summary(var_based) for summary in summaries]
     return lik_summa, var_summa
@@ -131,6 +138,7 @@ def make_grid_data_set(filename,
             for name, vals in zip(varying_arguments, list_of_lists_of_arguments):
                 kwargs[name]=vals[i]
             kwargs.update({arg:val for arg,val in zip(fixed_arguments, list_of_fixed_arguments)})
+            print kwargs
             output=get_two_estimates(**kwargs)
             row=make_row(varying_arguments, fixed_arguments, kwargs, output, i)
             f.write(row+'\n')
@@ -143,13 +151,13 @@ def grid_maker(*args):
     
     
 if __name__=='__main__':
-    no_ind, no_leaves, collapsing, no_snpss= grid_maker([2,5,10,100], [5,10], ['collapsing','Areduce','Rreduce'], [2000,20000])
+    no_ind, no_leaves, collapsing, no_snpss= grid_maker([2,5,10,100], [5,10], ['nothing','Areduce','Rreduce'], [2000,20000])
     
     make_grid_data_set(filename='dfres.txt', 
                        no_leavess=no_leaves, 
                        no_snpss=no_snpss, 
                        no_individuals_per_populationss=no_ind, 
-                       rhos=[0.4], 
+                       rhos=[0.0], 
                        collapsing=collapsing, 
                        blocksizes=[100], 
                        scale_factors=[0.01], 

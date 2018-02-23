@@ -1,6 +1,30 @@
 from scipy.stats import wishart
 import numpy as np
 from scipy.optimize import minimize
+import matplotlib.pyplot as plt
+
+
+def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
+    old_x=lower_limit
+    new_x=lower_limit*2
+    old_y=function(old_x)
+    new_y=function(new_x)
+    sgn=1
+    step_size=lower_limit
+    for i in range(20):
+        while new_y<old_y:
+            old_x=new_x
+            new_x+=sgn*step_size
+            old_y=new_y
+            new_y=function(new_x)
+        sgn=-sgn
+        step_size*=0.5
+        old_x=new_x
+        new_x=old_x+sgn*step_size
+        old_y=new_y
+        new_y=function(new_x)
+    return new_x
+        
 
 def likelihood_mean_based(sample_of_matrices):
     #print sample_of_matrices
@@ -29,11 +53,16 @@ def variance_mean_based(sample_of_matrices, divisor=None):
     #print var_wishart
     #print var_rom_mean_wishart
     def penalty_function(df_l):
-        df=df_l[0]
-        val=np.linalg.norm(var_wishart-var_rom_mean_wishart/df)
+        df=df_l
+        val=np.linalg.norm(var_wishart-var_rom_mean_wishart/df)**2
         #print df, '::', np.log(val)
         return np.log(val)
-    rval=minimize(penalty_function, 5000, bounds=[(r,None)], method='BFGS').x[0]
+    
+
+    
+    
+    rval=I_cant_believe_I_have_to_write_this_function_myself(penalty_function, 5000)
+    #rval=minimize(penalty_function, 5000, bounds=[(r,None)], method='BFGS', options={'gtol':1e-15}).x[0]
     #print rval
     #print var_rom_mean_wishart*rval
     return rval
