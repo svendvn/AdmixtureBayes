@@ -73,16 +73,19 @@ def get_two_estimates(no_leaves, no_snps, no_individuals_per_population,
         #print Ps
         #print Ps
         Ps, p0s=decentralize(Ps, no_individuals_per_population)
+        print Ps
         #print Ps
         bPs,b_p0s= draw_bootstrap_sample(Ps, no_bootstrap_samples, optional_p0=p0s, blocksize=blocksize)
         #print bPs
         covs=np.array(calc_covs(bPs, b_p0s, collapsing))
+        print covs
         #print covs
         lik_based.append(likelihood_mean_based(covs))
         print lik_based[-1]
         var_based.append(variance_mean_based(covs))
         
         print var_based[-1]
+    lik_based=[lik for lik in lik_based if lik is not None]
     lik_summa=[summary(lik_based) for summary in summaries]
     var_summa=[summary(var_based) for summary in summaries]
     return lik_summa, var_summa
@@ -132,7 +135,7 @@ def make_grid_data_set(filename,
             list_of_lists_of_arguments.append(param)
     with open(filename, 'w') as f:
         f.write(make_header(varying_arguments, fixed_arguments, summary_list)+'\n')
-        for i in range(no_grid_points):
+        for i in range(2,no_grid_points):
             print i, 'of', str(no_grid_points)+'...'
             kwargs={}
             for name, vals in zip(varying_arguments, list_of_lists_of_arguments):

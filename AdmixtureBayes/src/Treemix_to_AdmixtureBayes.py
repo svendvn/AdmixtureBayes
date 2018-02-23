@@ -260,7 +260,7 @@ def parse_newick_tree(newick_string):
     return tree,translates
     
 if __name__=='__main__':
-    tree=read_treemix_file('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout.gz',
+    tree=read_treemix_file('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
                            '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
                            '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges')
     #plot_graph(tree)

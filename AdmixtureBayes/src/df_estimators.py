@@ -33,6 +33,13 @@ def likelihood_mean_based(sample_of_matrices):
     #print 'mean_wishart', mean_wishart
     #print np.linalg.det(mean_wishart)
     #print np.linalg.matrix_rank(mean_wishart)
+    
+    dets=[ np.linalg.det(mat) for mat in sample_of_matrices]
+    
+    if (not all(det>0 for det in dets)) or np.linalg.det(mean_wishart)==0:
+        print 'RETURNING NONE'
+        return None
+    
     r=mean_wishart.shape[0]
     
     def joint_density(df_l, verbose=False):
@@ -61,7 +68,7 @@ def variance_mean_based(sample_of_matrices, divisor=None):
 
     
     
-    rval=I_cant_believe_I_have_to_write_this_function_myself(penalty_function, 5000)
+    rval=I_cant_believe_I_have_to_write_this_function_myself(penalty_function, r)
     #rval=minimize(penalty_function, 5000, bounds=[(r,None)], method='BFGS', options={'gtol':1e-15}).x[0]
     #print rval
     #print var_rom_mean_wishart*rval
