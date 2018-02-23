@@ -8,14 +8,20 @@ def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
     old_x=lower_limit
     new_x=lower_limit*2
     old_y=function(old_x)
+    lower_y=old_y
     new_y=function(new_x)
     sgn=1
     step_size=lower_limit
-    for i in range(20):
+    for _ in range(20):
         while new_y<old_y:
             old_x=new_x
             new_x+=sgn*step_size
             old_y=new_y
+            if new_x<lower_limit:
+                print 'BREAKING OUT'
+                new_x=lower_limit
+                new_y=lower_y
+                break
             new_y=function(new_x)
         sgn=-sgn
         step_size*=0.5
@@ -43,13 +49,13 @@ def likelihood_mean_based(sample_of_matrices):
     r=mean_wishart.shape[0]
     
     def joint_density(df_l, verbose=False):
-        df=df_l[0]
+        df=df_l
         val=-sum((wishart.logpdf(x, df=df, scale=mean_wishart/df)  for x in sample_of_matrices))
         if verbose:
             print df, ':', val
         return val
     
-    return minimize(joint_density, r, bounds=[(r,None)]).x[0]
+    return I_cant_believe_I_have_to_write_this_function_myself(joint_density, r)
 
 
 def variance_mean_based(sample_of_matrices, divisor=None):
@@ -83,4 +89,12 @@ if __name__=='__main__':
     
     print variance_mean_based(xs,df)
     print likelihood_mean_based(xs)
+    
+    
+    
+    def f(x):
+        return np.abs(x)
+    
+    
+    print I_cant_believe_I_have_to_write_this_function_myself(f, 19)
     

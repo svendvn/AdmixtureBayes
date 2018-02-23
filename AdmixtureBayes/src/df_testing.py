@@ -29,7 +29,7 @@ def decentralize(Pdiff, no_individuals):
 
 def draw_bootstrap_sample(P_mat, no_samples, optional_p0=None, blocksize=100):
     N,n= P_mat.shape
-    print P_mat.shape
+    #print P_mat.shape
     samples=[]
     optional_samples=[]
     for i in range(no_samples):
@@ -73,12 +73,12 @@ def get_two_estimates(no_leaves, no_snps, no_individuals_per_population,
         #print Ps
         #print Ps
         Ps, p0s=decentralize(Ps, no_individuals_per_population)
-        print Ps
+        #print Ps
         #print Ps
         bPs,b_p0s= draw_bootstrap_sample(Ps, no_bootstrap_samples, optional_p0=p0s, blocksize=blocksize)
         #print bPs
         covs=np.array(calc_covs(bPs, b_p0s, collapsing))
-        print covs
+        #print covs
         #print covs
         lik_based.append(likelihood_mean_based(covs))
         print lik_based[-1]
@@ -135,7 +135,7 @@ def make_grid_data_set(filename,
             list_of_lists_of_arguments.append(param)
     with open(filename, 'w') as f:
         f.write(make_header(varying_arguments, fixed_arguments, summary_list)+'\n')
-        for i in range(2,no_grid_points):
+        for i in range(no_grid_points):
             print i, 'of', str(no_grid_points)+'...'
             kwargs={}
             for name, vals in zip(varying_arguments, list_of_lists_of_arguments):
