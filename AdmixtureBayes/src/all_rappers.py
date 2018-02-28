@@ -29,7 +29,7 @@ def cov(p):
 def scale_tree(tree, mult):
     return tree_statistics.unique_identifier_and_branch_lengths(Rtree_operations.scale_tree(identifier_to_tree_clean(tree),mult),nodes)
 
-def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=10, nreps=2, no_pops=4, run_ms=True, filename='ms.txt'):
+def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=10, nreps=200, no_pops=4, run_ms=True, filename='ms.txt'):
     if run_ms:
         tree_to_data.call_ms_string(ms_tree, filename)
     filename2='snp_data.txt'
@@ -60,7 +60,7 @@ def _cheat_and_load_previously_created_data(filename2):
     return run_ms_and_convert_to_treemix_format(None, run_ms=False, filename='ms_backup.txt')
     
 
-def tree_to_ms_command(stree, samples_per_population=10, snps=1000000):
+def tree_to_ms_command(stree, samples_per_population=10, snps=100000000):
     nreps=snps//500000
     tree=identifier_to_tree_clean(stree)
     return tree_to_data.tree_to_ms_command(tree, sample_per_pop=samples_per_population, nreps=nreps)
