@@ -85,6 +85,7 @@ def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
         
     return cov
     
+
 def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     est_args=kwargs['est']
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])

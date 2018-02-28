@@ -1,6 +1,6 @@
 from argparse import ArgumentParser
 
-from meta_proposal import simple_adaptive_proposal
+from construct_proposal_choices import make_proposal
 from construct_starting_trees_choices import get_starting_trees
 from construct_covariance_choices import get_covariance
 from construct_nodes_choices import get_nodes
@@ -43,7 +43,6 @@ parser.add_argument('--treemix_also', action='store_true', default=False, help='
 parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
 parser.add_argument('--evaluate_likelihood', action='store_true', default=False, help='this will evaluate the likelihood in the starting tree and then stop, writing just a single file with three values, prior, likelihood and posterior.')
 parser.add_argument('--evaluate_bootstrap_likelihoods', action='store_true', default=False, help='If evaluate likelihood is turned on this will calculate the likelihood of all bootstrapped covariances(if bootstrapping is also turned on)')
-
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -135,7 +134,6 @@ parser.add_argument('--favorable_init_brownian', default=False, action='store_tr
 parser.add_argument('--unbounded_brownian', default=False, action='store_true', help='This will start the brownian motion(only if 21 in workflow) between 0.4 and 0.6')
 parser.add_argument('--filter_on_outgroup', default=False, action='store_true', help='If applied (and 23 in the pipeline) SNPs that are not polymorphic in the outgroup are removed. If not, the default is that polymorphic in no population are removed. ')
 
-
 #chain data collection
 parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
 parser.add_argument('--summary_acceptance_rate', action='store_true', default=True, help='This will calculate and store summaries related to the acceptance rate')
@@ -153,37 +151,11 @@ parser.add_argument('--stop_criteria_frequency', type=int, default=200000, help=
 
 options=parser.parse_args()
 
-def get_proposals(options):
-    all_proposals=['deladmix', 'addadmix', 'rescale', 
-                   'regraft', 'rescale_add', 'rescale_admixtures',
-                   'rescale_admix_correction', 
-                   'rescale_constrained', 'rescale_marginally', 
-                   'sliding_regraft', 'sliding_rescale']
-    all_proportions=[options.deladmix, options.addadmix, options.rescale, 
-                     options.regraft, options.rescale_add, options.rescale_admix, 
-                     options.rescale_admix_correction,
-                     options.rescale_constrained, options.rescale_marginally, 
-                     options.sliding_regraft, options.sliding_rescale]
-    
-    thinned_proportions=[]
-    thinned_proposals=[]
-    
-    for proposal, proportion in zip(all_proposals, all_proportions):
-        if proportion> 1e-8:
-            thinned_proportions.append(proportion)
-            thinned_proposals.append(proposal)
-    return thinned_proportions, thinned_proposals
 
-if options.cancel_preserve_root_distance:
-    extras={'deladmix':{'preserve_root_distance':False}, 'addadmix':{'preserve_root_distance':False}}
-else:
-    extras={}
-    
-if options.no_add:
-    extras['rescale_constrained']={'update_add':False}
 
-proportions, proposals = get_proposals(options)
-mp= [simple_adaptive_proposal(proposals, proportions, extras) for _ in xrange(options.MCMC_chains)]
+
+
+mp=make_proposal(options)
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
 # print 'before_nodes', before_added_outgroup

@@ -61,7 +61,10 @@ def get_xs_and_ns_from_freqs(ps, npop, locus_filter):
     return xs,ns,names
     
 def get_xs_and_ns_from_treemix_file(snp_file, locus_filter):
-    new_filename=make_uncompressed_copy(snp_file)
+    if snp_file.endswith('.gz'):
+        new_filename=make_uncompressed_copy(snp_file)
+    else:
+        new_filename=snp_file
     allele_freqs, names, ns, minors, total_sum= read_freqs(new_filename, locus_filter)
     allele_freqs=array(allele_freqs).T
     ns=array(ns).T
@@ -200,13 +203,13 @@ def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2,
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_timing(tree)
-    print times
+    #print times
     tree=extend_branch_lengths(tree,times)
     tuple_branch_lengths=get_all_branch_lengths(tree)
     count_sum=sum((x[1] for x in tuple_branch_lengths))
     tree=scaled_tupled_branches(tree, drift_sum/count_sum)
     times={k:v*drift_sum/count_sum for k,v in times.items()}
-    print pretty_string(tree)
+    #print pretty_string(tree)
     if leaf_keys is None:
         leaf_keys= get_leaf_keys(tree)
     callstring+=construct_ej_en_es_string(tree, times, leaf_keys=leaf_keys, final_pop_size=final_pop_size)
@@ -266,7 +269,7 @@ def construct_ej_es_string(tree, times, leaf_keys, final_pop_size=1.0):
 def construct_ej_en_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     s_times=sorted([(v,k) for k,v in times.items()])
     dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
-    print dic_of_lineages
+    #print dic_of_lineages
     population_count=len(dic_of_lineages)
     res_string=''
     for time,key in s_times:
@@ -476,7 +479,8 @@ def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also
     
 
 
-def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None):
+def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None, 
+                   convert_to_gz=True):
     if nodes is None:
         nodes=get_trivial_nodes(no_pops)
     total_sum=0
@@ -521,6 +525,8 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                             break
     muhat=float(total_sum)/float(total_number_of_genes)
     print 'muhat', muhat
+    if not convert_to_gz:
+        return filename2
     filename2_gz=filename2+'.gz'
     print filename2
     args=[['cp', '-T', filename2, filename2+'.tmp'],['gzip','-f', filename2], ['mv', filename2+'.tmp', filename2]]
