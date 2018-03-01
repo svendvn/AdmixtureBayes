@@ -20,6 +20,7 @@ import tree_to_data
 from construct_filter_choices import make_filter
 import Rtree_operations
 from covariance_scaled import bias_correction
+from Treemix_to_AdmixtureBayes import read_treemix_file
 
 R=np.array([[ 1., -1. , 0. , 0.],
  [ 0., -1. , 1. , 0.],
@@ -30,10 +31,26 @@ A=np.identity(4)-np.ones((4,4))/4.0
 def cov(p):
     return p.dot(p.T)/p.shape[1]
 
+def load_tree(filename):
+    with open(filename, 'r') as f:
+        f.readline()
+        tree=f.readline().rstrip()
+    return tree
+
+def read_res(outfile):
+    a=pd.read_csv(outfile, usecols=['tree','add','layer'])
+    b=a.loc[lambda df: a.layer == 0, :]
+    b=b[int(b.shape[0])/2::10]
+    return b
+
+def load_treemix_tree(prefix):
+    files=[prefix+'.'+name for name in ['treeout','vertices','edges']]
+    return tree_statistics.unique_identifier_and_branch_lengths(read_treemix_file(*files), ['s'+str(i) for i in range(1,10)]+['out'])
+
 def scale_tree(tree, mult):
     return tree_statistics.unique_identifier_and_branch_lengths(Rtree_operations.scale_tree(identifier_to_tree_clean(tree),mult),nodes)
 
-def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=100, nreps=500, no_pops=4, run_ms=True, filename='ms.txt'):
+def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=20, nreps=500, no_pops=4, run_ms=True, filename='ms.txt'):
     if run_ms:
         tree_to_data.call_ms_string(ms_tree, filename)
     filename2='snp_data.txt'
@@ -64,13 +81,15 @@ def _cheat_and_load_previously_created_data(filename2):
     return run_ms_and_convert_to_treemix_format(None, run_ms=False, filename=filename2)
 
 def get_bias_correction(frequencies, popsize):
-    return bias_correction(1, frequencies, [popsize]*frequencies.shape[0])
+    b=bias_correction(1, frequencies, [popsize]*frequencies.shape[0])
+    rb=R.dot(b).dot(R.T)
+    return rb/scaling(pd.DataFrame(frequencies.T))
     
 
-def tree_to_ms_command(stree, samples_per_population=100, snps=250000000):
+def tree_to_ms_command(stree, samples_per_population=20, snps=250000000):
     nreps=snps//500000
     tree=identifier_to_tree_clean(stree)
-    return tree_to_data.tree_to_ms_command(tree, sample_per_pop=samples_per_population, nreps=nreps)
+    return tree_to_data.tree_to_ms_command(tree, sample_per_pop=samples_per_population, nreps=nreps, leaf_keys=nodes)
     
 def simulate_tree(*args):
     np.random.seed(3232)

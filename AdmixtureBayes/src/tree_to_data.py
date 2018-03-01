@@ -191,7 +191,7 @@ def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nrep
     return callstring
 
 def tree_to_ms_command(rtree, sample_per_pop=50, nreps=2, 
-                       theta=1.0, sites=500000, recomb_rate=1,
+                       theta=0.4, sites=500000, recomb_rate=1,
                        leaf_keys=None, final_pop_size=100.0):
     tree=deepcopy(rtree)
     drift_sum=sum(get_all_branch_lengths(tree))
