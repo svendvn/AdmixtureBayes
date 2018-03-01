@@ -206,27 +206,34 @@ class ScaledEstimator(Estimator):
         return m
     
 if __name__=='__main__':
-    from brownian_motion_generation import simulate_xs_and_ns
+#     from brownian_motion_generation import simulate_xs_and_ns
+#     import numpy as np
+#     n=3
+#     triv_nodes=map(str, range(n+1))
+#     est= ScaledEstimator(reducer='0',
+#                          reduce_method='outgroup',
+#                          scaling='average_product',
+#                          full_nodes=triv_nodes,
+#                          reduce_also=True,
+#                          variance_correction='None',
+#                          jade_cutoff=1e-5,
+#                          bias_c_weight='default')
+#     Sigma = np.identity(n)*0.03+0.02
+#     Sigma[2,1] = 0
+#     Sigma[1,2] = 0
+#     N = 10000
+#     ns = np.ones((n+1,N))*2
+#     print 'simulating xs...'
+#     xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
+#     print 'simulated'
+#     print est(xs,ns)
+    from scipy.stats import binom
     import numpy as np
-    n=3
-    triv_nodes=map(str, range(n+1))
-    est= ScaledEstimator(reducer='0',
-                         reduce_method='outgroup',
-                         scaling='average_product',
-                         full_nodes=triv_nodes,
-                         reduce_also=True,
-                         variance_correction='None',
-                         jade_cutoff=1e-5,
-                         bias_c_weight='default')
-    Sigma = np.identity(n)*0.03+0.02
-    Sigma[2,1] = 0
-    Sigma[1,2] = 0
-    N = 10000
-    ns = np.ones((n+1,N))*2
-    print 'simulating xs...'
-    xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
-    print 'simulated'
-    print est(xs,ns)
+    from reduce_covariance import reduce_covariance
+    ns=np.ones((5,100))*10
+    xs=binom.rvs(p=0.5, n=ns.astype(int))
+    p=xs/ns
     
+    print reduce_covariance(bias_correction(1, p, [10]*5),1)
     
     

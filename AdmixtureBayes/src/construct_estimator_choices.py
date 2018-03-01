@@ -8,6 +8,7 @@ from covariance_estimator import RepeatEstimator
 
 from Rtree_to_covariance_matrix import make_covariance
 
+
 def create_initial_Sigma_generator(n, streng):
     key=streng.keys()[0]
     if key=='default':

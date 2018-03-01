@@ -19,9 +19,13 @@ import collections
 import tree_to_data 
 from construct_filter_choices import make_filter
 import Rtree_operations
+from covariance_scaled import bias_correction
 
-R=np.array([[-1]*3, [1,0,0],[0,1,0],[0,0,1]]).T
+R=np.array([[ 1., -1. , 0. , 0.],
+ [ 0., -1. , 1. , 0.],
+ [ 0., -1.,  0. , 1.]])
 nodes=['s1','s2','s3','s4']
+A=np.identity(4)-np.ones((4,4))/4.0
 
 def cov(p):
     return p.dot(p.T)/p.shape[1]
@@ -29,7 +33,7 @@ def cov(p):
 def scale_tree(tree, mult):
     return tree_statistics.unique_identifier_and_branch_lengths(Rtree_operations.scale_tree(identifier_to_tree_clean(tree),mult),nodes)
 
-def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=10, nreps=200, no_pops=4, run_ms=True, filename='ms.txt'):
+def run_ms_and_convert_to_treemix_format(ms_tree, samples_per_population=100, nreps=500, no_pops=4, run_ms=True, filename='ms.txt'):
     if run_ms:
         tree_to_data.call_ms_string(ms_tree, filename)
     filename2='snp_data.txt'
@@ -57,10 +61,13 @@ def convert_to_allele_frequency(snp_data):
     return pd.DataFrame(dat_frame)
     
 def _cheat_and_load_previously_created_data(filename2):
-    return run_ms_and_convert_to_treemix_format(None, run_ms=False, filename='ms_backup.txt')
+    return run_ms_and_convert_to_treemix_format(None, run_ms=False, filename=filename2)
+
+def get_bias_correction(frequencies, popsize):
+    return bias_correction(1, frequencies, [popsize]*frequencies.shape[0])
     
 
-def tree_to_ms_command(stree, samples_per_population=10, snps=100000000):
+def tree_to_ms_command(stree, samples_per_population=100, snps=250000000):
     nreps=snps//500000
     tree=identifier_to_tree_clean(stree)
     return tree_to_data.tree_to_ms_command(tree, sample_per_pop=samples_per_population, nreps=nreps)
@@ -114,6 +121,9 @@ class options_object():
 
 def pretty_dataframe(result):
     return pd.DataFrame(map(list,zip(*result[:3])), columns=['iteration','posterior','tree'])        
+
+def scaling(fs):
+    return np.mean(fs.apply(np.mean, axis=1).apply(lambda x: x*(1-x)))
 
 def mcmcmc(observed_covariance, df , outgroup=False, chains=8, its=[50]*100):
     nodes=['s'+str(i+1) for i in range(observed_covariance.shape[0])]
