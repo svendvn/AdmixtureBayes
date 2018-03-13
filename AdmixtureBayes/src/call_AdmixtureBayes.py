@@ -148,6 +148,7 @@ parser.add_argument('--thinning_coef', type=int, default=40, help='the number of
 parser.add_argument('--store_permuts', action='store_true', default=False, help='If applied, the permutations from the MCMCMC flips are recorded in a file with a similar filename to the result_file')
 parser.add_argument('--stop_criteria', action='store_true', default=True, help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at ')
 parser.add_argument('--stop_criteria_frequency', type=int, default=200000, help='This tells the frequency of checking for when the stop criteria are checked (if the stop_criteria flag is turned on)')
+parser.add_argument('--stop_criteria_topological', default=False, action='store_true', help='this will add a topological stop criteria that should also be fulfilled.')
 
 options=parser.parse_args()
 
@@ -345,6 +346,7 @@ else:
     
 
 summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
+                                          light_newick_tree_summaries=options.stop_criteria_topological,
                                           full_tree=True, #can not think of a moment where you don't want this.
                                           proposals=mp[0], 
                                           acceptance_rate_information=options.summary_acceptance_rate,
@@ -369,7 +371,7 @@ sim_lengths=[options.m]*options.n
 # print 'options.store_permuts', options.store_permuts
 
 if options.stop_criteria:
-    sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt')
+    sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt', topological=options.stop_criteria_topological)
 else:
     sc=None
 

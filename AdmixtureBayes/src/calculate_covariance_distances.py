@@ -158,7 +158,8 @@ def get_all_dists(nodes_with_outgroup,
                   treemix_model_covariances=[],
                   treemix_likelihoods=[],
                   treemix_covse=None,
-                  dfs=[]):
+                  dfs=[],
+                  print_dists=True):
     outgroup=(set(nodes_with_outgroup)-set(nodes_without_outgroup)).pop()
     matrices_to_compare={}#contains name:(A/R, print_all/print_min_max_mean, VC True/False, matrix)
     vcs={}
@@ -210,7 +211,11 @@ def get_all_dists(nodes_with_outgroup,
         Apost_matsA = get_posterior_A_matrices(admB_output_file, add_multiplier=1.0/multiplier, nodes=nodes_with_outgroup, outgroup=outgroup)
         matrices_to_compare['Posterior samples']=('A','print_min_max_mean', True, Apost_matsA)
     
-    
+#     np.set_printoptions(precision=6, linewidth=200, suppress=True)
+#     print 'truth'
+#     print matrices_to_compare['True Matrix'][3][0]
+#     print 'estimate'
+#     print matrices_to_compare['Treemix input'][3][0]
         
     dist_measures={'Frobenius':frobenius}
     for df in dfs:
@@ -218,26 +223,28 @@ def get_all_dists(nodes_with_outgroup,
     
     n_outgroup=next((n for n, e in enumerate(nodes_with_outgroup) if e==outgroup))
     
-    for space in ['A','R']:
-        for dist_name, dist_measure in dist_measures.items():
-            for vc in [True,False]:
-                sets_alredy_taken=[]
-                if not (space=='A' and dist_name.startswith('W')) and (dist_name.startswith('W') or vc):
-                    print '------ Distance ',dist_name, ' in the distance space ', space + ', vc='+str(vc)+ ' ----------'
-                    for matrix_name, (mat_space, summarize_method, vc_corrected, mats) in matrices_to_compare.items():
-                        for matrix_name2, (mat_space2, summarize_method2, vc_corrected2, mats2) in matrices_to_compare.items():
-                            if (matrix_name,matrix_name2) not in sets_alredy_taken and mat_space<=space and mat_space2<=space and mats and mats2:
-                                mats1,mats2=prepare_mats(mats, mats2, mat_space, mat_space2, vc_corrected, vc_corrected2, space, vc, vcs, n_outgroup)
-                                str_to_print='{:60}'.format(matrix_name+ '><'+matrix_name2)
-                                if summarize_method=='print':
-                                    if summarize_method2=='print':
-                                        str_to_print+=print_all_print_all(mats1, mats2, dist_measure)
-                                    else:
-                                        str_to_print+= print_all_print_min_max_mean(mats1, mats2, dist_measure)
-                                elif summarize_method2=='print':
-                                    str_to_print+= print_all_print_min_max_mean(mats2, mats1, dist_measure)
-                                print str_to_print
-                                sets_alredy_taken.extend([(matrix_name, matrix_name2),(matrix_name2,matrix_name)])
+    if print_dists:
+        for space in ['A','R']:
+            for dist_name, dist_measure in dist_measures.items():
+                for vc in [True,False]:
+                    sets_alredy_taken=[]
+                    if not (space=='A' and dist_name.startswith('W')) and (dist_name.startswith('W') or vc):
+                        print '------ Distance ',dist_name, ' in the distance space ', space + ', vc='+str(vc)+ ' ----------'
+                        for matrix_name, (mat_space, summarize_method, vc_corrected, mats) in matrices_to_compare.items():
+                            for matrix_name2, (mat_space2, summarize_method2, vc_corrected2, mats2) in matrices_to_compare.items():
+                                if (matrix_name,matrix_name2) not in sets_alredy_taken and mat_space<=space and mat_space2<=space and mats and mats2:
+                                    mats1,mats2=prepare_mats(mats, mats2, mat_space, mat_space2, vc_corrected, vc_corrected2, space, vc, vcs, n_outgroup)
+                                    str_to_print='{:60}'.format(matrix_name+ '><'+matrix_name2)
+                                    if summarize_method=='print':
+                                        if summarize_method2=='print':
+                                            str_to_print+=print_all_print_all(mats1, mats2, dist_measure)
+                                        else:
+                                            str_to_print+= print_all_print_min_max_mean(mats1, mats2, dist_measure)
+                                    elif summarize_method2=='print':
+                                        str_to_print+= print_all_print_min_max_mean(mats2, mats1, dist_measure)
+                                    print str_to_print
+                                    sets_alredy_taken.extend([(matrix_name, matrix_name2),(matrix_name2,matrix_name)])
+    return matrices_to_compare, vcs
 
 
 def prepare_mats(mats1, mats2, mat_space1, mat_space2, vc1,vc2, target_space, target_vc, vcs, n_outgroup):
@@ -287,7 +294,7 @@ if __name__=='__main__':
     get_all_dists(nodes_with_outgroup=['out']+nodes_without_outgroup,
                   nodes_without_outgroup=nodes_without_outgroup,
                   true_tree_file=prefix+'_scaled_true_tree.txt', 
-                  admB_output_file=prefix+'10_outnew.txt', 
+                  admB_output_file=prefix+'1_outnew.txt', 
                   admB_covariance=prefix+'_covariance_and_multiplier.txt', 
                   admb_vc=prefix+'_variance_correction.txt',
                   snp_data_file=prefix+'_treemix_in.txt.gz',

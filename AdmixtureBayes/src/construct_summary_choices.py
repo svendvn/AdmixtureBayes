@@ -4,6 +4,7 @@ import tree_statistics
 from copy import deepcopy
 
 def get_summary_scheme(majority_tree=False, 
+                       light_newick_tree_summaries=False,
                        full_tree=True, 
                        proposals=None, 
                        acceptance_rate_information=False,
@@ -31,6 +32,10 @@ def get_summary_scheme(majority_tree=False,
         summaries.append(summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'))
     if admixture_proportion_string:
         summaries.append(summary.s_basic_tree_statistics(tree_statistics.get_admixture_proportion_string, 'admixtures', output='string'))
+    if light_newick_tree_summaries:
+        summaries.append(summary.s_basic_tree_statistics(tree_statistics.tree_to_0ntree, 'Zero_Ntree',output='string'))
+        summaries.append(summary.s_basic_tree_statistics(tree_statistics.tree_to_random_ntree, 'random_Ntree',output='string'))
+        summaries.append(summary.s_basic_tree_statistics(tree_statistics.tree_to_mode_ntree, 'mode_Ntree',output='string'))
     if acceptance_rate_information:
         summaries.append(summary.s_variable('mhr', output='double_missing'))
         summaries.append(summary.s_variable('proposal_type', output='string'))
