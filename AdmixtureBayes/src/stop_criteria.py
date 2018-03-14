@@ -6,6 +6,7 @@ class stop_criteria(object):
     
     TOPOLOGICAL_MIN=50
     CONTINUOUS_MIN=200
+    BURN_IN=0.5
     
     def __init__(self, frequency=20000, summaries=['no_admixes','average_branch_length','add'], outfile='tmp_stop_criteria.txt', topological=False):
         self.counter=0
@@ -30,7 +31,7 @@ class stop_criteria(object):
     
     def stop_yet(self, filename):
         dir = os.path.dirname(__file__)
-        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, '0.5', self.outfile]+self.summaries
+        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, str(stop_criteria.BURN_IN), self.outfile]+self.summaries
         print command
         call(command)
         return self.check_outfile()

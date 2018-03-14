@@ -41,11 +41,15 @@ all_nums=function(df){
 }
 
 tree_nums=function(df){
+	ids=floor(seq(1,nrow(df), length.out = min(nrow(df),500)))
+	df=df[ids,]
 	res=c()
 	for(tree_summary in tree_summaries){
-		write(as.character(df[,tree_summary]),'trees_tmp.txt')
+		write(paste0('\t','tree gen.', ids,' = [&U] ',as.character(df[,tree_summary]),';'),'trees_tmp.txt')
 		chain=load.trees('trees_tmp.txt', type='newick')
-		res=c(res, topological.approximate.ess(chain)[1,'approx.ess'])
+		 invisible(capture.output(a <- topological.pseudo.ess(chain,n=1)))
+		print(a)
+		res=c(res, a[1,1])
 	}
 	return(res)
 }
@@ -57,6 +61,11 @@ print(tree_summaries)
 dfc=as.data.frame(dfa[,tree_summaries])
 colnames(dfc) <- tree_summaries
 tree_esss=tree_nums(dfc)
+
+print(summaries_without_trees)
+print(tree_summaries)
+print(esss)
+print(tree_esss)
 
 to_print=cbind(c(summaries_without_trees,tree_summaries),c(esss,tree_esss))
 
