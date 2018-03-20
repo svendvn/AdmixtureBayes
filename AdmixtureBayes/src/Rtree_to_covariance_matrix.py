@@ -5,7 +5,42 @@ from tree_operations import get_number_of_admixes_on_branch
 from itertools import izip
 
 from Rtree_operations import node_is_non_admixture, node_is_coalescence, get_leaf_keys
-#from covariance_matrix_wrapper import Covariance_Matrix2
+import warnings
+
+try:
+    from covariance_matrix_wrapper import Covariance_Matrix2
+    imported_fast_covariance=True
+except ImportError:
+    imported_fast_covariance=False
+
+class Covariance_Matrix():
+    
+    def __init__(self, nodes_to_index):
+        self.ni=nodes_to_index
+        self.covmat=zeros((len(nodes_to_index), len(nodes_to_index)))
+    
+    def get_indices(self, nodes):
+        return [self.ni[n] for n in nodes]
+    
+    def get_addon(self, branch_length, weights):
+        return branch_length*outer(weights, weights)
+    
+    def update(self, branch_length, population):
+        indices=self.get_indices(population.members)
+        self.covmat[ix_(indices,indices)]+=self.get_addon(branch_length, population.weights)
+        #self.covmat[ix_(indices,indices)]+=branch_length*outer(weights, weights)
+        
+    def get_matrix(self):
+        return self.covmat
+    
+if not imported_fast_covariance:
+    Covariance_Matrix2=Covariance_Matrix
+    warnings.warn('Using the slow covariance matrix implemented in numpy', RuntimeWarning)
+else:
+    print 'Using the fast C++ implemented covariance matrix'
+
+
+
 
 class Population:
     
@@ -55,28 +90,7 @@ class Population:
 
 
        
-class Covariance_Matrix():
-    
-    def __init__(self, nodes_to_index):
-        self.ni=nodes_to_index
-        self.covmat=zeros((len(nodes_to_index), len(nodes_to_index)))
-    
-    def get_indices(self, nodes):
-        return [self.ni[n] for n in nodes]
-    
-    def get_addon(self, branch_length, weights):
-        return branch_length*outer(weights, weights)
-    
-    def update(self, branch_length, population):
-        indices=self.get_indices(population.members)
-        self.covmat[ix_(indices,indices)]+=self.get_addon(branch_length, population.weights)
-        #self.covmat[ix_(indices,indices)]+=branch_length*outer(weights, weights)
-        
-    def get_matrix(self):
-        return self.covmat
 
-
-#node is p1key, p2key, adm_prop, p1length, p2length, 
 
 
     
@@ -147,9 +161,9 @@ def make_covariance(tree, node_keys=None, old_cov=False):
         node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
-    covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
+    covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})
     if old_cov:
-        covmat=Covariance_Matrix({node_key:n for n,node_key in enumerate(node_keys)})
+        covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})
     waiting_nodes={}
     taken_nodes=[]
     while True:
