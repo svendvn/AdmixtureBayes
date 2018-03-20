@@ -1,7 +1,7 @@
 from Rtree_to_covariance_matrix import get_populations
 from generate_prior_trees import generate_phylogeny, simulate_number_of_admixture_events
 from copy import deepcopy
-from Rtree_operations import node_is_admixture, get_number_of_admixes, pretty_string, get_number_of_leaves
+from Rtree_operations import node_is_admixture, get_number_of_admixes, pretty_string, get_number_of_leaves,tree_to_0tree
 from Rproposal_admix import deladmix, addadmix
 from Rtree_to_coefficient_matrix import get_rank
 
@@ -38,7 +38,7 @@ def add_sadmixes(tree, final_no_sadmixes):
             #print 'cand_res', candidate_pops, pops
         tree=candidate_tree
         #print '----------'
-        print pretty_string(tree)
+        #print pretty_string(tree)
         
     return tree
 
@@ -50,24 +50,42 @@ def accept_reject_generation(no_leaves, no_sadmixes, nodes=None):
     return tree
 
 
-def admix_is_sadmix(tree, branch, reference_pop):
+def admix_is_sadmix_popz(tree, branch, reference_pop):
     ntree,f,b=deladmix(tree,fixed_remove=branch, preserve_root_distance=False)
     pops_n=get_populations(ntree)
+    #print pops_n
     return reference_pop!=pops_n
     
 def admixes_are_sadmixes(tree):
-    pops=None
+    r,b,n=get_rank(tree),get_rank(tree_to_0tree(tree)),get_number_of_admixes(tree)
+    #print 'rank=base_rank+no_admix',r,'=',b,'+',n
+    return r==b+n
+
+def effective_number_of_admixes(tree):
+    n=get_number_of_leaves(tree)
+    Zero_tree=tree_to_0tree(tree)
+    return get_rank(tree)-get_rank(Zero_tree)
+
+
+def admixes_are_sadmixes_popz(tree):
+    pops=get_populations(tree)
+    #print pops
     for key,node in tree.items():
         if node_is_admixture(node):
-            if pops is None:
-                pops=get_populations(tree)
             sadmix_bool=admix_is_sadmix(tree, (key,1), pops)
             if not sadmix_bool:
                 return False
     return True
+
             
             
 if __name__=='__main__':
     from Rtree_operations import pretty_string
-    t=generate_sadmix_tree(10,7)
-    print pretty_string(t)
+    for _ in range(1000):
+        t=generate_sadmix_tree(10,25)
+        print effective_number_of_admixes(t)
+    #print get_rank(t)
+    #base=generate_sadmix_tree(10, 0)
+    #rint get_rank(base)
+    #print pretty_string(t)
+    #print admixes_are_sadmixes(t)

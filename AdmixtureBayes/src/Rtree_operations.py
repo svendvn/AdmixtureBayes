@@ -929,6 +929,17 @@ def remove_admix2(tree, rkey, rbranch, pks={}):
     pks['sorphanota_branch']=mother_or_father(tree, sorphanota_key, sparent_key)
     del tree[source_key]
     return tree, (t1,t2,t3,t4,t5), alpha
+
+def tree_to_0tree(tree):
+    leaves,_,admixture_keys=get_categories(tree)
+    pruned_tree = deepcopy(tree)
+    for adm_key in admixture_keys:
+        if adm_key in pruned_tree:
+            #print '------------------------------------------'
+            #print 'removing', (adm_key, int_bin) , 'from tree:'
+            #pretty_print(pruned_tree)
+            pruned_tree=remove_admixture(pruned_tree, adm_key, 1)
+    return pruned_tree
     
 def other_branch(branch):
     if branch==0:

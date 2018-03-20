@@ -54,11 +54,13 @@ def open_cov_file_admb(cov_mult_file, var_correction, nodes=None):
             res.append(map(float,f.readline().split()[1:]))
         a=f.readline()
         if len(a)>1:
-            print a
+            #print a
             multiplier=float(a.split("=")[1].rstrip())
         else:
             multiplier=1
     res=np.array(res)
+    if nodes is None and 's1' in nodes_from_file:
+        nodes=['s'+str(i) for i in range(1,len(nodes_from_file)+1)]
     res=reorder_covariance(res, nodes_from_file, nodes)
     if var_correction is not None:
         vc=np.loadtxt(var_correction)

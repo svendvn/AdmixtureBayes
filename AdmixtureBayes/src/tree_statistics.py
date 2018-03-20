@@ -2,7 +2,7 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               propagate_admixtures, get_branch_length,update_parent_and_branch_length, 
                               get_trivial_nodes, pretty_string, insert_children_in_tree, rename_root,
                               get_admixture_proportion, remove_admixture, get_admixture_proportion_from_key,
-                              pretty_print, get_admixture_keys_and_proportions)
+                              pretty_print, get_admixture_keys_and_proportions, tree_to_0tree)
 from copy import deepcopy
 from prior import matchmake
 from numpy.random import random
@@ -357,15 +357,9 @@ def tree_to_mode_ntree(tree):
     return non_admixture_to_newick(pruned_tree)
 
 def tree_to_0ntree(tree):
-    leaves,_,admixture_keys=get_categories(tree)
-    pruned_tree = deepcopy(tree)
-    for adm_key in admixture_keys:
-        if adm_key in pruned_tree:
-            #print '------------------------------------------'
-            #print 'removing', (adm_key, int_bin) , 'from tree:'
-            #pretty_print(pruned_tree)
-            pruned_tree=remove_admixture(pruned_tree, adm_key, 1)
+    pruned_tree=tree_to_0tree(tree)
     return non_admixture_to_newick(pruned_tree)
+
 
 def tree_to_random_ntree(tree):
     leaves,_,admixture_keys=get_categories(tree)
