@@ -2,7 +2,8 @@ from Rtree_operations import (get_categories, get_destination_of_lineages, propa
                               propagate_admixtures, get_branch_length,update_parent_and_branch_length, 
                               get_trivial_nodes, pretty_string, insert_children_in_tree, rename_root,
                               get_admixture_proportion, remove_admixture, get_admixture_proportion_from_key,
-                              pretty_print, get_admixture_keys_and_proportions, tree_to_0tree)
+                              pretty_print, get_admixture_keys_and_proportions, tree_to_0tree,
+                              direct_all_admixtures)
 from copy import deepcopy
 from prior import matchmake
 from numpy.random import random
@@ -171,6 +172,9 @@ def unique_identifier(tree, leaf_order=None):
         if len(ready_lineages)==1 and ready_lineages[0][0]=='r':
             break
     return _list_identifier_to_string(list_of_gens)
+
+def admixture_sorted_unique_identifier(tree, leaf_order=None):
+    return unique_identifier(direct_all_admixtures(tree), leaf_order)
 
 def _list_identifier_to_string(list_of_gens):
     return '-'.join(['.'.join(map(str,[c for c in l if c!='_'])) for l in list_of_gens])

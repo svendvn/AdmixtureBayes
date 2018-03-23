@@ -134,7 +134,7 @@ def load_treemix_matrix(filename, nodes):
 
 def get_posterior_A_matrices(outfile, add_multiplier=1, nodes=None, outgroup='out', thinning=100):
     a=pd.read_csv(outfile, usecols=['tree','add','layer'])
-    b=a.loc[lambda df: a.layer == 0, :]
+    b=a.loc[a.layer == 0, :]
     b=b[int(b.shape[0])/2::thinning]
     AmatricesA=[]
     for stree, add in zip(b['tree'], b['add']):

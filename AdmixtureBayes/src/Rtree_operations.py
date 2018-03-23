@@ -940,6 +940,14 @@ def tree_to_0tree(tree):
             #pretty_print(pruned_tree)
             pruned_tree=remove_admixture(pruned_tree, adm_key, 1)
     return pruned_tree
+
+def direct_all_admixtures(tree, smaller_than_half=True):
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            alpha=get_admixture_proportion_from_key(tree, key)
+            if (smaller_than_half and alpha<0.5) or (not smaller_than_half and alpha>0.5):
+                tree[key]=change_admixture(node)
+    return tree
     
 def other_branch(branch):
     if branch==0:
