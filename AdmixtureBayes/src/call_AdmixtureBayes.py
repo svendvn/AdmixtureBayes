@@ -43,6 +43,7 @@ parser.add_argument('--treemix_also', action='store_true', default=False, help='
 parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
 parser.add_argument('--evaluate_likelihood', action='store_true', default=False, help='this will evaluate the likelihood in the starting tree and then stop, writing just a single file with three values, prior, likelihood and posterior.')
 parser.add_argument('--evaluate_bootstrap_likelihoods', action='store_true', default=False, help='If evaluate likelihood is turned on this will calculate the likelihood of all bootstrapped covariances(if bootstrapping is also turned on)')
+parser.add_argument('--stop_evaluations', action='store_true', default=False, help='This will stop the analysis after the data preparation')
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -374,6 +375,11 @@ if options.stop_criteria:
     sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt', topological=options.stop_criteria_topological)
 else:
     sc=None
+    
+if options.stop_evaluations:
+    import sys
+    sys.exit()
+    
 
 def multi_chain_run():
     res=MCMCMC(starting_trees=starting_trees, 
