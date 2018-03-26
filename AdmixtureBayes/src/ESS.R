@@ -29,7 +29,7 @@ for(summary in summaries){
 df=read.csv(filename, header=T)
 dfa=subset(df, layer==0)
 dfa=dfa[(floor(proportion*nrow(dfa))):nrow(dfa),]
-print(dfa)
+#print(dfa)
 dfb=as.data.frame(dfa[,summaries_without_trees])
 colnames(dfb) <- summaries_without_trees
 df2=apply(dfb,c(1,2),as.numeric)
@@ -42,14 +42,19 @@ all_nums=function(df){
 
 tree_nums=function(df){
 	ids=floor(seq(1,nrow(df), length.out = min(nrow(df),500)))
-	df=df[ids,]
+	df=df[ids,,drop=F]
 	res=c()
 	for(tree_summary in tree_summaries){
 		write(paste0('\t','tree gen.', ids,' = [&U] ',as.character(df[,tree_summary]),';'),'trees_tmp.txt')
 		chain=load.trees('trees_tmp.txt', type='newick')
-		 invisible(capture.output(a <- topological.pseudo.ess(chain,n=1)))
+		invisible(capture.output(a <- topological.pseudo.ess(chain,n=1)))
 		print(a)
-		res=c(res, a[1,1])
+		if(a>0.5){#if all trees are identical, it will cause a ess of 0 - and not 500 as it should. Therefore, I put in the recognizable value, 777.77777
+			res=c(res, a[1,1])
+		}
+		else{
+			res=c(res,777.77777)
+		}
 	}
 	return(res)
 }
