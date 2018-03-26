@@ -57,16 +57,17 @@ class Summary(object):
         
 class s_basic_tree_statistics(Summary):
     
-    def __init__(self, function, name, output='double'):
+    def __init__(self, function, name, output='double', args_extra=[]):
         super(s_basic_tree_statistics, self).__init__(name, output=output)
         self.function=function
+        self.args_extra=args_extra
         
     def __call__(self, **kwargs):
         tree=kwargs['tree']
-        return self.function(tree)
+        return self.function(tree, *self.args_extra)
 
     def summary_of_phylogeny(self, tree):
-        return self.function(tree)
+        return self.function(tree, *self.args_extra)
         
     
 class s_no_admixes(Summary):

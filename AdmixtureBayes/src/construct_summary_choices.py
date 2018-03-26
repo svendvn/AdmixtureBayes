@@ -10,7 +10,8 @@ def get_summary_scheme(majority_tree=False,
                        acceptance_rate_information=False,
                        admixture_proportion_string=False,
                        priors=False,
-                       no_chains=1):
+                       no_chains=1,
+                       nodes=None):
     
     if proposals is not None:
         props=proposals.props
