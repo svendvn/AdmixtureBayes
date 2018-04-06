@@ -10,6 +10,7 @@ from covariance_estimator import initor
 
 from construct_covariance_choices import empirical_covariance_wrapper_directly
 from pathos.multiprocessing import Pool
+from df_estimators import variance_mean_based, likelihood_mean_based
 
 
 def optimize(sample_of_matrices):
@@ -92,7 +93,7 @@ def make_covariances(filenames, cores, **kwargs):
 def estimate_degrees_of_freedom(filename, 
                                 bootstrap_blocksize=100, 
                                 no_blocks=None, no_bootstrap_samples=10, 
-                                summarization=['mle','var_opt','var'],
+                                summarization=['mle_opt','var_opt','var'],
                                 cores=1, 
                                 save_covs='',
                                 prefix='', 
@@ -109,10 +110,10 @@ def estimate_degrees_of_freedom(filename,
     summarization=initor(summarization)
     if summarization=='var':
         res=estimate(covs)
-    elif summarization=='mle':
-        res=optimize(covs)
-    elif summarization=='var':
-        res=optimize2(covs)
+    elif summarization=='mle_opt':
+        res=likelihood_mean_based(covs)
+    elif summarization=='var_opt':
+        res=variance_mean_based(covs)
     return res, covs
     
 

@@ -95,7 +95,7 @@ parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the s
 parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
 parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False, help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
 parser.add_argument('--save_bootstrap_covariances', type=str, default='', help='if provided the bootstrapped covariance matrices will be saved to numbered files starting with {prefix}+_+{save_covariances}+{num}+.txt')
-parser.add_argument('--bootstrap_type_of_estimation', choices=['mle','var_opt'], default='mle', help='This is the way the bootstrap wishart estimate is estimated.')
+parser.add_argument('--bootstrap_type_of_estimation', choices=['mle_opt','var_opt'], default='var_opt', help='This is the way the bootstrap wishart estimate is estimated.')
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
