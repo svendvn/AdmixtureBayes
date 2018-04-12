@@ -169,7 +169,14 @@ if options.prefix[-1]!='_':
 else:
     prefix=options.prefix
 
-treemix_file=prefix+"treemix_in.txt" 
+if options.alternative_treemix_infile:
+    treemix_file=prefix+"treemix_in.txt"
+    treemix_in_file=options.alternative_treemix_infile
+else:
+    treemix_file=prefix+"treemix_in.txt"
+    treemix_in_file=treemix_file+'.gz'
+    
+#treemix_file=prefix+"treemix_in.txt" 
 treemix_out_files=prefix+'treemix_out'
 
 if options.starting_trees:
@@ -217,6 +224,7 @@ estimator_arguments=dict(reducer=options.reduce_node,
                          initial_Sigma_generator={options.initial_Sigma:(preliminary_starting_trees[0], reduced_nodes)},
                          locus_filter_on_simulated=locus_filter_on_simulated,
                          add_variance_correction_to_graph=options.add_variance_correction_to_graph,
+                         save_variance_correction=True,
                          prefix=prefix)
 
 covariance=get_covariance(options.covariance_pipeline, 
@@ -245,10 +253,7 @@ covariance=get_covariance(options.covariance_pipeline,
                           )
 
 if options.treemix_instead or options.treemix_also:
-    if options.alternative_treemix_infile:
-        treemix_in_file=options.alternative_treemix_infile
-    else:
-        treemix_in_file=treemix_file+'.gz'
+
     dir = os.path.dirname(__file__)
     program=os.path.join(dir,'treemixrunner.py')
     calls_to_treemix=[['python',program, 
@@ -275,7 +280,7 @@ if options.estimate_bootstrap_df:
         summarization='var'
     else:
         summarization=options.bootstrap_type_of_estimation
-    df, boot_covs=estimate_degrees_of_freedom(treemix_file, 
+    df, boot_covs=estimate_degrees_of_freedom(treemix_in_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            outfile=treemix_out_files,

@@ -88,6 +88,10 @@ def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
 
 def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     est_args=kwargs['est']
+    #print 'kwargs:'
+    #for i,j in est_args.items():
+    #    print i,j
+    #print xnn_tuple
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
     xs,ns,names=xnn_tuple
 
@@ -97,7 +101,9 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     cov=est(xs,ns)
     cov=reorder_reduced_covariance(cov, names, est_args['nodes'], outgroup=est_args['reducer'])
     if ('add_variance_correction_to_graph' in est_args and 
-        est_args['add_variance_correction_to_graph']):
+        est_args['add_variance_correction_to_graph'] and
+        'save_variance_correction' in est_args and
+        est_args['save_variance_correction']):
         print 'CHaninging VC'
         filename=est_args['prefix']+'variance_correction.txt'
         vc=loadtxt(filename)

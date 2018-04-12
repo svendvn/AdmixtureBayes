@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 from load_data import read_data
 import subprocess
 from numpy.random import choice
-from tree_to_data import treemix_to_cov
+from tree_to_data import treemix_to_cov, make_uncompressed_copy
 from covariance_estimator import initor
 
 from construct_covariance_choices import empirical_covariance_wrapper_directly
@@ -58,8 +58,10 @@ def bootstrap_indices(k):
 def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_samples=None):
     assert (blocksize is not None) or (no_blocks is not None), 'Has to specify either block size or number of blocks'
     filenames=[]
-    filename_reduced='.'.join(filename.split(".")[:-1])
-    suffix=filename.split(".")[-1]
+    if filename.endswith('.gz'):
+        make_uncompressed_copy(filename)
+        filename='.'.join(filename.split(".")[:-1]) #removing the .gz suffix
+    filename_reduced=filename+'boot.'
     with open(filename, 'r') as f:
         first_line=f.readline()
         lines=f.readlines()
@@ -70,7 +72,7 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
     if bootstrap_samples is None:
         bootstrap_samples=len(line_sets)
     for i in range(bootstrap_samples):
-        new_filename= filename_reduced+str(i)+'.'+suffix
+        new_filename= filename_reduced+str(i)
         with open(new_filename, 'w') as g:
             g.write(first_line)
             bootstrap_inds=bootstrap_indices(len(line_sets))
@@ -86,7 +88,7 @@ def make_covariances(filenames, cores, **kwargs):
     p=Pool(cores)
     def t(filename):
         return empirical_covariance_wrapper_directly(filename, **kwargs)
-    covs=p.map(t, filenames)
+    covs=map(t, filenames)
     return covs
 
 
