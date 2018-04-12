@@ -1,5 +1,5 @@
 from scipy.stats import wishart
-from numpy import mean,var, savetxt, square, diag
+from numpy import mean,var, savetxt, square, diag,loadtxt
 from numpy.linalg import det, matrix_rank
 from scipy.optimize import minimize
 from load_data import read_data
@@ -96,16 +96,20 @@ def estimate_degrees_of_freedom(filename,
                                 summarization=['mle_opt','var_opt','var'],
                                 cores=1, 
                                 save_covs='',
-                                prefix='', 
+                                prefix='',
+                                load_bootstrapped_covariances=[],
                                 **kwargs):
-    filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
-    print 'nodes', nodes
-    print filenames
-    covs=make_covariances(filenames, cores=cores, **kwargs)
-    if save_covs:
-        for i,cov in enumerate(covs):
-            filn=prefix+save_covs+str(i)+'.txt'
-            savetxt(filn, cov)
+    if not load_bootstrapped_covariances:
+        filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
+        print 'nodes', nodes
+        print filenames
+        covs=make_covariances(filenames, cores=cores, **kwargs)
+        if save_covs:
+            for i,cov in enumerate(covs):
+                filn=prefix+save_covs+str(i)+'.txt'
+                savetxt(filn, cov)
+    else:
+        covs=[loadtxt(bcov) for bcov in load_bootstrapped_covariances]
     #print covs[1]
     summarization=initor(summarization)
     if summarization=='var':

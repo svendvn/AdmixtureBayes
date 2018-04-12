@@ -11,6 +11,8 @@ def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
     lower_y=old_y
     new_y=function(new_x)
     sgn=1
+    max_step_size_increases=20
+    step_size_increases=0
     step_size=lower_limit
     for _ in range(20):
         c=0
@@ -25,6 +27,10 @@ def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
                 break
             new_y=function(new_x)
             c+=1
+            if c>10 and max_step_size_increases>step_size_increases:
+                c=0
+                step_size*=2
+                step_size_increases+=1
         sgn=-sgn
         step_size*=0.5
         old_x=new_x

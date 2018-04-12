@@ -6,12 +6,34 @@ from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 from load_data import read_data
 
-from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones
+from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones,nan
 from numpy.linalg import det
 from copy import deepcopy
 from operator import itemgetter
 import subprocess
 from scipy.stats import wishart
+
+# def read_freqs(new_filename, locus_filter):
+#     with open(new_filename, 'r') as f:
+#         names=f.readline().split()
+#         allele_counts=[]
+#         pop_sizes=[]
+#         minors=[]
+#         total_sum=0
+#         for n,r in enumerate(f.readlines()):
+#             minor_majors=r.split()
+#             freqs=[]
+#             pop_sizes_SNP=[]
+#             for minor_major in minor_majors:
+#                 minor, major= map(float,minor_major.split(','))
+#                 total_sum+=major+minor
+#                 freqs.append(float(minor)/float(major+minor))
+#                 minors.append(minor)
+#                 pop_sizes_SNP.append(major+minor)
+#             if locus_filter(freqs,pop_sizes, names):
+#                 pop_sizes.append(pop_sizes_SNP)
+#                 allele_counts.append(freqs)
+#     return allele_counts, names, pop_sizes, minors, total_sum
 
 def read_freqs(new_filename, locus_filter):
     with open(new_filename, 'r') as f:
@@ -22,15 +44,20 @@ def read_freqs(new_filename, locus_filter):
         total_sum=0
         for n,r in enumerate(f.readlines()):
             minor_majors=r.split()
+            minor_list=[]
             freqs=[]
             pop_sizes_SNP=[]
             for minor_major in minor_majors:
                 minor, major= map(float,minor_major.split(','))
                 total_sum+=major+minor
-                freqs.append(float(minor)/float(major+minor))
-                minors.append(minor)
+                if major+minor==0:
+                    freqs.append(nan)
+                else:
+                    freqs.append(float(minor)/float(major+minor))
+                minor_list.append(minor)
                 pop_sizes_SNP.append(major+minor)
             if locus_filter(freqs,pop_sizes, names):
+                minors.append(minor_list)
                 pop_sizes.append(pop_sizes_SNP)
                 allele_counts.append(freqs)
     return allele_counts, names, pop_sizes, minors, total_sum
@@ -66,9 +93,8 @@ def get_xs_and_ns_from_treemix_file(snp_file, locus_filter):
     else:
         new_filename=snp_file
     allele_freqs, names, ns, minors, total_sum= read_freqs(new_filename, locus_filter)
-    allele_freqs=array(allele_freqs).T
+    xs=array(minors).T
     ns=array(ns).T
-    xs=ns*allele_freqs
     return xs,ns,names
 
 def order_covariance(xnn_tuple, outgroup=''):

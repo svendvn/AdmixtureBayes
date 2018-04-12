@@ -1,6 +1,6 @@
 from generate_prior_trees import generate_phylogeny, simulate_number_of_admixture_events, generate_add
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
-from Rtree_operations import create_trivial_tree, scale_tree
+from Rtree_operations import create_trivial_tree, scale_tree, rename_leaves
 from Rtree_to_covariance_matrix import make_covariance
 from rescale_covariance import rescale_empirical_covariance
 from copy import deepcopy
@@ -34,7 +34,11 @@ def get_starting_trees(inputs,
     if not trees:
         if start=='trivial':
             no_pops=len(nodes) #error if nodes is not specified
-            trees=[create_trivial_tree(no_pops,1.0) for _ in range(no_chains)]
+            trees=[]
+            for _ in range(no_chains):
+                tree=create_trivial_tree(no_pops,1.0)
+                rename_leaves(tree, nodes)
+                trees.append(tree)
         elif start=='random':
             no_pops=len(nodes) #error if nodes is not specified
             trees=[generate_phylogeny(no_pops, leaf_nodes=nodes, skewed_admixture_prior=False) for _ in range(no_chains)]

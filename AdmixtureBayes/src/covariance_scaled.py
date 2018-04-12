@@ -1,5 +1,6 @@
 from covariance_estimator import Estimator, initor
-from numpy import array, mean, zeros, diag, sum, arcsin, sqrt, savetxt
+from numpy import array, mean, zeros, diag, sum, arcsin, sqrt, savetxt,nan, isnan, nanmean
+from numpy import sum as npsum
 from reduce_covariance import reduce_covariance
 import warnings
 
@@ -11,20 +12,48 @@ default_scale_dic={'None':'None',
                    'average_sum':'average_sum',
                    'average_product':'average_product'}
 
+def nan_divide(dividend, divisor):
+    res=zeros(dividend.shape)
+    for i in range(dividend.shape[0]):
+        for j in range(dividend.shape[1]):
+            if divisor[i,j]==0:
+                res[i,j]=nan
+            else:
+                res[i,j]=dividend[i,j]/divisor[i,j]
+    return res
+
+def nan_inner_product(a,b):
+    N=len(a)
+    nans=0
+    res=0
+    for ai,bi in zip(a,b): 
+        if isnan(ai) or isnan(bi):
+            nans+=1
+        else:
+            res+=ai*bi
+    return res/(N-nans)
+
+def nan_product(A,B):
+    res=zeros((A.shape[0], B.shape[1]))
+    for i in range(A.shape[0]):
+        for j in range(B.shape[1]):
+            res[i,j]=nan_inner_product(A[i,:], B[:,j])
+    return res 
+
 def m_scaler(scale_type, allele_freqs, n_outgroup=None):
     if scale_type=='None' or scale_type=='Jade' or scale_type=='Jade-o':
         return 1.0
     if scale_type.startswith('outgroup'):
         s=allele_freqs[n_outgroup,:]
     elif scale_type.startswith('average'):
-        s=mean(allele_freqs, axis=0)
+        s=nanmean(allele_freqs, axis=0)
     else:
         scaler=1.0
     if scale_type.endswith('product'):
         mu=mean(s)
         scaler=mu*(1.0-mu)
     elif scale_type.endswith('sum'):
-        scaler=mean(s*(1.0-s))
+        scaler=nanmean(s*(1.0-s))
     print 'm_scale', scaler
     return scaler
 
@@ -48,6 +77,23 @@ def adjuster(Bs):
     res=(res.T-array(Bs)/m).T
     res=res+sum(Bs)/m**2
     return res
+
+def var(p,n, type_of_scaling='unbiased'):
+    if type_of_scaling=='mle':
+        subtract=0
+    else:
+        subtract=1
+    entries=array([pi*(1-pi)/(ni-subtract) for pi,ni in zip(p,n) if ni>subtract])
+    return mean(entries)
+
+def reduced_covariance_bias_correction(p,n,n_outgroup=0, type_of_scaling='unbiased'):
+    Bs=[]
+    for pi,ni in zip(p,n):
+        Bs.append(var(pi,ni, type_of_scaling))
+    outgroup_b=Bs.pop(n_outgroup)
+    return diag(array(Bs))+outgroup_b
+    
+    
     
 
 def bias_correction(m, p, pop_sizes, n_outgroup=None, type_of_scaling='unbiased'):
@@ -119,14 +165,19 @@ class ScaledEstimator(Estimator):
             return p-p[n_outgroup,:], n_outgroup
         elif self.reduce_method=='average':
             n_outgroup=self.get_reduce_index()
-            total_mean2=mean(p, axis=0)
+            total_mean2=nanmean(p, axis=0)
             return p-total_mean2, n_outgroup
         else:
             return p, None
         
     def __call__(self, xs, ns, extra_info={}):
-        ps=xs/ns
+        if 0 in ns:
+            warnings.warn('There were 0s in the allele-totals, inducing nans and slower estimation.', UserWarning)
+            ps=nan_divide(xs, ns)
+        else:
+            ps=xs/ns 
         return self.estimate_from_p(ps, ns=ns, extra_info=extra_info)
+    
         
     def estimate_from_p(self, p, ns=None, extra_info={}):
         #p=reorder_rows(p, self.names, self.full_nodes)
@@ -146,36 +197,27 @@ class ScaledEstimator(Estimator):
             i=array([v > self.jade_cutoff and v<1.0-self.jade_cutoff for v in mu ])
             #p=p[:,i]
             p2=p2[:,i]/sqrt(mu[i]*(1.0-mu[i]))
-        
-        m=p2.dot(p2.T)/p2.shape[1]
+        if npsum(isnan(p2))>0:
+            warnings.warn('Nans found in the allele frequency differences matrix => slower execution', UserWarning)
+            m=nan_product(p2, p2.T)
+        else:
+            m=p2.dot(p2.T)/p2.shape[1]
         assert m.shape[0]<1000, 'sanity check failed, because of wrongly transposed matrices'
         
         
-    
+        scaling_factor=m_scaler(self.scaling, p, n_outgroup)
+        extra_info['m_scale']=scaling_factor
+        m=m/scaling_factor
         if self.reduce_also:
-            
-            if self.variance_correction!='None':
-                if ns is None:
-                    warnings.warn('No variance reduction performed due to no specified sample sizes', UserWarning)
-                else:
-                    if isinstance(ns, int):
-                        pop_sizes=[ns]*p2.shape[0]
-                        b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
-                        
-                    else:
-                        warnings.warn('assuming the same population size for all SNPs', UserWarning)
-                        pop_sizes=mean(ns, axis=1)
-                        b=bias_correction(m,p, pop_sizes,n_outgroup, type_of_scaling=self.variance_correction)
-                    if self.add_variance_correction_to_graph:
-                        b=reduce_covariance(b, n_outgroup)
-                        b=b/m_scaler(self.scaling, p, n_outgroup)
-                        if self.save_variance_correction:
-                            savetxt(self.prefix_for_saving_variance_correction+'variance_correction.txt', b)
-                    else:
-                        m=m-b
             m=reduce_covariance(m, n_outgroup)
-            m=m/m_scaler(self.scaling, p, n_outgroup)      
-            extra_info['m_scale']=m_scaler(self.scaling, p, n_outgroup)      
+            if self.variance_correction!='None':
+                assert ns is not None, 'Variance correction needs a ns-matrix specified'
+                b=reduced_covariance_bias_correction(p, ns, n_outgroup, type_of_scaling=self.variance_correction)/scaling_factor
+                if self.add_variance_correction_to_graph:
+                    if self.save_variance_correction:
+                        savetxt(self.prefix_for_saving_variance_correction+'variance_correction.txt', b)
+                else:
+                    m=m-b     
         elif self.variance_correction!='None':
             m=m/m_scaler(self.scaling, p, n_outgroup)    
             extra_info['m_scale']=m_scaler(self.scaling, p, n_outgroup)     
@@ -206,27 +248,28 @@ class ScaledEstimator(Estimator):
         return m
     
 if __name__=='__main__':
-#     from brownian_motion_generation import simulate_xs_and_ns
-#     import numpy as np
-#     n=3
-#     triv_nodes=map(str, range(n+1))
-#     est= ScaledEstimator(reducer='0',
-#                          reduce_method='outgroup',
-#                          scaling='average_product',
-#                          full_nodes=triv_nodes,
-#                          reduce_also=True,
-#                          variance_correction='None',
-#                          jade_cutoff=1e-5,
-#                          bias_c_weight='default')
-#     Sigma = np.identity(n)*0.03+0.02
-#     Sigma[2,1] = 0
-#     Sigma[1,2] = 0
-#     N = 10000
-#     ns = np.ones((n+1,N))*2
-#     print 'simulating xs...'
-#     xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
-#     print 'simulated'
-#     print est(xs,ns)
+    from brownian_motion_generation import simulate_xs_and_ns
+    import numpy as np
+    n=3
+    triv_nodes=map(str, range(n+1))
+    est= ScaledEstimator(reduce_method='outgroup',
+                         scaling='average_sum',
+                         reduce_also=True,
+                         variance_correction='None',
+                         jade_cutoff=1e-5,
+                         bias_c_weight='default',
+                         save_variance_correction=False)
+    Sigma = np.identity(n)*0.03+0.02
+    Sigma[2,1] = 0
+    Sigma[1,2] = 0
+    N = 10000
+    ns = np.ones((n+1,N))*2
+    print 'simulating xs...'
+    xs, p0s_temp, true_pijs = simulate_xs_and_ns(n, N, Sigma, ns, normal_xval=False)
+    print 'simulated'
+    print est(xs,ns)
+    xs[2,2]=ns[2,2]=0
+    print est(xs,ns)
     from scipy.stats import binom
     import numpy as np
     from reduce_covariance import reduce_covariance
@@ -234,6 +277,9 @@ if __name__=='__main__':
     xs=binom.rvs(p=0.5, n=ns.astype(int))
     p=xs/ns
     
-    print reduce_covariance(bias_correction(1, p, [10]*5),1)
+    print reduce_covariance(bias_correction(1, p, [10]*5),0)
+    print reduced_covariance_bias_correction(p, ns, 0, type_of_scaling='unbiased')
+    
+    
     
     

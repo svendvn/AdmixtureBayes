@@ -22,6 +22,8 @@ def create_trivial_tree(size, total_height=1.0):
 
 def rename_leaves(tree, new_leaf_names):
     old_keys=get_leaf_keys(tree)
+    print 'old_keys', old_keys
+    print 'new_keys', new_leaf_names
     assert len(new_leaf_names)== len(old_keys), 'number of renamed nodes did not match the actual number of nodes'
     for old_key, new_key in zip(old_keys, new_leaf_names): 
         tree=rename_key(tree, old_key, new_key)
@@ -96,6 +98,70 @@ def add_outgroup(tree, inner_node_name='new', to_new_root_length=0.5, to_outgrou
     tree[outgroup_name]=['r', None, None,to_outgroup_length, None, None, None]
     return tree
 
+def non_admixture_path(tree, key):
+    if key=='r':
+        return True
+    if node_is_admixture(tree[key]):
+        return False
+    parent_key=tree[key][0]
+    return non_admixture_path(tree, parent_key)
+
+def get_branches_to_reverse(tree, key, so_far=None):
+    if so_far is None:
+        so_far=[]
+    if is_root(key):
+        (key1, branch1, length1),(key2,branch2,length2)=find_rooted_nodes(tree)
+        if key1==so_far[0]:
+            so_far.append((key2,tree[key2][branch2+3],tree[key2][branch2]))
+        else:
+            so_far.append((key1,tree[key1][branch1+3],tree[key1][branch1]))
+        return so_far
+    else:
+        so_far.append((key,tree[key][3], tree[key][0]))
+        return get_branches_to_reverse(tree, tree[key][0], so_far)
+    
+            
+
+def rename_rootname(tree,old_name, new_name):
+    for key,node in tree.items():
+        if node[0]==old_name:
+            tree[key][0]=new_name
+        if node[1]==old_name:
+            tree[key][1]=new_name 
+    return tree
+
+def rearrange_root(tree, new_outgroup):
+    assert non_admixture_path(tree, new_outgroup), 'There were admixtures on the path from the requested outgroup to the old root.'
+    reversers=get_branches_to_reverse(tree, new_outgroup)
+    print reversers[:-2]
+    for child_key,length,parent_key in reversers[:-2]:
+        print 'child,length,parent',(child_key,length,parent_key)
+        tree[parent_key][0]=child_key
+        tree[parent_key][3]=length
+    (before_root, length1, _),(after_root,length2,_)=reversers[-2:]
+    if is_root(tree[after_root][0]):
+        tree[after_root][0]=before_root
+        tree[after_root][3+0]=length1+length2
+    else:
+        tree[after_root][1]=before_root
+        tree[after_root][3+1]=length1+length2
+    tree[new_outgroup][0]='r'
+    tree[new_outgroup][0+3]=0.0
+    first_reverser_parent=reversers[0][2]
+    tree[first_reverser_parent][0]='r'
+    tree=insert_children_in_tree(tree)
+    return tree
+    
+def reverse_node(tree, key, old_child, new_parent_key=None):
+    if new_parent_key is None:
+        new_parent_key=old_child
+    new_branch_length=get_branch_length_from_parent(tree, old_child, key)
+    forgetten_branch_length=get_branch_length(tree, key, branch=0) #we know that it is a non-admixture_node
+    
+    
+    
+    
+
 
 
 def rename_key(tree, old_key_name, new_key_name):
@@ -103,15 +169,16 @@ def rename_key(tree, old_key_name, new_key_name):
     tree[new_key_name]=node
     ps= get_real_parents(node)
     for p in ps:
-        tree[p]=_rename_child(tree[p], old_key_name, new_key_name)
+        if not is_root(p):
+            tree[p]=_rename_child(tree[p], old_key_name, new_key_name)
     cs=get_real_children(node)
     for c in cs:
         tree[c]=rename_parent(tree[c], old_key_name, new_key_name)
     del tree[old_key_name]
     return tree
 
-def remove_outgroup(tree, remove_key='s1'):
-    (child_key1, child_branch1,_),(child_key2, child_branch2, _)=find_rooted_nodes(tree)
+def remove_outgroup(tree, remove_key='s1', return_add_distance=False):
+    (child_key1, child_branch1,length1),(child_key2, child_branch2, length2)=find_rooted_nodes(tree)
     if remove_key==child_key1:
         root_key=child_key2
     elif remove_key== child_key2:
@@ -121,7 +188,10 @@ def remove_outgroup(tree, remove_key='s1'):
     del tree[remove_key]
     del tree[root_key]
     tree= rename_root(tree, root_key)
+    if return_add_distance:
+        return tree, length1+length2
     return tree
+
 
 def simple_reorder_the_leaves_after_removal_of_s1(tree):
     no_leaves=get_number_of_leaves(tree)
@@ -1295,6 +1365,15 @@ def make_consistency_checks(tree, leaf_nodes=None):
     
 if __name__=='__main__':
     
+    
+
+        tree=create_trivial_tree(6, 1.0)
+        print non_admixture_path(tree,'s1')
+        print get_branches_to_reverse(tree, 's1')
+        print pretty_string(rearrange_root(tree, 's1'))
+        
+        import sys
+        sys.exit()
     
         tree=create_trivial_tree(6, 1.0)
         print pretty_string(tree)

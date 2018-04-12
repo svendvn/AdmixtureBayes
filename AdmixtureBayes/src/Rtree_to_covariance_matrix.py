@@ -159,6 +159,8 @@ def make_newicks(tree, node_keys=None):
 def make_covariance(tree, node_keys=None, old_cov=False):
     if node_keys is None:
         node_keys=sorted(get_leaf_keys(tree))
+    #print node_keys
+    #print get_leaf_keys(tree)
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
     covmat=Covariance_Matrix2({node_key:n for n,node_key in enumerate(node_keys)})

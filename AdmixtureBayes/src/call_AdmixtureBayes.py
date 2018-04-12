@@ -21,11 +21,6 @@ import os
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 
-
-import sys
-print  sys.argv[1:]
-print 'HALLO'
-
 #famous tree:
 #w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485
 
@@ -50,6 +45,8 @@ parser.add_argument('--treemix_reps', type=int, default=1, help='the number of r
 parser.add_argument('--treemix_no_admixtures', type=int, nargs='+', default=[0,1,2,3], help='the number of admixture events in treemixrun. Only used when treemix_instead or treemix_also')
 parser.add_argument('--treemix_processes', type=int, default=1, help='the number of parallel processes to run treemix over.')
 parser.add_argument('--alternative_treemix_infile', type=str, default='', help='By default the program will use the treemix file generated in the covariance pipeline (or go looking for the file that would have been made if 6 was part of the pipeline). This will override that')
+#parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
+parser.add_argument('--treemix_output_prefix', type=str, default='', help= 'the filename prefix of all the treemix output files. Each file will get the suffix k.txt where k is the number of admixture events.')
 
 #covariance matrix options
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
@@ -60,11 +57,11 @@ parser.add_argument('--wishart_noise', action='store_true', default=False)
 
 #empirical_covariance matrix. Base estimation
 parser.add_argument('--arcsin', action='store_true', default=False)
-parser.add_argument('--cov_estimation', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o', 'EM'], default='None', help='this is the way of estimating the empirical covariance matrix.')
+parser.add_argument('--cov_estimation', choices=['None', 'Jade','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product','Jade-o', 'EM'], default='average_sum', help='this is the way of estimating the empirical covariance matrix.')
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
-parser.add_argument('--variance_correction', default='None', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
-parser.add_argument('--add_variance_correction_to_graph', default=False, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix.')
+parser.add_argument('--variance_correction', default='unbiased', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--add_variance_correction_to_graph', default=True, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix.')
 parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
 parser.add_argument('--indirect_its', type=int, default=100, help='For how many iterations should the indirect optimization procedure be run. Only applicable if indirect_correction is True')
 parser.add_argument('--indirect_simulation_factor', type=int, default=1, help='How much more data than provided should be simulated in the indirect correction procedure. Only applicable if indirect_correction is True')
@@ -96,6 +93,7 @@ parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the n
 parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False, help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
 parser.add_argument('--save_bootstrap_covariances', type=str, default='', help='if provided the bootstrapped covariance matrices will be saved to numbered files starting with {prefix}+_+{save_covariances}+{num}+.txt')
 parser.add_argument('--bootstrap_type_of_estimation', choices=['mle_opt','var_opt'], default='var_opt', help='This is the way the bootstrap wishart estimate is estimated.')
+parser.add_argument('--load_bootstrapped_covariances', type=str, default=[], nargs='+', help='if supplied, this will load covariance matrices from the specified files instead of simulating new ones.')
 
 #proposal frequency options
 parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -124,7 +122,6 @@ parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, acti
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
 parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
 parser.add_argument('--nreps', type=int, default=50, help='How many pieces of size 500 kb should be simualted')
-parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
 parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
 parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
@@ -160,9 +157,9 @@ options=parser.parse_args()
 mp=make_proposal(options)
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
-# print 'before_nodes', before_added_outgroup
-# print 'full_nodes', full_nodes
-# print 'reduced_nodes', reduced_nodes
+print 'before_nodes', before_added_outgroup
+print 'full_nodes', full_nodes
+print 'reduced_nodes', reduced_nodes
 
 
 
@@ -286,7 +283,8 @@ if options.estimate_bootstrap_df:
                                            cores=options.MCMC_chains,
                                            save_covs=options.save_bootstrap_covariances,
                                            prefix=prefix,
-                                           est=estimator_arguments, locus_filter=locus_filter)
+                                           est=estimator_arguments, locus_filter=locus_filter,
+                                           load_bootstrapped_covariances=options.load_bootstrapped_covariances)
 elif options.df_file:
     if options.likelihood_treemix and not options.df_treemix_adjust_to_wishart:
         df=file_to_emp_cov(options.df_file, nodes=reduced_nodes)
@@ -306,16 +304,7 @@ if 9 not in options.covariance_pipeline:
     covariance=(covariance, multiplier)
 else:
     multiplier=covariance[1]
-posterior= posterior_class(emp_cov=covariance[0], 
-                           M=df, 
-                           p=options.p, 
-                           use_skewed_distr=options.sap_analysis, 
-                           multiplier=covariance[1], 
-                           nodes=reduced_nodes, 
-                           use_uniform_prior=options.uniform_prior, 
-                           treemix=options.likelihood_treemix,
-                           add_variance_correction_to_graph=options.add_variance_correction_to_graph,
-                           prefix=prefix)
+
 
 starting_trees=get_starting_trees(options.starting_trees, 
                                   options.MCMC_chains, 
@@ -379,6 +368,17 @@ else:
 if options.stop_evaluations:
     import sys
     sys.exit()
+    
+posterior= posterior_class(emp_cov=covariance[0], 
+                       M=df, 
+                       p=options.p, 
+                       use_skewed_distr=options.sap_analysis, 
+                       multiplier=covariance[1], 
+                       nodes=reduced_nodes, 
+                       use_uniform_prior=options.uniform_prior, 
+                       treemix=options.likelihood_treemix,
+                       add_variance_correction_to_graph=options.add_variance_correction_to_graph,
+                       prefix=prefix)
     
 
 def multi_chain_run():

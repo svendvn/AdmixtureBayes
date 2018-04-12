@@ -1,7 +1,7 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths, generate_predefined_list_string
 from tree_to_data import (file_to_emp_cov, reduce_covariance, ms_to_treemix3, call_ms_string, 
                           tree_to_ms_command, emp_cov_to_file, time_adjusted_tree_to_ms_command,
-                          calculate_covariance_matrix2, read_freqs, make_uncompressed_copy, get_xs_and_ns_from_freqs, 
+                          calculate_covariance_matrix2, make_uncompressed_copy, get_xs_and_ns_from_freqs, 
                           get_xs_and_ns_from_treemix_file, order_covariance, reorder_covariance, reorder_reduced_covariance)
 from generate_prior_trees import simulate_number_of_admixture_events, generate_phylogeny
 from generate_sadmix_trees import generate_sadmix_tree
@@ -242,9 +242,10 @@ def write_two_lines_to_file(filename, value1, value2):
     with open(filename, 'w') as f:
         f.write(value1+'\n'+value2)
 
-def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes):
-    save_word=dictionary_of_reasonable_names[stage_number]
-    filename=prefix+save_word+'.txt'
+def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_nodes, after_reduce_nodes, filename=None):
+    if filename is None:
+        save_word=dictionary_of_reasonable_names[stage_number]
+        filename=prefix+save_word+'.txt'
     if stage_number==1:
         write_one_line_to_file(filename, str(value))
     elif stage_number==2:
