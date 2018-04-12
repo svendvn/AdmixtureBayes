@@ -1,9 +1,14 @@
 import subprocess
 from copy import deepcopy
 #from newick import parse_tree
-from Rtree_operations import pretty_string, insert_children_in_tree, insert_admixture_node_halfly, graft
+from Rtree_operations import (pretty_string, insert_children_in_tree, insert_admixture_node_halfly, 
+                              graft, rearrange_root, get_leaf_keys,remove_outgroup)
 from meta_proposal import new_node_naming_policy
 from tree_plotting import plot_graph
+from construct_covariance_choices import save_stage
+import warnings
+import os
+
 
 
 class vertice_dictionary():
@@ -160,8 +165,34 @@ def add_admixtures(tree, vd, adm_vertices, edges, admixtures):
         tree=graft(tree, sink_name, source_child_key_B, u1, source_name, 0, remove_branch=1)
     return tree
 
+def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup=None, snodes=None, prefix=''):
+    tree=read_treemix_file(filename_treeout, filename_vertices, filename_edges)
+    nodes=get_leaf_keys(tree)
+    if snodes is not None:
+        snodes_set=set(snodes)
+        if outgroup is not None:
+            snodes_set=set(snodes+[outgroup])
+            if outgroup not in snodes:
+                warnings.warn('outgroup added to the beginning of the admbayes realization of the treemix mle, even though it is not requested in snodes.')
+                snodes.append(outgroup)
+        assert set(nodes)==set(snodes), 'the nodes of the treemix file does not match, the supplied nodes'
+    else:
+        snodes=nodes
+    save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
+               os.path.join(prefix,'_treemix_arbitrary_rooted_tree.txt'))
+    if outgroup is not None:
+        tree=rearrange_root(tree, outgroup)
+        save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
+               os.path.join(prefix,'_treemix_outgroup_rooted_tree.txt'))
+        tree,add=remove_outgroup(tree, remove_key=outgroup, return_add_distance=True)
+        snodes.remove(outgroup)
+        save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
+               os.path.join(prefix,'_treemix_outgroup_rooted_removed_tree.txt'))
+        save_stage(add, 2, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
+               os.path.join(prefix,'_treemix_outgroup_rooted_removed_add.txt'))
 
-def read_treemix_file(filename_treeout, filename_vertices, filename_edges):
+
+def read_treemix_file(filename_treeout, filename_vertices, filename_edges, outgroup=None):
     np=new_node_naming_policy()
     if filename_treeout.endswith('.gz'):
         filename_treeout=unzip_file(filename_treeout)
@@ -196,6 +227,11 @@ def read_treemix_file(filename_treeout, filename_vertices, filename_edges):
 #     print translates
 #     print admixtures
     tree=add_admixtures(tree, vd, adm_vertices, edges, admixtures)
+    
+    if outgroup is not None:
+        tree=rearrange_root(tree, outgroup)
+        
+    
     return tree
     
     
@@ -260,9 +296,13 @@ def parse_newick_tree(newick_string):
     return tree,translates
     
 if __name__=='__main__':
+    filename_treeout='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout'
+    filename_vertices='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices'
+    filename_edges='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges'
+    treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=None, prefix='sletmig')
     tree=read_treemix_file('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
                            '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
-                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges')
+                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
     #plot_graph(tree)
     import numpy as np
     print pretty_string(tree)
