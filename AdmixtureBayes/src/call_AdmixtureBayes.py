@@ -61,6 +61,7 @@ parser.add_argument('--cov_estimation', choices=['None', 'Jade','outgroup_sum', 
 parser.add_argument('--bias_c_weight', choices=['default','None','outgroup_sum', 'outgroup_product', 'average_sum', 'average_product'], default='default', help='from cov_weight with bias correction unweighted there are some obvious choices for weighing the bias correction, so here they are: None=None, Jade=average_sum, Jade-o=outgroup_sum, average_sum=average_sum, average_product=average_product, outgroup_sum=outgroup_sum, outgroup_product=outgroup_product')
 parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
 parser.add_argument('--variance_correction', default='unbiased', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
+parser.add_argument('--variance_correction_input_file', default='', type=str, help='if the variance correction is saved in a file (with numpy.savetxt format of a 2 dimensional numpy array) it can be loaded in with this command')
 parser.add_argument('--add_variance_correction_to_graph', default=True, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix.')
 parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
 parser.add_argument('--indirect_its', type=int, default=100, help='For how many iterations should the indirect optimization procedure be run. Only applicable if indirect_correction is True')
@@ -383,7 +384,8 @@ posterior= posterior_class(emp_cov=covariance[0],
                        use_uniform_prior=options.uniform_prior, 
                        treemix=options.likelihood_treemix,
                        add_variance_correction_to_graph=options.add_variance_correction_to_graph,
-                       prefix=prefix)
+                       prefix=prefix,
+                       variance_correction_file=options.variance_correction_input_file)
     
 
 def multi_chain_run():

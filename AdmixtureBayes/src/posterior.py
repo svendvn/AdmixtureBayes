@@ -143,7 +143,8 @@ class posterior_class(object):
                  use_uniform_prior=False, 
                  treemix=False,
                  add_variance_correction_to_graph=False,
-                 prefix=''):
+                 prefix='',
+                 variance_correction_file=''):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
         or M can be a matrix - the same size of emp_cov where each entry is the variance of that entry. 
@@ -164,7 +165,10 @@ class posterior_class(object):
         self.use_uniform_prior=use_uniform_prior
         
         if add_variance_correction_to_graph:
-            self.b=loadtxt(prefix+'variance_correction.txt')
+            if variance_correction_file:
+                self.b=loadtxt(variance_correction_file)
+            else:
+                self.b=loadtxt(prefix+'variance_correction.txt')
             if multiplier:
                 self.b*=multiplier
         else:
