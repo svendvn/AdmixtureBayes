@@ -178,7 +178,10 @@ else:
     treemix_in_file=treemix_file+'.gz'
     
 #treemix_file=prefix+"treemix_in.txt" 
-treemix_out_files=prefix+'treemix_out'
+if options.treemix_output_prefix:
+    treemix_out_files=prefix+options.treemix_output_prefix
+else:
+    treemix_out_files=prefix+'treemix_out'
 
 if options.starting_trees:
     preliminary_starting_trees=get_starting_trees(options.starting_trees, 
