@@ -165,7 +165,7 @@ print 'reduced_nodes', reduced_nodes
 
 
 
-if options.prefix[-1]!='_':
+if options.prefix and options.prefix[-1]!='_':
     prefix=options.prefix+'_'
 else:
     prefix=options.prefix
