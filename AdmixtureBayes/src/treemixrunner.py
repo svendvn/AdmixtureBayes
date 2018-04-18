@@ -79,6 +79,9 @@ pool = Pool(num_processes) # two concurrent commands at a time
 fnull = open(os.devnull, 'w')
 
 try:
+    for i, returncode in enumerate(pool.imap(partial(call, shell=False), ['pwd']*10)):
+        if returncode != 0:
+           print "command %d failed with code: %d" % (i, returncode)
     for i, returncode in enumerate(pool.imap(partial(call, shell=False, stdout = fnull, stderr = fnull), cmds)):
         if returncode != 0:
            print "command %d failed with code: %d" % (i, returncode)
