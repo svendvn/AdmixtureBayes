@@ -241,7 +241,6 @@ covariance=get_covariance(options.covariance_pipeline,
                           sample_per_pop=options.popsize,
                           nreps=options.nreps,
                           treemix_file=treemix_file,
-                          treemix_out_files=treemix_out_files,
                           scale_tree_factor=options.scale_tree_factor,
                           prefix=prefix,
                           t_adjust_tree=options.time_adjusted_tree,
@@ -264,7 +263,7 @@ if options.treemix_instead or options.treemix_also:
                        '-p', str(options.treemix_processes), 
                        '-n', str(options.treemix_reps), 
                        '-i', treemix_in_file,
-                       '-o', prefix+'treemix'+str(k),
+                       '-o', treemix_out_files+str(k),
                        '-m', str(k)] for k in options.treemix_no_admixtures]
     from subprocess import call
     for c in calls_to_treemix:
@@ -287,7 +286,6 @@ if options.estimate_bootstrap_df:
     df, boot_covs=estimate_degrees_of_freedom(treemix_in_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
-                                           outfile=treemix_out_files,
                                            summarization=summarization,
                                            cores=options.MCMC_chains,
                                            save_covs=options.save_bootstrap_covariances,
