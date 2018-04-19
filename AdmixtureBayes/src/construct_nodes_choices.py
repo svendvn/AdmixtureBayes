@@ -1,6 +1,6 @@
 from copy import deepcopy
 from Rtree_operations import get_trivial_nodes
-from tree_to_data import make_uncompressed_copy
+from tree_to_data import unzip
 
 def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
     
@@ -29,7 +29,7 @@ def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8
         
 def read_one_line(filename):
     if filename.endswith('.gz'):
-        filename=make_uncompressed_copy(filename)
+        filename=unzip(filename)
     with open(filename, 'r') as f:
         return f.readline().rstrip().split()
         

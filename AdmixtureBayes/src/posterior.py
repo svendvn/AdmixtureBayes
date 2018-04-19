@@ -5,7 +5,7 @@ from math import log
 from generate_prior_trees import generate_phylogeny
 from tree_statistics import identifier_to_tree_clean
 from Rtree_operations import get_number_of_leaves, get_number_of_admixes, remove_outgroup, simple_reorder_the_leaves_after_removal_of_s1
-from tree_to_data import reduce_covariance
+from reduce_covariance import reduce_covariance
 from Rtree_to_covariance_matrix import make_covariance
 from numpy import median, amin, amax, loadtxt
 from numpy.linalg import norm

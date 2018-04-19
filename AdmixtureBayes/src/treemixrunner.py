@@ -77,7 +77,7 @@ print cmds
 
 pool = Pool(num_processes) # two concurrent commands at a time
 fnull = open(os.devnull, 'w')
-print "tmp_prefix, best_prefix, out_prefix", tmp_prefix, best_prefix, out_prefix
+#print "tmp_prefix, best_prefix, out_prefix", tmp_prefix, best_prefix, out_prefix
 try:
     for i, returncode in enumerate(pool.imap(partial(call, shell=False), ['pwd']*10)):
         if returncode != 0:

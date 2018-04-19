@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 from load_data import read_data
 import subprocess
 from numpy.random import choice
-from tree_to_data import treemix_to_cov, make_uncompressed_copy
+from tree_to_data import treemix_to_cov, unzip
 from covariance_estimator import initor
 import warnings
 
@@ -62,8 +62,7 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
     assert (blocksize is not None) or (no_blocks is not None), 'Has to specify either block size or number of blocks'
     filenames=[]
     if filename.endswith('.gz'):
-        make_uncompressed_copy(filename)
-        filename='.'.join(filename.split(".")[:-1]) #removing the .gz suffix
+        filename=unzip(filename)
     filename_reduced=filename+'boot.'
     with open(filename, 'r') as f:
         first_line=f.readline()
