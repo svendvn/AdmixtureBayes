@@ -5,6 +5,7 @@ from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_
                               time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 from load_data import read_data
+from reduce_covariance import reduce_covariance
 
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones,nan
 from numpy.linalg import det
@@ -12,6 +13,8 @@ from copy import deepcopy
 from operator import itemgetter
 import subprocess
 from scipy.stats import wishart
+import warnings
+import os
 
 # def read_freqs(new_filename, locus_filter):
 #     with open(new_filename, 'r') as f:
@@ -88,8 +91,9 @@ def get_xs_and_ns_from_freqs(ps, npop, locus_filter):
     return xs,ns,names
     
 def get_xs_and_ns_from_treemix_file(snp_file, locus_filter):
+    #print snp_file
     if snp_file.endswith('.gz'):
-        new_filename=make_uncompressed_copy(snp_file)
+        new_filename=unzip(snp_file)
     else:
         new_filename=snp_file
     allele_freqs, names, ns, minors, total_sum= read_freqs(new_filename, locus_filter)
@@ -127,17 +131,17 @@ def reorder_reduced_covariance(cov, names, full_nodes, outgroup=''):
     n1=len(names)
     n2=len(full_nodes)
     m=cov.shape[0]
-    print 'cov', cov
-    print 'names',names
-    print 'full_nodes',full_nodes
-    print outgroup
+    #print 'cov', cov
+    #print 'names',names
+    #print 'full_nodes',full_nodes
+    #print outgroup
     assert n1==n2==(m+1), 'Unexpected input'
     names2=deepcopy(names)
     full_nodes2=deepcopy(full_nodes)
     names2.remove(outgroup)
     full_nodes2.remove(outgroup)
     indices=_get_permutation(names2, full_nodes2)
-    print cov[ix_(indices, indices)]
+    #print cov[ix_(indices, indices)]
     return cov[ix_(indices, indices)]
 
 def tree_to_data_perfect_model(tree, df):
@@ -376,88 +380,88 @@ def calculate_covariance_matrix(file='tmp.txt', samples_per_pop=20, no_pops=4, n
     
     
 
-def calculate_covariance_matrix2(file='tmp.txt', 
-                                 samples_per_pop=20, 
-                                 no_pops=4, 
-                                 n_reps=1, 
-                                 outgroup_number=None, 
-                                 variance_correction=False,
-                                 outgroup=True):
-    data=[]
-    with open(file, 'r') as f:
-        for r in f.readlines():
-            #print r[:5]
-            data.append(map(int,list(r.rstrip())))
-    new_data=[data[i:(i+samples_per_pop*no_pops)] for i in range(0,len(data),samples_per_pop*no_pops)]
-    m=map(array, new_data)
-    m=hstack(new_data)
-    #print m.shape
-    #alpha=0.05
-    if outgroup:
-        subtract_alleles=mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
-    else:
-        subtract_alleles=mean(m,axis=0)
-    #other_alleles=mean(m[:outgroup_number*samples_per_pop], axis=0)/2+mean(m[(outgroup_number+1)*samples_per_pop:], axis=0)/2
-    #sroot_homozygocity=sqrt(outgroup_alleles*(1.0-outgroup_alleles))
-    #indices_of_positivity=[i for i,(s,o) in enumerate(zip(outgroup_alleles,other_alleles)) if s>alpha and s<(1.0-alpha) and o>alpha and o<(1.0-alpha)]
-    #thinned_outgroup_alleles=outgroup_alleles[indices_of_positivity]
-    #thinned_sroot_homozygocity=sroot_homozygocity[indices_of_positivity]
-    #print 'SNPs', len(indices_of_positivity)
-    ps=tuple([(mean(m[(i*samples_per_pop):((i+1)*samples_per_pop),  ], axis=0)-subtract_alleles) for i in xrange(no_pops)])
-    p=vstack(ps)
-    e_cov=cov(p)
-    e_cov2=p.dot(p.T)/p.shape[1]
-    #print 'e_cov2', e_cov2
-    #print 'e_cov', e_cov
-    e_cov=reduce_covariance(e_cov2, outgroup_number)
-    return e_cov
+# def calculate_covariance_matrix2(file='tmp.txt', 
+#                                  samples_per_pop=20, 
+#                                  no_pops=4, 
+#                                  n_reps=1, 
+#                                  outgroup_number=None, 
+#                                  variance_correction=False,
+#                                  outgroup=True):
+#     data=[]
+#     with open(file, 'r') as f:
+#         for r in f.readlines():
+#             #print r[:5]
+#             data.append(map(int,list(r.rstrip())))
+#     new_data=[data[i:(i+samples_per_pop*no_pops)] for i in range(0,len(data),samples_per_pop*no_pops)]
+#     m=map(array, new_data)
+#     m=hstack(new_data)
+#     #print m.shape
+#     #alpha=0.05
+#     if outgroup:
+#         subtract_alleles=mean(m[outgroup_number*samples_per_pop:(outgroup_number+1)*samples_per_pop,:],axis=0)
+#     else:
+#         subtract_alleles=mean(m,axis=0)
+#     #other_alleles=mean(m[:outgroup_number*samples_per_pop], axis=0)/2+mean(m[(outgroup_number+1)*samples_per_pop:], axis=0)/2
+#     #sroot_homozygocity=sqrt(outgroup_alleles*(1.0-outgroup_alleles))
+#     #indices_of_positivity=[i for i,(s,o) in enumerate(zip(outgroup_alleles,other_alleles)) if s>alpha and s<(1.0-alpha) and o>alpha and o<(1.0-alpha)]
+#     #thinned_outgroup_alleles=outgroup_alleles[indices_of_positivity]
+#     #thinned_sroot_homozygocity=sroot_homozygocity[indices_of_positivity]
+#     #print 'SNPs', len(indices_of_positivity)
+#     ps=tuple([(mean(m[(i*samples_per_pop):((i+1)*samples_per_pop),  ], axis=0)-subtract_alleles) for i in xrange(no_pops)])
+#     p=vstack(ps)
+#     e_cov=cov(p)
+#     e_cov2=p.dot(p.T)/p.shape[1]
+#     #print 'e_cov2', e_cov2
+#     #print 'e_cov', e_cov
+#     e_cov=reduce_covariance(e_cov2, outgroup_number)
+#     return e_cov
+# 
+# def reduce_covariance(covmat, subtracted_population_index):
+#     reducer=insert(identity(covmat.shape[0]-1), subtracted_population_index, -1, axis=1)
+#     return reducer.dot(covmat).dot(reducer.T)
 
-def reduce_covariance(covmat, subtracted_population_index):
-    reducer=insert(identity(covmat.shape[0]-1), subtracted_population_index, -1, axis=1)
-    return reducer.dot(covmat).dot(reducer.T)
-
-def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
-    with open(filename, 'r') as f:
-        with open(filename2, 'w') as e:
-            e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
-            pop_count=0
-            rep_count=0
-            count=0
-            data=[]
-            s_vecs=[]
-            for r in f.readlines():
-                
-                data.append(map(int,list(r.rstrip())))
-                count+=1
-                
-                if count==samples_per_pop:
-                    
-                    count=0
-                    pop_count+=1
-                    
-                    s_vec=sum(array(data), axis=0)
-                    s_vecs.append(s_vec)
-                    
-                    data=[]
-                    
-                    print rep_count, pop_count
-                    
-                    if pop_count==no_pops:
-                        
-                        pop_count=0
-                        rep_count+=1
-                        
-                        for s in zip(*s_vecs):
-                            e.write(' '.join([str(a)+','+str(samples_per_pop-a) for a in s])+'\n')
-                        
-                        s_vecs=[]
-                        
-                        if rep_count>=n_reps:
-                            break
-
-    filename2_gz=filename2+'.gz'
-    subprocess.call(['gzip','-f', filename2])
-    return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops), outfile=treemix_files)
+# def ms_to_treemix2(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
+#     with open(filename, 'r') as f:
+#         with open(filename2, 'w') as e:
+#             e.write(' '.join(get_trivial_nodes(no_pops))+'\n')
+#             pop_count=0
+#             rep_count=0
+#             count=0
+#             data=[]
+#             s_vecs=[]
+#             for r in f.readlines():
+#                 
+#                 data.append(map(int,list(r.rstrip())))
+#                 count+=1
+#                 
+#                 if count==samples_per_pop:
+#                     
+#                     count=0
+#                     pop_count+=1
+#                     
+#                     s_vec=sum(array(data), axis=0)
+#                     s_vecs.append(s_vec)
+#                     
+#                     data=[]
+#                     
+#                     print rep_count, pop_count
+#                     
+#                     if pop_count==no_pops:
+#                         
+#                         pop_count=0
+#                         rep_count+=1
+#                         
+#                         for s in zip(*s_vecs):
+#                             e.write(' '.join([str(a)+','+str(samples_per_pop-a) for a in s])+'\n')
+#                         
+#                         s_vecs=[]
+#                         
+#                         if rep_count>=n_reps:
+#                             break
+# 
+#     filename2_gz=filename2+'.gz'
+#     subprocess.call(['gzip','-f', filename2])
+#     return read_data(filename2_gz, blocksize=1000 ,outgroup='s1', noss=False, nodes=get_trivial_nodes(no_pops), outfile=treemix_files)
 
 def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also=False, reducer='', noss='not implemented', blocksize='unused', nodes=None):
     
@@ -500,9 +504,32 @@ def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also
     if reduce_also:
         m=reduce_covariance(m, n_outgroup)
     return m
-    
-        
-    
+
+def unzip(filename, overwrite=False, new_filename=None):
+    assert filename.endswith('.gz'), 'file with non-zipped ending was passed to the unzip function'
+    if new_filename is None:
+        new_filename=filename[:-3]
+    if (not overwrite) and os.path.exists(new_filename):
+        warnings.warn('Not unzipping because unzipped file already exists')
+        return new_filename
+    command=['gunzip','-c',filename]
+    print command
+    with open(new_filename, 'w') as f:
+        subprocess.call(command, stdout=f)
+    return new_filename
+
+def zip(filename, overwrite=False, new_filename=None):
+    assert not filename.endswith('.gz'), 'file with zipped ending was passed to the zip function'
+    if new_filename is None:
+        new_filename=filename+'.gz'
+    if (not overwrite) and os.path.exists(new_filename):
+        warnings.warn('Not zipping because zipped file already exists')
+        return new_filename
+    command=['gzip','-c',filename,'>',new_filename]
+    print command
+    with open(new_filename, 'w') as f:
+        subprocess.call(command, stdout=f)
+    return new_filename
 
 
 def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', nodes=None, 
@@ -553,12 +580,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     print 'muhat', muhat
     if not convert_to_gz:
         return filename2
-    filename2_gz=filename2+'.gz'
-    print filename2
-    args=[['cp', '-T', filename2, filename2+'.tmp'],['gzip','-f', filename2], ['mv', filename2+'.tmp', filename2]]
-    for arg in args:
-        subprocess.call(arg)
-    return filename2_gz
+    return zip(filename2,overwrite=True)
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
     data=[]
@@ -665,13 +687,13 @@ if __name__=='__main__':
         for a in snp_file:
             f.write(a)
     subprocess.call(['gzip', '-f','-k', 'sletmig/treemix_in.txt'])
-    b1=calculate_covariance_matrix2('sletmig/ms.txt', 3,3,1,2)
+    #b1=calculate_covariance_matrix2('sletmig/ms.txt', 3,3,1,2)
     b2=[read_data('sletmig/treemix_in.txt.gz', blocksize=4, nodes=['out','s1','s2'], noss=True, normalize=False, reduce_also=True, reducer=i, return_muhat=False, outfile='tmp') for i in range(3)]
     b3=treemix_to_cov('sletmig/treemix_in.txt.gz', 'outfile', True, 'out', noss=False, blocksize=None)
 
     for b in b2:
         print b
     print b3
-    print b1
+    #print b1
     
     

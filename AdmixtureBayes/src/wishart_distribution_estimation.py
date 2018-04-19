@@ -7,10 +7,13 @@ import subprocess
 from numpy.random import choice
 from tree_to_data import treemix_to_cov, make_uncompressed_copy
 from covariance_estimator import initor
+import warnings
 
 from construct_covariance_choices import empirical_covariance_wrapper_directly
 from pathos.multiprocessing import Pool
 from df_estimators import variance_mean_based, likelihood_mean_based
+import os
+from dill.dill import FileNotFoundError
 
 
 def optimize(sample_of_matrices):
@@ -83,12 +86,22 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
         filenames.append(new_filename_gz)
     return filenames, first_line.split()
                 
+                
+def remove_files(filenames):
+    for fil in filenames:
+        os.remove(fil)
+        os.remove(fil[:-3])                
+                
 def make_covariances(filenames, cores, **kwargs):
     covs=[]
     p=Pool(cores)
     def t(filename):
         return empirical_covariance_wrapper_directly(filename, **kwargs)
     covs=map(t, filenames)
+    try:
+        remove_files(filenames)
+    except OSError as e:
+        warnings.warn('Erasing the files did not succeed',UserWarning)
     return covs
 
 

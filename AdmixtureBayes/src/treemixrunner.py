@@ -77,7 +77,7 @@ print cmds
 
 pool = Pool(num_processes) # two concurrent commands at a time
 fnull = open(os.devnull, 'w')
-
+print "tmp_prefix, best_prefix, out_prefix", tmp_prefix, best_prefix, out_prefix
 try:
     for i, returncode in enumerate(pool.imap(partial(call, shell=False), ['pwd']*10)):
         if returncode != 0:
@@ -100,6 +100,7 @@ try:
     best_prefix = prefixes[best_prefix_idx]
     for fn in glob.glob(best_prefix+'*'):
         new_fn = fn.replace(best_prefix, out_prefix)
+        print "fn, new_fn",fn, new_fn
         os.rename(fn, new_fn)
 
 finally:
