@@ -171,7 +171,7 @@ else:
     prefix=options.prefix
 
 if options.alternative_treemix_infile:
-    treemix_file=prefix+"treemix_in.txt"
+    treemix_file=options.alternative_treemix_infile
     treemix_in_file=options.alternative_treemix_infile
 else:
     treemix_file=prefix+"treemix_in.txt"
