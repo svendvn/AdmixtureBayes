@@ -5,7 +5,7 @@ from scipy.optimize import minimize
 from load_data import read_data
 import subprocess
 from numpy.random import choice
-from tree_to_data import treemix_to_cov, unzip
+from tree_to_data import treemix_to_cov, unzip, gzip
 from covariance_estimator import initor
 import warnings
 
@@ -80,9 +80,8 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
             bootstrap_inds=bootstrap_indices(len(line_sets))
             for i in bootstrap_inds:
                 g.writelines(line_sets[i])
-        new_filename_gz=new_filename+'.gz'
-        subprocess.call(['gzip','-f', new_filename])
-        filenames.append(new_filename_gz)
+        gzipped_filename=gzip(new_filename, overwrite=True)
+        filenames.append(gzipped_filename)
     return filenames, first_line.split()
                 
                 

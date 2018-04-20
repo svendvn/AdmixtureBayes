@@ -518,14 +518,14 @@ def unzip(filename, overwrite=False, new_filename=None):
         subprocess.call(command, stdout=f)
     return new_filename
 
-def zip(filename, overwrite=False, new_filename=None):
+def gzip(filename, overwrite=False, new_filename=None):
     assert not filename.endswith('.gz'), 'file with zipped ending was passed to the zip function'
     if new_filename is None:
         new_filename=filename+'.gz'
     if (not overwrite) and os.path.exists(new_filename):
         warnings.warn('Not zipping because zipped file already exists')
         return new_filename
-    command=['gzip','-c',filename,'>',new_filename]
+    command=['gzip','-c',filename]
     print command
     with open(new_filename, 'w') as f:
         subprocess.call(command, stdout=f)
@@ -580,7 +580,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
     print 'muhat', muhat
     if not convert_to_gz:
         return filename2
-    return zip(filename2,overwrite=True)
+    return gzip(filename2,overwrite=True)
     
 def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, filename2='tmp.treemix_in', treemix_files='tmp'):
     data=[]
