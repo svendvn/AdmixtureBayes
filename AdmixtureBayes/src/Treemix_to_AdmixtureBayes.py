@@ -4,10 +4,11 @@ from copy import deepcopy
 from Rtree_operations import (pretty_string, insert_children_in_tree, insert_admixture_node_halfly, 
                               graft, rearrange_root, get_leaf_keys,remove_outgroup)
 from meta_proposal import new_node_naming_policy
-from tree_plotting import plot_graph
+#from tree_plotting import plot_graph
 from construct_covariance_choices import save_stage
 import warnings
 import os
+from tree_to_data import unzip, gzip
 
 
 
@@ -101,15 +102,15 @@ class adm_node(object):
         return 'a'+str(self.count), 'x'+str(self.count)
     
 
-def unzip_file(filename):
-    reduced_filename='.'.join(filename.split(".")[:-1])
-    take_copy_args=['cp', filename, filename+".tmp"]
-    move_back_args=['mv', filename+'.tmp', filename]
-    args=['gunzip', '-f', filename]
-    subprocess.call(take_copy_args)
-    subprocess.call(args)
-    subprocess.call(move_back_args)
-    return reduced_filename
+# def unzip_file(filename):
+#     reduced_filename='.'.join(filename.split(".")[:-1])
+#     take_copy_args=['cp', filename, filename+".tmp"]
+#     move_back_args=['mv', filename+'.tmp', filename]
+#     args=['gunzip', '-f', filename]
+#     subprocess.call(take_copy_args)
+#     subprocess.call(args)
+#     subprocess.call(move_back_args)
+#     return reduced_filename
 
 def match_vertices(filename_vertices, vd):
     admixture_vertices=[]
@@ -195,11 +196,11 @@ def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edg
 def read_treemix_file(filename_treeout, filename_vertices, filename_edges, outgroup=None):
     np=new_node_naming_policy()
     if filename_treeout.endswith('.gz'):
-        filename_treeout=unzip_file(filename_treeout)
+        filename_treeout=unzip(filename_treeout)
     if filename_vertices.endswith('.gz'):
-        filename_vertices=unzip_file(filename_vertices)
+        filename_vertices=unzip(filename_vertices)
     if filename_edges.endswith('.gz'):
-        filename_edges=unzip_file(filename_edges)
+        filename_edges=unzip(filename_edges)
     with open(filename_treeout, 'r') as f:
         newick_tree=f.readline().rstrip()
         admixtures=parse_admixtures(map(str.rstrip,f.readlines()))
