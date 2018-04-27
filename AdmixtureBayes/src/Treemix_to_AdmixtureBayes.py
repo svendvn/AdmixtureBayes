@@ -2,7 +2,9 @@ import subprocess
 from copy import deepcopy
 #from newick import parse_tree
 from Rtree_operations import (pretty_string, insert_children_in_tree, insert_admixture_node_halfly, 
-                              graft, rearrange_root, get_leaf_keys,remove_outgroup)
+                              graft, rearrange_root, get_leaf_keys,remove_outgroup, rename_key,
+                              node_is_admixture, get_real_children, prune_double_nodes, rename_rootname,
+                              mother_or_father, remove_children,rearrange_root_foolproof)
 from meta_proposal import new_node_naming_policy
 #from tree_plotting import plot_graph
 from construct_covariance_choices import save_stage
@@ -112,6 +114,51 @@ class adm_node(object):
 #     subprocess.call(move_back_args)
 #     return reduced_filename
 
+class vertix(object):
+    
+    def __init__(self, name, L_name=None, N_name=None, root=False):
+        self.name=name
+        self.L_name=L_name
+        self.N_name=N_name
+        self.root=root
+        
+    def is_leaf(self):
+        return self.L_name is not None
+    
+    def is_migration(self):
+        return self.N_name is None
+    
+    def is_root(self):
+        return self.root
+    
+
+def read_vertices(filename_vertices):
+    vertices={}
+    with open(filename_vertices, 'r') as f:
+        for lin in f.readlines():
+            a=lin.split()
+            is_mig=(a[3]=='MIG')
+            V_name=a[0]
+            if not is_mig:
+                L_name=a[1]
+                N_name=a[-1].rstrip()
+                is_root=(a[2]=='ROOT')
+                if L_name!='NA':
+                    vertices[V_name]=vertix(V_name, L_name=L_name, N_name=N_name, root=False)
+                else:
+                    vertices[V_name]=vertix(V_name, N_name=N_name, root=is_root)
+            else:
+                vertices[V_name]=vertix(V_name)
+    return vertices
+
+def get_root(vertices):
+    for vertix in vertices.values():
+        if vertix.is_root():
+            return vertix
+                
+                
+                
+                
 def match_vertices(filename_vertices, vd):
     admixture_vertices=[]
     with open(filename_vertices, 'r') as f:
@@ -135,6 +182,17 @@ def get_edge_lengths(filename_edges):
             edges[(a[0],a[1])]=a[2]
     return edges
 
+def get_edge_lengths2(filename_edges):
+    edges={}
+    with open(filename_edges, 'r') as f:
+        for lin in f.readlines():
+            a=lin.split()
+            if a[4]=='MIG':
+                edges[(a[0],a[1])]=None
+            else:
+                edges[(a[0],a[1])]=a[2]
+    return edges
+
 def parse_admixtures(admixture_strings):
     from_to_weights={}
     for adm_string in admixture_strings:
@@ -145,6 +203,185 @@ def parse_admixtures(admixture_strings):
         from_to_weights[from_N]=(to_N,weight)
     return from_to_weights
 
+def parse_admixtures2(admixture_strings):
+    from_to_weights={}
+    for adm_string in admixture_strings:
+        a=adm_string.split()
+        weight=float(a[0])
+        from_N=a[4]
+        to_N=a[5]
+        from_to_weights[(from_N,to_N)]=float(weight)
+    return from_to_weights
+
+class Node():
+    
+    def __init__(self, name):
+        self.name=name
+        self.parents=[]
+        self.children=[]
+        
+    def add_child(self, child_node):
+        self.children.append(child_node)
+        
+    def add_parent(self, parent_node):
+        self.parents.append(parent_node)
+    
+    def get_parents(self):
+        return self.parents
+        
+    def has_children(self):
+        return len(self.children)>0
+        
+def construct_pointers(edges):
+    all_nodes={}
+    for parent,child in edges.keys():
+        if parent in all_nodes:
+            parent_node=all_nodes[parent]
+        else:
+            parent_node=Node(parent)
+            all_nodes[parent]=parent_node
+        if child in all_nodes:
+            child_node=all_nodes[child]
+        else:
+            child_node=Node(child)
+            all_nodes[child]=child_node
+        all_nodes[parent].add_child(child_node)
+        all_nodes[child].add_parent(parent_node)
+    return all_nodes
+
+def get_leaf_nodes(nodes):
+    res=[]
+    for node in nodes.values():
+        if not node.has_children():
+            res.append(node)
+    return res
+
+def tree_structure_to_Rtree_structure(leaf_nodes, edge_lengths, root_name):
+    ready_lineages=leaf_nodes
+    waiting_lineages=[]
+    res_tree={}
+    while len(ready_lineages)>1 or len(waiting_lineages)>0:
+        node=ready_lineages.pop()
+        parents=node.get_parents()
+        added_node=[None]*5
+        for parent in parents:
+            d=edge_lengths[(parent.name, node.name)]
+            if d is None:
+                added_node[1]=parent.name
+                added_node[1+3]=0
+            else:
+                added_node[0]=parent.name
+                added_node[0+3]=float(d)
+            if parent.name in waiting_lineages:
+                waiting_lineages.remove(parent.name)
+                ready_lineages.append(parent)
+            else:
+                waiting_lineages.append(parent.name)
+        res_tree[node.name]=added_node
+    tree=rename_rootname(res_tree,old_name=root_name, new_name='r')
+    for key, val in tree.items():
+        print key,':',val
+    return insert_children_in_tree(tree)
+        
+
+def read_tree_structure(edges, root_name):
+    all_nodes=construct_pointers(edges)
+    leaf_nodes=get_leaf_nodes(all_nodes)
+    #leaf_names=[leaf.name for leaf in leaf_nodes]
+    return tree_structure_to_Rtree_structure(leaf_nodes, edges, root_name)
+
+def find_first_non_admix(key,tree):
+    next_key=key
+    while True:
+        key=next_key
+        children=get_real_children(tree[key])
+        found_1=False
+        found_0=False
+        if len(children)==0:
+            break
+        for child in children:
+            if mother_or_father(tree, child_key=child, parent_key=key)==0:
+                next_key=child
+                found_0=True
+            else:
+                found_1=True
+        if len(children)==1:
+            assert found_0,'admixture branch on admixture branch?'
+            continue
+        elif len(children)==2:
+            if not found_1 and found_0:
+                break
+            if found_1 and found_0:
+                continue
+            assert found_0, 'two admixture branches to the same coalescence node'
+    return key
+    
+
+def adjust_admixture_proportions(rTree_structure, vertice_dictionary, admixtures):
+    for key, node in rTree_structure.items():
+        if node_is_admixture(node):
+            ## We are now in the situation that 
+            ##     source 
+            ##      /    \
+            ##  \  /      \ /
+            ##   node     b_child_1
+            ##    |             \
+            ##    |              |
+            ##  a_child_1      b_child_2
+            ##   / \               / \
+            ##      \ /               |
+            ##     a_child_2         ...
+            ##        |               | 
+            ##       ...            b_child_m
+            ##        |                / \
+            ##      a_child_k             | 
+            ##         / \               d_child_1 
+            ##        |                     
+            ##     c_child_1
+            ##       / \
+            ##And we want to find the c_child_1 and d_child_1 
+            #because the admixtures-dictionary contains the admixture proportion with the item  
+            #(c_child_1_N,d_child_1):adm_proportion.
+            admixture_parent=node[1]
+            c_child_1=find_first_non_admix(key,rTree_structure)
+            d_child_1=find_first_non_admix(admixture_parent, rTree_structure)
+            c_child_1_N=vertice_dictionary[c_child_1].N_name
+            d_child_1_N=vertice_dictionary[d_child_1].N_name
+            rTree_structure[key][2]=1.0-admixtures[(d_child_1_N, c_child_1_N)]
+    return rTree_structure
+
+def get_leaf_remappings(vd):
+    '''
+    calculates the before and after key that should be changed such that a tree goes from V-leaves to admb-leaves
+    '''
+    remaps=[]
+    for vertix in vd.values():
+        if vertix.is_leaf():
+            remaps.append((vertix.name, vertix.L_name))
+    return remaps
+
+def remap_leaves(tree, vertice_dictionary):
+    remaps=get_leaf_remappings(vertice_dictionary)
+    for key_from, key_to in remaps:
+        tree=rename_key(tree, old_key_name=key_from, new_key_name=key_to)
+        
+    return tree
+            
+               
+def make_Rtree(edges,  vertice_dictionary,admixtures):
+    root_name=get_root(vertice_dictionary).name
+    rTree_structure=read_tree_structure(edges, root_name)
+        #print pretty_string(rTree_structure)
+    print 'Before inserting admixture proportions:', pretty_string(rTree_structure)
+    tree=adjust_admixture_proportions(rTree_structure, vertice_dictionary, admixtures)
+    print 'After admixture proportions, before double node pruning',pretty_string(tree)
+    tree=prune_double_nodes(tree)
+    print 'After pruning, before renaming tree leaves',pretty_string(tree)
+    tree=remap_leaves(tree, vertice_dictionary)
+    print 'After remapping tree leaves',pretty_string(tree)
+    return tree
+    
+    
         
 def add_admixtures(tree, vd, adm_vertices, edges, admixtures):
     a_names=adm_node()
@@ -161,13 +398,23 @@ def add_admixtures(tree, vd, adm_vertices, edges, admixtures):
         u1=t3/(t3+t4)
         
         
-        tree=insert_admixture_node_halfly(tree, sink_child_key_B, 0, insertion_spot=0.000001, admix_b_length=0.000001, new_node_name=sink_name, admixture_proportion= 1-weight)
+        tree=insert_admixture_node_halfly(tree, sink_child_key_B, 0, insertion_spot=0, admix_b_length=0, new_node_name=sink_name, admixture_proportion= 1-weight)
         #print 'tree after inserting admixture', tree
         tree=graft(tree, sink_name, source_child_key_B, u1, source_name, 0, remove_branch=1)
     return tree
 
-def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup=None, snodes=None, prefix=''):
-    tree=read_treemix_file(filename_treeout, filename_vertices, filename_edges)
+def initor(a):
+    if not isinstance(a, basestring):
+        return a[0]
+    else:
+        return a
+
+def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, 
+                               outgroup=None, snodes=None, prefix='', force=True, 
+                               return_format=['None', 'arbitrary_rooted','outgroup_rooted','outgroup_removed','outgroup_removed_tuple']):
+    return_format=initor(return_format)
+    tree=read_treemix_file2(filename_treeout, filename_vertices, filename_edges)
+    arbitrary_rooted=deepcopy(tree)
     nodes=get_leaf_keys(tree)
     if snodes is not None:
         snodes_set=set(snodes)
@@ -180,18 +427,30 @@ def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edg
     else:
         snodes=nodes
     save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
-               os.path.join(prefix,'_treemix_arbitrary_rooted_tree.txt'))
+               prefix+'_treemix_arbitrary_rooted_tree.txt')
     if outgroup is not None:
-        tree=rearrange_root(tree, outgroup)
+        if force:
+            tree=rearrange_root_foolproof(tree, outgroup)
+        else:
+            tree=rearrange_root(tree, outgroup)
         save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
-               os.path.join(prefix,'_treemix_outgroup_rooted_tree.txt'))
+               prefix+'_treemix_outgroup_rooted_tree.txt')
+        outgroup_rooted=deepcopy(tree)
         tree,add=remove_outgroup(tree, remove_key=outgroup, return_add_distance=True)
         snodes.remove(outgroup)
         save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
-               os.path.join(prefix,'_treemix_outgroup_rooted_removed_tree.txt'))
+               prefix+'_treemix_outgroup_rooted_removed_tree.txt')
         save_stage(add, 2, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
-               os.path.join(prefix,'_treemix_outgroup_rooted_removed_add.txt'))
-
+               prefix+'_treemix_outgroup_rooted_removed_add.txt')
+        outgroup_removed=deepcopy(tree)
+    if return_format=='arbitrary_rooted':
+        return arbitrary_rooted
+    if return_format=='outgroup_rooted':
+        return outgroup_rooted
+    if return_format=='outgroup_removed':
+        return outgroup_removed
+    if return_format=='outgroup_removed_tuple':
+        return outgroup_removed, add
 
 def read_treemix_file(filename_treeout, filename_vertices, filename_edges, outgroup=None):
     np=new_node_naming_policy()
@@ -204,7 +463,7 @@ def read_treemix_file(filename_treeout, filename_vertices, filename_edges, outgr
     with open(filename_treeout, 'r') as f:
         newick_tree=f.readline().rstrip()
         admixtures=parse_admixtures(map(str.rstrip,f.readlines()))
-        
+    edges= get_edge_lengths2(filename_edges)    
     #print newick_tree
     tree,translates=parse_newick_tree(newick_tree)
     vd=vertice_dictionary()
@@ -228,12 +487,36 @@ def read_treemix_file(filename_treeout, filename_vertices, filename_edges, outgr
 #     print translates
 #     print admixtures
     tree=add_admixtures(tree, vd, adm_vertices, edges, admixtures)
-    
     if outgroup is not None:
         tree=rearrange_root(tree, outgroup)
         
     
     return tree
+
+
+def read_treemix_file2(filename_treeout, filename_vertices, filename_edges, outgroup=None):
+    if filename_treeout.endswith('.gz'):
+        filename_treeout=unzip(filename_treeout)
+    if filename_vertices.endswith('.gz'):
+        filename_vertices=unzip(filename_vertices)
+    if filename_edges.endswith('.gz'):
+        filename_edges=unzip(filename_edges)
+    with open(filename_treeout, 'r') as f:
+        newick_tree=f.readline().rstrip()
+        admixtures=parse_admixtures2(map(str.rstrip,f.readlines()))
+    vertice_dictionary= read_vertices(filename_vertices)  
+    print vertice_dictionary
+    edges= get_edge_lengths2(filename_edges)     
+    #print newick_tree
+    tree=make_Rtree(edges, vertice_dictionary, admixtures)
+    print pretty_string(tree)
+    #tree=remove_children(tree)
+    if outgroup is not None:
+        tree=rearrange_root(tree, outgroup)
+        print 'after rearrangement'
+        print pretty_string(tree)
+    return tree
+
     
     
 def insert_admixtures(admixtures, translates, node_naming):
@@ -297,19 +580,26 @@ def parse_newick_tree(newick_string):
     return tree,translates
     
 if __name__=='__main__':
-    filename_treeout='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout'
-    filename_vertices='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices'
-    filename_edges='../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges'
-    treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=None, prefix='sletmig')
-    tree=read_treemix_file('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
-                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
-                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
-    #plot_graph(tree)
+    filename_treeout='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.treeout'
+    filename_vertices='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.vertices'
+    filename_edges='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.edges'
+    tree=treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=None, prefix='sletmig'+os.sep, return_format='outgroup_rooted')
+    #tree=read_treemix_file2('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
+    #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
+    #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
+    import tree_plotting
+    tree_plotting.plot_as_directed_graph(tree)
+    from tree_warner import check
+    
+    check(tree)
+
+    print pretty_string(tree)
     import numpy as np
     print pretty_string(tree)
     from Rtree_to_covariance_matrix import make_covariance
     from reduce_covariance import reduce_covariance, Areduce
-    cov=make_covariance(tree, node_keys=['out']+['s'+str(i) for i in range(1,10)])
+    cov=make_covariance(tree, node_keys=['out']+['s'+str(i) for i in range(1,11)])
+    print cov
     cov2=np.loadtxt( '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/anew.txt')
     np.set_printoptions(precision=6,  linewidth=200, suppress=True)
     print cov-cov2

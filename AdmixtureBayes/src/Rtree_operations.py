@@ -106,12 +106,20 @@ def non_admixture_path(tree, key):
     parent_key=tree[key][0]
     return non_admixture_path(tree, parent_key)
 
+def get_first_admixture_meeting(tree, key):
+    if key=='r':
+        return None
+    if node_is_admixture(tree[key]):
+        return key
+    parent_key=tree[key][0]
+    return get_first_admixture_meeting(tree, parent_key)
+
 def get_branches_to_reverse(tree, key, so_far=None):
     if so_far is None:
         so_far=[]
     if is_root(key):
         (key1, branch1, length1),(key2,branch2,length2)=find_rooted_nodes(tree)
-        if key1==so_far[0]:
+        if key1==so_far[-1][0]:
             so_far.append((key2,tree[key2][branch2+3],tree[key2][branch2]))
         else:
             so_far.append((key1,tree[key1][branch1+3],tree[key1][branch1]))
@@ -129,6 +137,23 @@ def rename_rootname(tree,old_name, new_name):
         if node[1]==old_name:
             tree[key][1]=new_name 
     return tree
+
+def remove_children(tree):
+    for key in tree:
+        tree[key]=tree[key][:5]
+    return tree
+
+def rearrange_root_foolproof(tree, new_outgroup):
+    '''
+    Like rearrange_root this changes the outgroup by reversing branches. When the 
+    '''
+    while True:
+        admixture_to_remove=get_first_admixture_meeting(tree, new_outgroup)
+        print 'tryna remove', admixture_to_remove
+        if admixture_to_remove is None:
+            break
+        tree=remove_admix(tree, admixture_to_remove, 1)[0]
+    return rearrange_root(tree, new_outgroup)
 
 def rearrange_root(tree, new_outgroup):
     assert non_admixture_path(tree, new_outgroup), 'There were admixtures on the path from the requested outgroup to the old root.'
@@ -160,9 +185,25 @@ def reverse_node(tree, key, old_child, new_parent_key=None):
     
     
     
-    
+def prune_double_nodes(tree):
+    '''
+    A double node is a node with two parents and two children
+    '''    
+    for key, node in tree.items():
+        if len(get_real_children(node))!=1 and len(get_real_parents(node))==2:
+            tree=split_up_double_node(tree, key)
+    return tree
 
-
+def split_up_double_node(tree, key):
+    old_node=tree[key]
+    new_node=key+'pruned'
+    for parent in get_real_parents(old_node):
+        tree[parent]=_rename_child(tree[parent], old_name=key, new_name=new_node)
+    tree[new_node]=deepcopy(old_node)
+    tree[new_node][5]=key
+    tree[new_node][6]=None
+    tree[key]=[new_node,None,None,0,None,old_node[5], old_node[6]]
+    return tree
 
 def rename_key(tree, old_key_name, new_key_name):
     node=tree[old_key_name]
