@@ -692,11 +692,16 @@ def get_admixture_proportion_string(tree):
 
 
 if __name__=='__main__':
+    
+    from tree_warner import check
     from tree_plotting import pretty_string
     tree='c.c.w.w.a.0.1.w.w-w.a.w.c.3.w.w.w-c.w.w.0.w.w.c.9-c.w.w.w.w.0-c.w.0.w.w-c.w.0.w-c.0.w-c.0;0.012-0.038-0.05-0.062-0.029-0.068-0.068-0.097-0.005-0.048-0.083-0.024-0.123-0.057-0.024-0.047-0.058-0.144-0.079-0.04-0.035-0.032;0.086-0.219'
     tree2='c.c.w.w.a.0.1.w.w-w.a.w.c.3.w.w.w-c.w.w.0.w.w.c.6-c.w.w.w.w.0-c.w.0.w.w-c.w.0.w-c.0.w-c.0;0.012-0.038-0.05-0.062-0.029-0.068-0.068-0.097-0.005-0.048-0.083-0.024-0.123-0.057-0.024-0.047-0.058-0.144-0.079-0.04-0.035-0.032;0.586-0.219'
-
+    tree3={'136': ['32', None, None, 0.000485164, None, 's8', 's6'], '172': ['16', None, None, 0.00101341, None, '244', '32'], '233': ['r', None, None, 0.000104723, None, 's7', None], 's9': ['32', None, None, 0.00224709, None, None, None], 's8': ['136', None, None, 0.00318685, None, None, None], 's3': ['244', None, None, 0.00230204, None, None, None], 's2': ['104', None, None, 0.00224093, None, None, None], 's1': ['103pruned', None, None, 0, None, None, None], 's7': ['233', None, None, 0.0, None, None, None], 's6': ['136', None, None, 0.0015962, None, None, None], 's5': ['52', None, None, 0.000780002, None, None, None], 's4': ['76', None, None, 0.0025597, None, None, None], '0': ['16', None, None, 0.000394219, None, 's10', '2'], '2': ['0', None, None, 0.000262294, None, 'out', '76'], '103pruned': ['104', '244', 0.875419, 0.00235895, 0, 's1', None], 'out': ['2', None, None, 0.00158848, None, None, None], 's10': ['0', None, None, 1.76418e-05, None, None, None], '244': ['172', None, None, 0.000340227, None, 's3', '103pruned'], '104': ['76', None, None, 0.000879448, None, 's2', '103pruned'], '76': ['2', None, None, 0.000144781, None, '104', 's4'], '32': ['172', None, None, 0.00148711, None, '136', 's9'], '16': ['52', None, None, 0.0041016, None, '172', '0'], '52': ['r', None, None, 0.000104723, None, '16', 's5']}
+    tree4={'136': ['32', None, None, 0.000485164, None, 's8', 's6'], '172': ['16', None, None, 0.00101341, None, '244', '32'], '233': ['r', None, None, 0.000104723, None, 's7', None], 's9': ['32', None, None, 0.00224709, None, None, None], 's8': ['136', None, None, 0.00318685, None, None, None], 's3': ['244', None, None, 0.00230204, None, None, None], 's2': ['104', None, None, 0.00224093, None, None, None], 's1': ['103pruned', None, None, 0, None, None, None], 's7': ['233', None, None, 0.0, None, None, None], 's6': ['136', None, None, 0.0015962, None, None, None], 's5': ['52', None, None, 0.000780002, None, None, None], 's4': ['76', None, None, 0.0025597, None, None, None], '0': ['16', None, None, 0.000394219, None, 's10', '2'], '2': ['0', None, None, 0.000262294, None, 'out', '76'], '103pruned': ['104', '244', 0.875419, 0.00235895, 0, 's1', None], 'out': ['2', None, None, 0.00158848, None, None, None], 's10': ['0', None, None, 1.76418e-05, None, None, None], '244': ['172', None, None, 0.000340227, None, 's3', '103pruned'], '104': ['76', None, None, 0.000879448, None, 's2', '103pruned'], '76': ['2', None, None, 0.000144781, None, '104', 's4'], '32': ['172', None, None, 0.00148711, None, '136', 's9'], '16': ['52', None, None, 0.0041016, None, '172', '0'], '52': ['r', None, None, 0.000104723, None, '16', 's5']}
     ft=identifier_to_tree_clean(tree2)
+    ft=tree3
+    print check(ft)
     print pretty_string(ft)
     print unique_identifier_and_branch_lengths(ft)
     print tree_to_0ntree(ft)

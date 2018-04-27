@@ -583,7 +583,10 @@ if __name__=='__main__':
     filename_treeout='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.treeout'
     filename_vertices='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.vertices'
     filename_edges='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.edges'
-    tree=treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=None, prefix='sletmig'+os.sep, return_format='outgroup_rooted')
+    filename_treeout='../../../../trmx2.treeout'
+    filename_vertices='../../../../trmx2.vertices'
+    filename_edges='../../../../trmx2.edges'
+    tree=treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=['s'+str(i) for i in range(1,11)], prefix='sletmig'+os.sep, return_format='outgroup_rooted')
     #tree=read_treemix_file2('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
     #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
     #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
