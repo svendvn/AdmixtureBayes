@@ -86,13 +86,14 @@ class vertice_dictionary():
         
 class node(object):
     
-    def __init__(self):
+    def __init__(self, prefix='n'):
         self.count=0
+        self.prefix=prefix
         
     def __call__(self):
         self.count+=1
-        print 'n'+str(self.count)
-        return 'n'+str(self.count)
+        print prefix+str(self.count)
+        return prefix+str(self.count)
     
 class adm_node(object):
     
@@ -130,6 +131,9 @@ class vertix(object):
     
     def is_root(self):
         return self.root
+    
+    def set_L_name(self, new_L_name=None):
+        self.L_name=new_L_name
     
 
 def read_vertices(filename_vertices):
@@ -213,6 +217,12 @@ def parse_admixtures2(admixture_strings):
         from_to_weights[(from_N,to_N)]=float(weight)
     return from_to_weights
 
+def print_all_nodes(all_nodes):
+    for k in all_nodes:
+        c_names=[n.name for n in all_nodes[k].get_children()]
+        p_names=[n.name for n in all_nodes[k].get_parents()]
+        print k, 'children=', c_names, 'parents=', p_names
+
 class Node():
     
     def __init__(self, name):
@@ -225,12 +235,62 @@ class Node():
         
     def add_parent(self, parent_node):
         self.parents.append(parent_node)
+        
+    def set_children(self, children):
+        self.children=children
+        
+    def set_parents(self, parents):
+        self.parents=parents
+        
+    def clear_parents(self):
+        self.parents=[]
+        
+    def clear_children(self):
+        self.children=[]
     
     def get_parents(self):
         return self.parents
-        
+    
+    def get_children(self):
+        return self.children
+    
+    def get_number_of_children(self):
+        return len(self.children)
+    
     def has_children(self):
         return len(self.children)>0
+    
+    def is_admixture(self):
+        return len(self.children)==1 and len(self.parents)==2
+    
+    def is_wrong(self):
+        leaf= len(self.children)==0 and len(self.parents)==1
+        admixture= len(self.children)==1 and len(self.parents)==2
+        coalescence= len(self.children)==2 and len(self.parents)==1
+        root= len(self.children)==2 and len(self.parents)==0
+        situation_0= len(self.children)==0 and len(self.parents)>1
+        situation_1= len(self.children)==1 and len(self.parents)>2
+        situation_2= len(self.children)==2 and len(self.parents)>1
+        assert leaf or admixture or coalescence or root or situation_0 or situation_1 or situation_2, 'Illegal tree structure detected'
+        return not (root or leaf or admixture or coalescence)
+    
+    def is_too_wrong(self):
+        return len(self.children)>2
+    
+    def replace_child(self, old_child, new_child):
+        self.children.remove(old_child)
+        self.children.append(new_child)
+        
+    def replace_parent(self, old_parent, new_parent):
+        self.parents.remove(old_parent)
+        self.parents.append(new_parent)
+        
+    def remove_parent(self, parent):
+        self.parents.remove(parent)
+    
+    
+    
+    
         
 def construct_pointers(edges):
     all_nodes={}
@@ -256,6 +316,123 @@ def get_leaf_nodes(nodes):
             res.append(node)
     return res
 
+class Naming(object):
+    
+    def __init__(self):
+        self.where_we_at={}
+        
+    def __call__(self, node):
+        n=node.name
+        if n in self.where_we_at:
+            self.where_we_at[n]+=1
+            return n+'_'+str(self.where_we_at[n])
+        else:
+            self.where_we_at[n]=0
+            return n+'_'+str(self.where_we_at[n])
+
+def fix_wrong(node, vertice_dictionary, edges, naming_object):
+    '''
+    The node has too many parents. We make a new admixture nodes. 
+    How to make it depends on the situation. There are 3 situations:
+    
+    2. k>1 parents to a node with two children
+     
+      \ | | /
+        node
+        / \
+    
+    1. k>1 parents to a node with one child
+    
+        \ | | /
+          node
+           |
+          
+    0. k>1 parents to a node with zero children
+    
+      \ | | /
+        node
+    
+    The 0 and 2 are transformed into the 1-case. The 1 case has a parent removed every time.
+    '''
+    print 'fixing node', node.name
+    situation=node.get_number_of_children()
+    new_node_name=naming_object(node)
+    new_node=Node(new_node_name)
+    old_vertix=vertice_dictionary[node.name]
+    if situation==0:
+        #New node is the one created below.
+        
+        new_vertix=vertix(new_node_name, L_name=old_vertix.L_name, N_name=old_vertix.N_name, root=False)
+        vertice_dictionary[new_node_name]=new_vertix
+        old_vertix.set_L_name()
+        node.set_children([new_node])
+        new_node.add_parent(node)
+        edges[(node.name, new_node.name)]=0
+    elif situation==1:
+        #New node is inserted below the created node. It inherits the N_name and 
+        new_vertix=vertix(new_node_name, L_name=None, N_name=old_vertix.N_name)
+        vertice_dictionary[new_node_name]=new_vertix
+        child=node.get_children()[0]
+        child.replace_parent(node, new_node)
+        new_node.add_child(child)
+        node.set_children([new_node])
+        new_node.set_parents([node])
+        
+        #updating the child edges
+        edges[(node.name, new_node_name)]=0
+        edges[(new_node_name, child.name)]=edges[(node.name, child.name)]
+        del edges[(node.name, child.name)]
+        
+        #we now transfer one of the admixture branches down to our new node
+        for parent_node in node.get_parents():
+            if edges[(parent_node.name, node.name)] is None:
+                admixture_parent_node=parent_node
+                break
+        assert admixture_parent_node, 'No admixture parent was found for the node '+str(node.name)
+        edges[(admixture_parent_node.name, new_node.name)]=None #admixture branch length inserted
+        del edges[(admixture_parent_node.name, node.name)] #old admixture branch length inserted
+        admixture_parent_node.replace_child(node, new_node)
+        node.remove_parent(admixture_parent_node)
+        new_node.add_parent(admixture_parent_node)
+        
+    elif situation==2:
+        
+        new_vertix=vertix(new_node_name, L_name=None, N_name=old_vertix.N_name)
+        vertice_dictionary[new_node_name]=new_vertix
+        
+        
+        edges[(node.name, new_node_name)]=0
+        
+        for child in node.get_children():
+            edges[(new_node_name, child.name)]=edges[(node.name, child.name)]
+            del edges[(node.name, child.name)]
+            new_node.add_child(child)
+            child.replace_parent(node, new_node)
+        node.set_children([new_node])
+        new_node.set_parents([node])
+    else:
+        assert False, 'Incorrect number of children'
+    
+    return node, new_node, vertice_dictionary, edges
+        
+
+def prune_tree_structure(tree_structure, vertice_dictionary, edge_lengths):
+    naming_object=Naming()
+    wrongs_found=True
+    while wrongs_found:
+        wrongs_found=False
+        keys=tree_structure.keys()
+        for key in keys:
+            node=tree_structure[key]
+            if node.is_wrong():
+                wrongs_found=True
+                #print_all_nodes(tree_structure)
+                tree_structure[key], new_node, vertice_dictionary, edge_lengths= fix_wrong(node, vertice_dictionary, edge_lengths,naming_object)
+                tree_structure[new_node.name]=new_node
+                #print_all_nodes(tree_structure)
+    return tree_structure, vertice_dictionary, edge_lengths
+        
+
 def tree_structure_to_Rtree_structure(leaf_nodes, edge_lengths, root_name):
     ready_lineages=leaf_nodes
     waiting_lineages=[]
@@ -275,6 +452,8 @@ def tree_structure_to_Rtree_structure(leaf_nodes, edge_lengths, root_name):
             if parent.name in waiting_lineages:
                 waiting_lineages.remove(parent.name)
                 ready_lineages.append(parent)
+            elif parent.is_admixture():
+                ready_lineages.append(parent)
             else:
                 waiting_lineages.append(parent.name)
         res_tree[node.name]=added_node
@@ -284,11 +463,11 @@ def tree_structure_to_Rtree_structure(leaf_nodes, edge_lengths, root_name):
     return insert_children_in_tree(tree)
         
 
-def read_tree_structure(edges, root_name):
-    all_nodes=construct_pointers(edges)
-    leaf_nodes=get_leaf_nodes(all_nodes)
-    #leaf_names=[leaf.name for leaf in leaf_nodes]
-    return tree_structure_to_Rtree_structure(leaf_nodes, edges, root_name)
+# def read_tree_structure(edges, root_name):
+#     all_nodes=construct_pointers(edges)
+#     leaf_nodes=get_leaf_nodes(all_nodes)
+#     #leaf_names=[leaf.name for leaf in leaf_nodes]
+#     return tree_structure_to_Rtree_structure(leaf_nodes, edges, root_name)
 
 def find_first_non_admix(key,tree):
     next_key=key
@@ -370,12 +549,16 @@ def remap_leaves(tree, vertice_dictionary):
                
 def make_Rtree(edges,  vertice_dictionary,admixtures):
     root_name=get_root(vertice_dictionary).name
-    rTree_structure=read_tree_structure(edges, root_name)
+    all_nodes=construct_pointers(edges)
+    all_nodes, vertice_dictionary, edges = prune_tree_structure(all_nodes, vertice_dictionary, edges)
+    print_all_nodes(all_nodes)
+    leaf_nodes=get_leaf_nodes(all_nodes)
+    rTree_structure=tree_structure_to_Rtree_structure(leaf_nodes, edges, root_name)
         #print pretty_string(rTree_structure)
     print 'Before inserting admixture proportions:', pretty_string(rTree_structure)
     tree=adjust_admixture_proportions(rTree_structure, vertice_dictionary, admixtures)
     print 'After admixture proportions, before double node pruning',pretty_string(tree)
-    tree=prune_double_nodes(tree)
+    #tree=prune_double_nodes(tree)
     print 'After pruning, before renaming tree leaves',pretty_string(tree)
     tree=remap_leaves(tree, vertice_dictionary)
     print 'After remapping tree leaves',pretty_string(tree)
@@ -583,13 +766,13 @@ if __name__=='__main__':
     filename_treeout='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.treeout'
     filename_vertices='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.vertices'
     filename_edges='../../../../Dropbox/Bioinformatik/AdmixtureBayes/annoying_treemix_output/trmx5.edges'
-    filename_treeout='../../../../trmx2.treeout'
-    filename_vertices='../../../../trmx2.vertices'
-    filename_edges='../../../../trmx2.edges'
+#     filename_treeout='../../../../trmx2.treeout'
+#     filename_vertices='../../../../trmx2.vertices'
+#     filename_edges='../../../../trmx2.edges'
     tree=treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edges, outgroup='out', snodes=['s'+str(i) for i in range(1,11)], prefix='sletmig'+os.sep, return_format='outgroup_rooted')
-    #tree=read_treemix_file2('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
-    #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
-    #                       '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
+    tree=read_treemix_file2('../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.treeout',
+                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.vertices',
+                           '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/new_one2.edges', outgroup='out')
     import tree_plotting
     tree_plotting.plot_as_directed_graph(tree)
     from tree_warner import check
@@ -601,7 +784,7 @@ if __name__=='__main__':
     print pretty_string(tree)
     from Rtree_to_covariance_matrix import make_covariance
     from reduce_covariance import reduce_covariance, Areduce
-    cov=make_covariance(tree, node_keys=['out']+['s'+str(i) for i in range(1,11)])
+    cov=make_covariance(tree, node_keys=['out']+['s'+str(i) for i in range(1,10)])
     print cov
     cov2=np.loadtxt( '../../../../Dropbox/Bioinformatik/AdmixtureBayes/treemix_example3/anew.txt')
     np.set_printoptions(precision=6,  linewidth=200, suppress=True)
