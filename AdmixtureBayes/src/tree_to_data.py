@@ -302,13 +302,14 @@ def construct_ej_en_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     #print dic_of_lineages
     population_count=len(dic_of_lineages)
     res_string=''
+    add_on=1e-6
     for time,key in s_times:
         if key=='r':
             i,j=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))
             res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
             dic_of_lineages[(key,0)]=j
             pop_size=final_pop_size
-            res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
+            res_string+='-en '+str(time+add_on)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
             break
         node=tree[key]
         if node_is_leaf_node(node):
@@ -319,17 +320,17 @@ def construct_ej_en_es_string(tree, times, leaf_keys, final_pop_size=1.0):
             res_string+='-ej '+str(time)+' '+str(i)+' '+str(j)+' '
             dic_of_lineages[(key,0)]=j
             pop_size=calculate_pop_size(node[3])
-            res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
+            res_string+='-en '+str(time+add_on)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size)+' '
         if node_is_admixture(node):
             population_count+=1
             i=get_affected_populations(dic_of_lineages, get_real_children_root(tree, key))[0]
-            res_string+='-es '+str(time)+' '+str(i)+' '+str(1.0-node[2])+' '
+            res_string+='-es '+str(time)+' '+str(i)+' '+str(node[2])+' '# WRONG EARLIER VERSION: str(1.0-node[2])+' ' 
             dic_of_lineages[(key,0)]=i
             dic_of_lineages[(key,1)]=population_count
             pop_size1=calculate_pop_size(node[3])
             pop_size2=calculate_pop_size(node[4])
-            res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size1)+' '
-            res_string+='-en '+str(time)+' '+str(dic_of_lineages[(key,1)])+' '+str(pop_size2)+' '
+            res_string+='-en '+str(time+add_on)+' '+str(dic_of_lineages[(key,0)])+' '+str(pop_size1)+' '
+            res_string+='-en '+str(time+add_on)+' '+str(dic_of_lineages[(key,1)])+' '+str(pop_size2)+' '
     return res_string
             
         
@@ -625,9 +626,12 @@ if __name__=='__main__':
     
     #print file_to_emp_cov('out_stem.cov',4)
     
-    #from sys import exit
     
-    #exit()
+    
+    
+    from sys import exit
+    
+    exit()
     from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
