@@ -5,7 +5,7 @@ from scipy.stats import geom
 from Rproposal_admix import addadmix
 from Rtree_to_covariance_matrix import make_covariance
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree_copy
-from tree_to_data import reduce_covariance, tree_to_ms_command, call_ms_string, ms_to_treemix2, emp_cov_to_file
+from tree_to_data import reduce_covariance, tree_to_ms_command, call_ms_string, emp_cov_to_file
 
 def plot_string_tree(stree):
     plot_graph(identifier_to_tree_clean(stree))
@@ -45,9 +45,9 @@ def add_random_admix(stree, *kwargs):
 
 def see_covariance_matrix(stree, reduce=None, factor=1.0):
     if reduce is None:
-        print make_covariance(identifier_to_tree_clean(stree))*factor
+        return make_covariance(identifier_to_tree_clean(stree))*factor
     else:
-        print reduce_covariance(make_covariance(identifier_to_tree_clean(stree)),0)*factor
+        return reduce_covariance(make_covariance(identifier_to_tree_clean(stree)),0)*factor
     
 def print_tree(stree):
     pretty_print(identifier_to_tree_clean(stree))

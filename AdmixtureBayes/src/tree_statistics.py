@@ -693,6 +693,19 @@ def get_admixture_proportion_string(tree):
 
 if __name__=='__main__':
     
+    tree1={'s1':['n1',None,None,1.0,None,None,None],
+           's2':['a1',None,None,1.0,None,None,None],
+           's3':['n2',None,None,1.0,None,None,None],
+           'a1':['n1','n2',0.2,0.3,0.9,'s2',None],
+           'n1':['n3',None,None,1.0,None,'s1','a1'],
+           'n2':['n3',None,None,1.0,None,'s3','a1'],
+           'n3':['n4',None,None,0.4,None,'n2','n1'],
+           's4':['n4',None,None,1.3,None,None,None],
+           'n4':['r',None,None,0.3,None,'n3','s4'],
+           's5':['r',None,None,1.2,None,None,None]}
+    
+    print unique_identifier_and_branch_lengths(tree1)
+    
     from tree_warner import check
     from tree_plotting import pretty_string
     tree='c.c.w.w.a.0.1.w.w-w.a.w.c.3.w.w.w-c.w.w.0.w.w.c.9-c.w.w.w.w.0-c.w.0.w.w-c.w.0.w-c.0.w-c.0;0.012-0.038-0.05-0.062-0.029-0.068-0.068-0.097-0.005-0.048-0.083-0.024-0.123-0.057-0.024-0.047-0.058-0.144-0.079-0.04-0.035-0.032;0.086-0.219'

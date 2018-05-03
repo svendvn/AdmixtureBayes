@@ -53,6 +53,7 @@ def get_partitions(lines, blocksize):
     return list_of_lists
 
 def bootstrap_indices(k):
+    print 'Bootstrapping is done '
     bootstrap_inds=choice(k, size=k, replace = True)
     return bootstrap_inds
     
@@ -71,6 +72,11 @@ def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_sam
     if no_blocks is not None:
         blocksize=n/no_blocks
     line_sets=get_partitions(lines, blocksize)
+    print 'total SNPs=', n
+    print 'total blocksize', blocksize
+    print 'no_blocks', no_blocks
+    print 'bootstrap_samples', bootstrap_samples
+    print 'len(line_sets)', len(line_sets)
     if bootstrap_samples is None:
         bootstrap_samples=len(line_sets)
     for i in range(bootstrap_samples):

@@ -49,7 +49,7 @@ parser.add_argument('--alternative_treemix_infile', type=str, default='', help='
 parser.add_argument('--treemix_output_prefix', type=str, default='', help= 'the filename prefix of all the treemix output files. Each file will get the suffix k.txt where k is the number of admixture events.')
 
 #covariance matrix options
-parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[2,3,4,5,6,7,8,9], help='skewed admixture proportion prior in the simulated datasets')
+parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,8,9], help='skewed admixture proportion prior in the simulated datasets')
 parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
 parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
 parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
@@ -173,6 +173,9 @@ else:
 if options.alternative_treemix_infile:
     treemix_file=options.alternative_treemix_infile
     treemix_in_file=options.alternative_treemix_infile
+elif options.covariance_pipeline[0]==6:
+    treemix_in_file=options.input_file
+    treemix_file=options.input_file
 else:
     treemix_file=prefix+"treemix_in.txt"
     treemix_in_file=treemix_file+'.gz'

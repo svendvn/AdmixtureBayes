@@ -50,7 +50,7 @@ def m_scaler(scale_type, allele_freqs, n_outgroup=None):
     else:
         scaler=1.0
     if scale_type.endswith('product'):
-        mu=mean(s)
+        mu=nanmean(s)
         scaler=mu*(1.0-mu)
     elif scale_type.endswith('sum'):
         scaler=nanmean(s*(1.0-s))
