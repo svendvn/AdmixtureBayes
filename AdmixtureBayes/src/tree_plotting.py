@@ -1,5 +1,6 @@
 from csv import writer
 from Rtree_operations import to_aarhus_admixture_graph, to_networkx_format, node_is_admixture, node_is_coalescence, node_is_leaf_node
+from node_structure import node_structure_to_networkx
 from subprocess import call
 from PIL import Image
 from graphviz import Digraph
@@ -21,6 +22,40 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
         img=Image.open(drawing_name)
         img.show()
         
+def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawing_name='tmp_.png', popup=True):
+    pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges= node_structure_to_networkx(node_structure)
+    print pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges
+    filename, image_format= drawing_name.split('.')
+    G=Digraph('G', filename=filename)
+    
+    leaves_graph=Digraph('l')
+    leaves_graph.node_attr.update(style='filled', color='cadetblue1')
+    for leaf in pure_leaves:
+        leaves_graph.node(leaf)
+        
+    aleaves_graph=Digraph('l')
+    aleaves_graph.node_attr.update(style='filled', color='slateblue1')
+    for leaf in admix_leaves:
+        aleaves_graph.node(leaf)
+        
+    admixture_graph=Digraph()
+    admixture_graph.node_attr.update(style='filled', fillcolor='coral1', shape='box')
+    for adm_n in admix_coalescence:
+        admixture_graph.node(adm_n)
+        
+    coalescence_graph=Digraph()
+    coalescence_graph.node_attr.update(style='filled', fillcolor='greenyellow')
+    for cn in pure_coalescence:
+        coalescence_graph.node(cn)
+        
+    G.subgraph(leaves_graph)
+    G.subgraph(aleaves_graph)
+    G.subgraph(admixture_graph)
+    G.subgraph(coalescence_graph)
+    G.node('r', shape='egg', color='black', style='filled', fontcolor='white')
+    G.edges(edges)
+    G.format = image_format
+    G.render(view=popup)    
         
 def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True):
 

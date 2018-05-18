@@ -9,6 +9,7 @@ from prior import matchmake
 from numpy.random import random
 #import bidict
 import collections
+import warnings
 #from tree_plotting import plot_graph, plot_as_directed_graph
 
 
@@ -563,10 +564,18 @@ def identifier_file_to_tree_clean(filename, **kwargs):
         else:
             identifier=ls[0].rstrip()
             leaves=None
-    ad2, branch_lengths, admixture_proportions=divide_triple_string(identifier)
+    try:
+        ad2, branch_lengths, admixture_proportions=divide_triple_string(identifier)
+        branch_lengths=string_to_generator(branch_lengths)
+        admixture_proportions=string_to_generator(admixture_proportions)
+    except ValueError as e:
+        warnings.warn('Branch lengths and admixture proportions not supplied, assuming topological identifier..', UserWarning)
+        ad2=identifier
+        branch_lengths=uniform_generator()
+        admixture_proportions=uniform_generator()
     tree_good2= identifier_to_tree(ad2, 
-                                   branch_lengths=string_to_generator(branch_lengths), 
-                                   admixture_proportions=string_to_generator(admixture_proportions),
+                                   branch_lengths=branch_lengths, 
+                                   admixture_proportions=admixture_proportions,
                                    leaves=leaves, **kwargs)
     return tree_good2
 

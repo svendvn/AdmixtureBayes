@@ -257,8 +257,24 @@ class Node():
     def get_number_of_children(self):
         return len(self.children)
     
+    def get_plotting_type(self):
+        if self.children:
+            if len(self.parents)==0:
+                return 'root'
+            if len(self.parents)==1:
+                return 'coalescence'
+            if len(self.parents)>1:
+                return 'admixture'
+        else:
+            if len(self.parents)>1:
+                return 'admixture_leaf'
+            return 'leaf'
+    
     def has_children(self):
         return len(self.children)>0
+    
+    def has_parent(self):
+        return len(self.parents)>0
     
     def is_admixture(self):
         return len(self.children)==1 and len(self.parents)==2
@@ -287,6 +303,8 @@ class Node():
         
     def remove_parent(self, parent):
         self.parents.remove(parent)
+        
+    #def is_descendant(self, candidate):
     
     
     

@@ -163,14 +163,14 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None):
             if len(n)>1:
                 dat.append(n)
     m=array(dat)
-    print m
+    #print m
     mapping={val:key for key, val in enumerate(actual_nodes)}
-    print 'mapping', mapping
-    print 'nodes', nodes
+    #print 'mapping', mapping
+    #print 'nodes', nodes
     if nodes is not None:
         new_order=[mapping[node] for node in nodes]
-        print 'new_order', new_order
-        print 'm.shape', m.shape
+        #print 'new_order', new_order
+        #print 'm.shape', m.shape
         m=m[:, new_order][new_order]
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)
