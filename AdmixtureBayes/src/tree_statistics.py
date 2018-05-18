@@ -174,8 +174,11 @@ def unique_identifier(tree, leaf_order=None):
             break
     return _list_identifier_to_string(list_of_gens)
 
-def admixture_sorted_unique_identifier(tree, leaf_order=None):
-    return unique_identifier(direct_all_admixtures(tree), leaf_order)
+def admixture_sorted_unique_identifier(tree, leaf_order=None, not_opposite=True):
+    '''
+    because of a mis-implementation a good amount of calculations could be salvaged by the option not_opposite. It should in a bug-free environment be True.
+    '''
+    return unique_identifier(direct_all_admixtures(tree, not_opposite), leaf_order)
 
 def _list_identifier_to_string(list_of_gens):
     return '-'.join(['.'.join(map(str,[c for c in l if c!='_'])) for l in list_of_gens])
