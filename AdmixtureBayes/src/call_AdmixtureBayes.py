@@ -39,6 +39,7 @@ parser.add_argument('--likelihood_treemix', action='store_true', default=False, 
 parser.add_argument('--evaluate_likelihood', action='store_true', default=False, help='this will evaluate the likelihood in the starting tree and then stop, writing just a single file with three values, prior, likelihood and posterior.')
 parser.add_argument('--evaluate_bootstrap_likelihoods', action='store_true', default=False, help='If evaluate likelihood is turned on this will calculate the likelihood of all bootstrapped covariances(if bootstrapping is also turned on)')
 parser.add_argument('--stop_evaluations', action='store_true', default=False, help='This will stop the analysis after the data preparation')
+parser.add_argument('--save_after_hours', type=float, nargs='+', default=[], help='This will save a copy of the output file after the number of hours specified here. One would do that to easily access how converged the chain is after certain number of hours.')
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -390,6 +391,9 @@ posterior= posterior_class(emp_cov=covariance[0],
                        add_variance_correction_to_graph=options.add_variance_correction_to_graph,
                        prefix=prefix,
                        variance_correction_file=options.variance_correction_input_file)
+
+
+print 'EVERYTHING IS INITIALIZED'
     
 
 def multi_chain_run():
@@ -406,7 +410,8 @@ def multi_chain_run():
            multiplier=multiplier,
            result_file=options.result_file,
            store_permuts=options.store_permuts, 
-           stop_criteria=sc)
+           stop_criteria=sc,
+           make_outfile_stills=options.save_after_hours)
     
 def single_chain_run():
     basic_chain(start_x= starting_trees[0],

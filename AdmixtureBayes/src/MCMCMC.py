@@ -8,6 +8,9 @@ from multiprocessing_helpers import basic_chain_pool
 from numpy.random import choice, random
 from math import exp
 from itertools import chain
+import time
+import subprocess
+
 #from guppy import hpy
 
 
@@ -28,7 +31,8 @@ def MCMCMC(starting_trees,
            multiplier= None,
            result_file=None,
            store_permuts=False,
-           stop_criteria=None):
+           stop_criteria=None,
+           make_outfile_stills=[]):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
@@ -81,6 +85,7 @@ def MCMCMC(starting_trees,
     proposal_updates=[proposal.get_exportable_state() for proposal in proposal_scheme]
     
     cum_iterations=0
+    start_time=time.time()
     for no_iterations in iteration_scheme:
         #letting each chain run for no_iterations:
         #print h.heap()
@@ -108,6 +113,12 @@ def MCMCMC(starting_trees,
         if stop_criteria is not None:
             if stop_criteria(cum_iterations, result_file):
                 break
+        if make_outfile_stills:
+            if make_outfile_stills[0]*60*60<time.time()-start_time:
+                cp_command=['cp', result_file, result_file+str(make_outfile_stills[0])]
+                subprocess.call(cp_command)
+                make_outfile_stills.pop(0)
+            
         
     pool.terminate()
     if result_file is None and store_permuts:
