@@ -21,6 +21,7 @@ parser.add_argument('--max_number_of_trees', default=10000, type=int, help='an u
 parser.add_argument('--sep', default=',', type=str, help='the separator used in the input file')
 parser.add_argument('--prefix', default='sletmig/', type=str,help='place to put the temporary files')
 parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help='Which method should be used to calculate the consensus tree?')
+parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
 
 parser.add_argument('--posterior_threshold', default=[0.25,0.5,0.75,0.9,0.95,0.99], type=float, nargs='+', help='The posterior threshold at which to include ')
 
@@ -131,10 +132,12 @@ def node_combinations_to_node_structure(node_combinations):
         
         
     
-
-for stree in nstrees:
+tenth=len(nstrees)//10
+for i,stree in enumerate(nstrees):
+    if i%tenth==0:
+        print i//tenth*10, '%'
     tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
-    ad=get_populations(tree)
+    ad=get_populations(tree, min_w=options.min_w)
     for a in ad:
         seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
 

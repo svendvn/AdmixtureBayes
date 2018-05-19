@@ -48,8 +48,8 @@ class Population:
         self.weights=weights
         self.members=members
         
-    def get_population_string(self):
-        return '.'.join(sorted(self.members))
+    def get_population_string(self, min_w):
+        return '.'.join(sorted([m for m,w in zip(self.members,self.weights) if w>min_w]))
         
     def remove_partition(self, weight):
         #print "weight",weight
@@ -191,7 +191,7 @@ class dummy_covmat(object):
         pass
         
 
-def get_populations(tree):
+def get_populations(tree, min_w=0.0):
     node_keys=sorted(get_leaf_keys(tree))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
@@ -201,7 +201,7 @@ def get_populations(tree):
     pop_strings=[]
     while True:
         for key,pop in ready_nodes:
-            pop_strings.append(pop.get_population_string())
+            pop_strings.append(pop.get_population_string(min_w))
             upds=leave_node(key, tree[key], pop, covmat)
             for upd in upds:
                 waiting_nodes=_add_to_waiting(waiting_nodes, upd,tree)
@@ -214,7 +214,7 @@ def get_populations(tree):
             return None
         if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
             big_pop=ready_nodes[0][1]
-            pop_strings.append(big_pop.get_population_string())
+            pop_strings.append(big_pop.get_population_string(min_w))
             break
 
     return sorted(list(set(pop_strings)))
