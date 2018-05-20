@@ -32,7 +32,8 @@ def MCMCMC(starting_trees,
            result_file=None,
            store_permuts=False,
            stop_criteria=None,
-           make_outfile_stills=[]):
+           make_outfile_stills=[],
+           save_only_coldest_chain=False):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
@@ -98,9 +99,9 @@ def MCMCMC(starting_trees,
         df_result=_update_results(df_result, df_add)
         if result_file is not None:
             if cum_iterations==0:
-                start_data_frame(df_result, result_file)
+                start_data_frame(df_result, result_file, save_only_coldest_chain=save_only_coldest_chain)
             elif df_result.shape[0]>1000:
-                add_to_data_frame(df_result, result_file)
+                add_to_data_frame(df_result, result_file, save_only_coldest_chain=save_only_coldest_chain)
                 df_result=df_result[0:0]
         #making the mc3 flips and updating:
         xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates) #trees, posteriors, range(len(trees)),[None]*len(trees)#
@@ -131,10 +132,14 @@ def MCMCMC(starting_trees,
 def _update_permutation(config, permut):
     return [config[n] for n in permut]
 
-def start_data_frame(df, result_file):
+def start_data_frame(df, result_file, save_only_coldest_chain):
+    if save_only_coldest_chain:
+        df=df.loc[df.layer==0,:]
     df.to_csv(result_file, header=True)
 
-def add_to_data_frame(df_add, result_file):
+def add_to_data_frame(df_add, result_file, save_only_coldest_chain):
+    if save_only_coldest_chain:
+        df_add=df_add.loc[df_add.layer==0,:]
     with open(result_file, 'a') as f:
         df_add.to_csv(f, header=False)
     
