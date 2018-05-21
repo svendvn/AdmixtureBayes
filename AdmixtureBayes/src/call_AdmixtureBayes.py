@@ -338,6 +338,9 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
                                   scale_goal=options.scale_goal)
 
+for j in starting_trees:
+    print j
+
 # if not options.starting_trees:
 #     no_pops=len(reduced_nodes)
 #     starting_trees=map(str, [no_pops]*options.MCMC_chains)

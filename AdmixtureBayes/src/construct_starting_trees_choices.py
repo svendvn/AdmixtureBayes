@@ -63,6 +63,10 @@ def get_starting_trees(inputs,
     
     xs=match_trees_and_adds(trees, add_vals)
     
+    if len(xs)==1 and no_chains>1:
+        tmp=[deepcopy(xs[0]) for _ in range(no_chains)]
+        xs=tmp
+    
     return scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal)
 
 def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal):
