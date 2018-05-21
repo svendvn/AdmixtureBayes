@@ -60,12 +60,12 @@ def bootstrap_indices(k):
     
     
 
-def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_samples=None):
+def make_bootstrap_files(filename, blocksize=None, no_blocks=None, bootstrap_samples=None, prefix=''):
     assert (blocksize is not None) or (no_blocks is not None), 'Has to specify either block size or number of blocks'
     filenames=[]
     if filename.endswith('.gz'):
         filename=unzip(filename)
-    filename_reduced=filename+'boot.'
+    filename_reduced=os.path.join(prefix, filename.split(os.sep)[-1]+'boot.')
     with open(filename, 'r') as f:
         first_line=f.readline()
         lines=f.readlines()
@@ -123,12 +123,12 @@ def make_covariances(filenames, cores, **kwargs):
         warnings.warn('Erasing the files did not succeed',UserWarning)
     return covs
 
-def make_single_files(filename,blocksize, no_blocks):
+def make_single_files(filename,blocksize, no_blocks, prefix=''):
     assert (blocksize is not None) or (no_blocks is not None), 'Has to specify either block size or number of blocks'
     filenames=[]
     if filename.endswith('.gz'):
         filename=unzip(filename)
-    filename_reduced=filename+'boot.'
+    filename_reduced=prefix+filename.split(os.sep)[-1]+'boot.'
     with open(filename, 'r') as f:
         first_line=f.readline()
         lines=f.readlines()
@@ -160,7 +160,7 @@ def estimate_degrees_of_freedom_scaled_fast(filename,
                                             load_bootstrapped_covariances=[],
                                             **kwargs):
     if not load_bootstrapped_covariances:
-        single_files, nodes=make_single_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks)
+        single_files, nodes=make_single_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, prefix=prefix)
         print single_files
         print nodes
         single_covs=make_covariances(single_files, cores=cores, return_also_mscale=True, **kwargs)
@@ -191,7 +191,7 @@ def estimate_degrees_of_freedom(filename,
                                 load_bootstrapped_covariances=[],
                                 **kwargs):
     if not load_bootstrapped_covariances:
-        filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples)
+        filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples, prefix=prefix)
         print 'nodes', nodes
         print filenames
         covs=make_covariances(filenames, cores=cores, **kwargs)
@@ -242,13 +242,13 @@ if __name__=='__main__':
                          prefix='sletmig/')
     
     
-    estimate_degrees_of_freedom_scaled_fast(filename='sletmig/treemix_reduced2.gz', 
+    estimate_degrees_of_freedom_scaled_fast(filename='treemix_reduced2.gz', 
                                             bootstrap_blocksize=10000,
                                             no_bootstrap_samples=10,
                                             summarization='var_opt',
                                             cores=4,
                                             save_covs='bcov',
-                                            prefix='sletmig/_',
+                                            prefix='sletmig'+os.sep+'_',
                                             load_bootstrapped_covariances=[],
                                             est=estimator_arguments, 
                                             locus_filter=locus_filter)
