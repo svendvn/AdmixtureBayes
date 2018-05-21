@@ -188,7 +188,11 @@ if options.treemix_output_prefix:
 else:
     treemix_out_files=prefix+'treemix_out'
 
-if options.starting_trees:
+if options.starting_trees and options.indirect_correction:
+    if options.starting_tree_scaling=='empirical_trace':
+        temp_scaling='starting_tree_trace'
+    else:
+        temp_scaling=options.starting_tree_scaling
     preliminary_starting_trees=get_starting_trees(options.starting_trees, 
                                       options.MCMC_chains, 
                                       adds=options.starting_adds,
@@ -198,7 +202,7 @@ if options.starting_trees:
                                       scale_tree_factor=options.scale_tree_factor,
                                       start=options.start, 
                                       prefix=prefix,
-                                      starting_tree_scaling=options.starting_tree_scaling,
+                                      starting_tree_scaling=temp_scaling,
                                       starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
                                       scale_goal=options.scale_goal)
 else:
@@ -259,6 +263,9 @@ covariance=get_covariance(options.covariance_pipeline,
                           locus_filter=locus_filter,
                           estimator_arguments=estimator_arguments
                           )
+
+
+
 
 if options.treemix_instead or options.treemix_also:
 
@@ -413,7 +420,7 @@ def multi_chain_run():
            store_permuts=options.store_permuts, 
            stop_criteria=sc,
            make_outfile_stills=options.save_after_hours,
-           save_only_coldest_chain=option.save_only_coldest_chain)
+           save_only_coldest_chain=options.save_only_coldest_chain)
     
 def single_chain_run():
     basic_chain(start_x= starting_trees[0],
