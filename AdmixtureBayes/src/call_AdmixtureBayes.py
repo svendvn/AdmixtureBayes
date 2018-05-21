@@ -10,7 +10,7 @@ from temperature_scheme import fixed_geometrical
 from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import posterior_class
 from MCMCMC import MCMCMC
-from wishart_distribution_estimation import estimate_degrees_of_freedom
+from wishart_distribution_estimation import estimate_degrees_of_freedom, estimate_degrees_of_freedom_scaled_fast
 from MCMC import basic_chain
 from stop_criteria import stop_criteria
 from one_evaluation import one_evaluation
@@ -288,7 +288,7 @@ if options.estimate_bootstrap_df:
         summarization='var'
     else:
         summarization=options.bootstrap_type_of_estimation
-    df, boot_covs=estimate_degrees_of_freedom(treemix_in_file, 
+    df, boot_covs=estimate_degrees_of_freedom_scaled_fast(treemix_in_file, 
                                            bootstrap_blocksize=options.bootstrap_blocksize, 
                                            no_bootstrap_samples=options.no_bootstrap_samples,
                                            summarization=summarization,

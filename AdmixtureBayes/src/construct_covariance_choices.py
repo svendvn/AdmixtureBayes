@@ -98,7 +98,8 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     est= make_estimator(reduce_method='outgroup', 
                    reduce_also=True,
                    ns=ns,**est_args)
-    cov=est(xs,ns)
+    extra_info_dic={}
+    cov=est(xs,ns, extra_info_dic)
     cov=reorder_reduced_covariance(cov, names, est_args['nodes'], outgroup=est_args['reducer'])
     if ('add_variance_correction_to_graph' in est_args and 
         est_args['add_variance_correction_to_graph'] and
@@ -109,6 +110,8 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
         vc=loadtxt(filename)
         vc=reorder_reduced_covariance(vc, names, est_args['nodes'], outgroup=est_args['reducer'])
         savetxt(filename, vc)
+    if 'return_also_mscale' in kwargs and kwargs['return_also_mscale']:
+        return cov, extra_info_dic['m_scale']
     return cov
     
 
