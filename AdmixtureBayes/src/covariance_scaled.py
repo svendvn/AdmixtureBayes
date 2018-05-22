@@ -31,6 +31,10 @@ def nan_inner_product(a,b):
             nans+=1
         else:
             res+=ai*bi
+    if N==nans:
+        warnings.warn('There is an entry in the covariance matrix that is set to 0 because all the relevant data was nan.', UserWarning)
+        return 0
+        
     return res/(N-nans)
 
 def nan_product(A,B):
