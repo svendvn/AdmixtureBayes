@@ -20,7 +20,8 @@ def get_starting_trees(inputs,
                        prefix='',
                        starting_tree_scaling='trivial',
                        starting_tree_use_scale_tree_factor=False,
-                       scale_goal='min'):
+                       scale_goal='min', 
+                       mscale_file=None):
     add_vals=[]
     if adds:
         for add in adds:
@@ -66,14 +67,17 @@ def get_starting_trees(inputs,
     if len(xs)==1 and no_chains>1:
         tmp=[deepcopy(xs[0]) for _ in range(no_chains)]
         xs=tmp
+        
+    if mscale_file is None:
+        mscale_file=prefix+'m_scale.txt'
     
-    return scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, prefix=prefix)
+    return scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, mscale_file=mscale_file)
 
-def retrieve_mscale(prefix):
-    with open(prefix+'m_scale.txt', 'r') as f:
+def retrieve_mscale(mscale_file):
+    with open(mscale_file, 'r') as f:
         return float(f.readline())
 
-def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, prefix=''):
+def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, mscale_file):
     if starting_tree_scaling=='None':
         return xs
     elif starting_tree_scaling=='empirical_trace':
@@ -90,7 +94,7 @@ def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_
             new_xs.append((scale_tree(tree,multiplier), add*multiplier))
         return new_xs
     elif starting_tree_scaling=='treemix_tree':
-        mscale=retrieve_mscale(prefix)
+        mscale=retrieve_mscale(mscale_file)
         xs=[(scale_tree(tree, multiplier/mscale), multiplier*add/mscale) for tree,add in xs]#multiplying with the 
         return xs
     elif starting_tree_scaling=='scalar':

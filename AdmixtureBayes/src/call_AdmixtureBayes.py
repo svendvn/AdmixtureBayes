@@ -16,6 +16,8 @@ from stop_criteria import stop_criteria
 from one_evaluation import one_evaluation
 from tree_to_data import emp_cov_to_file, file_to_emp_cov
 
+import warnings
+
 
 import os 
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -119,6 +121,7 @@ parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="fi
 parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
 parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace','scalar','treemix_tree'], default='None', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
 parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true', help='this will scale the tree with the specified scale_tree_factor.')
+parser.add_argument('--mscale_file', default='', type=str, action='This is the file where the normalization factor used by admixtureBayes are. This is normally calculated by the program but if settings have been changed, it may not and then this option can be used such that unnormalized treemix output trees can be scaled correctly')
 
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
@@ -324,7 +327,14 @@ if 9 not in options.covariance_pipeline:
 else:
     multiplier=covariance[1]
 
-
+if options.starting_tree_scaling=='treemix_tree':
+    if not (6 in options.covariance_pipeline) and not (8 in options.covariance_pipeline): 
+        if not options.mscale_file:
+            warnings.warn('No mscale file created and no mscale file provided, so it will look for the default position')
+if not options.mscale_file:
+    mscale_file=None
+else:
+    mscale_file=options.mscale_file
 starting_trees=get_starting_trees(options.starting_trees, 
                                   options.MCMC_chains, 
                                   adds=options.starting_adds,
@@ -336,7 +346,8 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   prefix=prefix,
                                   starting_tree_scaling=options.starting_tree_scaling,
                                   starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
-                                  scale_goal=options.scale_goal)
+                                  scale_goal=options.scale_goal,
+                                  mscale_file=mscale_file)
 
 for j in starting_trees:
     print j
