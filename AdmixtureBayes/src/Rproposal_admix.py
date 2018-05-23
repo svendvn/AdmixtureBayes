@@ -10,6 +10,8 @@ from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_a
                               update_branch_length)
 from random import getrandbits
 from scipy.stats import expon
+
+import warnings
 #from tree_plotting import 
 
 
@@ -172,8 +174,14 @@ def get_admixture_proportion(x=None):
     
 def get_insertion_spot(x=None, length=1.0):
     if x is None:
+        if length<1e-8:
+            warnings.warn('length of branch was too close to 0 - incorrect calculation follows')
+            return random(), 1.0
         return random(), 1.0/length
     else:
+        if length<1e-8:
+            warnings.warn('length of branch was too close to 0 - incorrect calculation follows')
+            return 1.0
         return 1.0/length
     
 
