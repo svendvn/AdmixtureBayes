@@ -67,9 +67,13 @@ def get_starting_trees(inputs,
         tmp=[deepcopy(xs[0]) for _ in range(no_chains)]
         xs=tmp
     
-    return scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal)
+    return scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, prefix=prefix)
 
-def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal):
+def retrieve_mscale(prefix):
+    with open(prefix+'m_scale.txt', 'r') as f:
+        return float(f.readline())
+
+def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_tree_use_scale_tree_factor, scale_goal, prefix=''):
     if starting_tree_scaling=='None':
         return xs
     elif starting_tree_scaling=='empirical_trace':
@@ -85,6 +89,10 @@ def scale_xs(xs, multiplier, scale_tree_factor, starting_tree_scaling, starting_
             _, multiplier = rescale_empirical_covariance(cov, normalizer=scale_goal)
             new_xs.append((scale_tree(tree,multiplier), add*multiplier))
         return new_xs
+    elif starting_tree_scaling=='treemix_tree':
+        mscale=retrieve_mscale(prefix)
+        xs=[(scale_tree(tree, multiplier/mscale), multiplier*add/mscale) for tree,add in xs]#multiplying with the 
+        return xs
     elif starting_tree_scaling=='scalar':
         assert starting_tree_use_scale_tree_factor, 'Illegal combination of options.'
         xs=[(scale_tree(tree, scale_tree_factor), add*scale_tree_factor) for tree,add in xs]
@@ -176,3 +184,25 @@ def input_to_tree(input, nodes, skewed_admixture_prior=False):
 #                 return create_trivial_tree(n, 1.0)
 #     else:#is it a tree already?
 #         return input
+
+if __name__=='__main__':
+    
+    import os
+    
+    (tree,add),_= get_starting_trees(inputs=['sletmig'+os.sep+'annoying_tree.txt'],
+                       no_chains=2, 
+                       adds=['sletmig'+os.sep+'annoying_add.txt'], 
+                       nodes=['s'+str(i) for i in range(1,11)], 
+                       pipeline=[],
+                       multiplier=1,
+                       scale_tree_factor=0.02,
+                       start='trivial',
+                       add_start=None,
+                       prefix='',
+                       starting_tree_scaling='starting_tree_trace',
+                       starting_tree_use_scale_tree_factor=False,
+                       scale_goal='max')
+    from tree_statistics import unique_identifier_and_branch_lengths
+    print unique_identifier_and_branch_lengths(scale_tree(tree,1.0/11.2707700297))
+    print 'add',add
+    

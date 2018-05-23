@@ -117,7 +117,7 @@ parser.add_argument('--cancel_preserve_root_distance', default=False, action='st
 parser.add_argument('--starting_trees', type=str, nargs='+', default=[], help='filenames of trees to start in. If empty, the trees will either be simulated with the flag --random_start or the so-called trivial tree')
 parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="filename of the adds to use on the starting trees.")
 parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
-parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace','scalar'], default='None', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
+parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace','scalar','treemix_tree'], default='None', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
 parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true', help='this will scale the tree with the specified scale_tree_factor.')
 
 #tree simulation

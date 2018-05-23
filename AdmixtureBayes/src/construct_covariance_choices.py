@@ -110,8 +110,12 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
         vc=loadtxt(filename)
         vc=reorder_reduced_covariance(vc, names, est_args['nodes'], outgroup=est_args['reducer'])
         savetxt(filename, vc)
-    if 'return_also_mscale' in kwargs and kwargs['return_also_mscale']:
-        return cov, extra_info_dic['m_scale']
+    if 'm_scale' in extra_info_dic:
+        if 'mscale_file' in kwargs: 
+            with open(kwargs['mscale_file'], 'w') as f:
+                f.write(str(extra_info_dic['m_scale']))
+        if 'return_also_mscale' in kwargs and kwargs['return_also_mscale']:
+            return cov, extra_info_dic['m_scale']
     return cov
     
 
@@ -348,6 +352,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['final_pop_size']=final_pop_size
     kwargs['via_treemix']=via_treemix
     kwargs['add_file']=prefix+'true_add.txt'
+    kwargs['mscale_file']=prefix+'m_scale.txt'
     kwargs['scale_goal']=scale_goal
     kwargs['favorable_init_brownian']=favorable_init_brownian
     kwargs['unbounded_brownian']=unbounded_brownian
