@@ -121,7 +121,7 @@ parser.add_argument('--starting_adds', type=str, nargs='+', default=[], help="fi
 parser.add_argument('--start', choices=['trivial','random', 'perfect'], default='trivial', help='Where to start the chain - works only if starting trees are not specified.')
 parser.add_argument('--starting_tree_scaling', choices=['None','empirical_trace', 'starting_tree_trace','scalar','treemix_tree'], default='None', type=str, help='The starting tree can be scaled as the covariance (as_covariance) or as the p')
 parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true', help='this will scale the tree with the specified scale_tree_factor.')
-parser.add_argument('--mscale_file', default='', type=str, action='This is the file where the normalization factor used by admixtureBayes are. This is normally calculated by the program but if settings have been changed, it may not and then this option can be used such that unnormalized treemix output trees can be scaled correctly')
+parser.add_argument('--mscale_file', default='', type=str, help='This is the file where the normalization factor used by admixtureBayes are. This is normally calculated by the program but if settings have been changed, it may not and then this option can be used such that unnormalized treemix output trees can be scaled correctly')
 
 #tree simulation
 parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
