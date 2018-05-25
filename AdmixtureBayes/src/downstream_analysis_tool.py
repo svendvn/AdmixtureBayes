@@ -1,9 +1,7 @@
-
-
 from reduce_covariance import reduce_covariance
-from Rtree_operations import get_number_of_leaves, add_outgroup
+from Rtree_operations import get_number_of_leaves, add_outgroup, get_number_of_admixes
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
-from Rtree_to_covariance_matrix import make_covariance
+from Rtree_to_covariance_matrix import make_covariance, get_populations
 import numpy as np
 from generate_sadmix_trees import effective_number_of_admixes, admixes_are_sadmixes
 #def effective_number_of_admixes(t):
@@ -15,8 +13,9 @@ import os
 
 from tree_statistics import admixture_sorted_unique_identifier
 from Rtree_operations import get_leaf_keys
+from skimage.future.graph.rag import min_weight
 print 'imported software'
-l,outfile=sys.argv[1:3]
+
 
 def get_list_of_turned_topologies(trees, true_tree):
     nodes=get_leaf_keys(true_tree)
@@ -50,14 +49,110 @@ def iterate_over_output_file(outfile,
     
     n=len(df)
     for i,r in df.iterrows():
+        cont=False
         d_dic={colname:r[k] for k, colname in enumerate(cols)}
         d_dic.update(constant_kwargs)
         if not while_thin_data_set_function(**d_dic):
             continue
         for row_summarize_function in row_summarize_functions:
-            d_dic.update(row_summarize_function(**d_dic))
+            add_dic, skip=row_summarize_function(**d_dic)
+            if skip:
+                cont=True
+                break
+            d_dic.update(add_dic)
+        if cont:
+            continue
         all_results.append(thinned_d_dic(d_dic))
-    return all_results
+    return all_results, full_sums
+
+class make_Rtree(object):
+    
+    def __init__(self, nodes_to_be_sorted, remove_sadtrees=False):
+        self.nodes=sorted(nodes_to_be_sorted)
+        self.remove_sadtrees=remove_sadtrees
+        
+    def __call__(self, tree, **not_needed):
+        Rtree=identifier_to_tree_clean(tree, leaves=generate_predefined_list_string(self.nodes))
+        if self.remove_sadtrees and (not admixes_are_sadmixes(Rtree)):
+            return {'Rtree':Rtree}, True
+        return {'Rtree':Rtree}, False
+    
+class make_full_tree(object):
+    
+    def __init__(self, add_multiplier=1, outgroup_name='out'):
+        self.add_multiplier=add_multiplier
+        self.outgroup_name=outgroup_name
+        
+    def __call__(self, Rtree, add, **not_needed):
+        full_tree= add_outgroup(Rtree,  
+                                inner_node_name='new_node', 
+                                to_new_root_length=float(add)*self.add_multiplier, 
+                                to_outgroup_length=0, 
+                                outgroup_name=self.outgroup_name)
+        return {'full_tree':full_tree}, False
+    
+class make_Rcovariance(object):
+    
+    def __init__(self, full_nodes, add_multiplier=1):
+        self.full_nodes=[]
+        self.add_multiplier=add_multiplier
+        
+    def __call__(self, tree, add, **not_needed):
+        Rcov=make_covariance(tree, leaf_keys=self.nodes)+float(add)*self.add_multiplier
+        
+        return {'Rcov':Rcov}, False
+    
+class cov_truecov(object):
+    
+    def __init__(self, true_covariance):
+        self.true_covariance=true_covariance
+        
+    def __call__(self, Rcov, **not_needed):
+        dist=np.linalg.norm(Rcov-self.true_covariance)
+        return {'cov_dist':dist}, False
+    
+class topology_identity(object):
+    
+    def __init__(self, full_tree, nodes):
+        self.full_scaled_turned_topology=admixture_sorted_unique_identifier(full_tree, nodes=self.nodes, not_opposite=True)
+        self.nodes=nodes
+        
+        
+    def __init__(self, full_tree, **not_needed):
+        top=admixture_sorted_unique_identifier(full_tree, nodes=self.nodes, not_opposite=True)
+        ident=top==self.full_scaled_turned_topology
+        return {'top_identity':ident_top}, False
+    
+class get_pops(object):
+    
+    def __init__(self, min_w=0.0):
+        self.min_w=min_w
+            
+    def __call__(self, Rtree, **not_needed):
+        pops=get_populations(Rtree, self.min_w)
+        return {'pops':pops}, False 
+    
+def compare_pops(object):
+    def __init__(self, true_pops, min_w=0.0):
+        self.true_pops=true_pops
+        self.min_w=min_w
+        
+    def __call__(self, pops, **not_needed):
+        self
+        
+    def __call__(self, ):
+    
+class extract_number_of_admixes(object):
+    
+    def __init__(self, filter_on_sadmixes=None):
+        self.filter_on_sadmixes=filter_on_sadmixes
+    
+    def __call__(self, Rtree, **not_needed):
+        no_sadmixes=effective_number_of_admixes(Rtree)
+        no_admixes=get_number_of_admixes(Rtree)
+        if self.filter_on_sadmixes is not None and no_sadmixes!= self.filter_on_sadmixes:
+            return {}, True
+        return {'no_sadmixes':no_sadmixes, 'no_admixes':no_admixes}, False
 
 
 class thinning(object):
