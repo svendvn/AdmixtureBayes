@@ -13,8 +13,9 @@ import os
 
 from tree_statistics import admixture_sorted_unique_identifier
 from Rtree_operations import get_leaf_keys
-from skimage.future.graph.rag import min_weight
 print 'imported software'
+
+from argparse import ArgumentParser
 
 
 def get_list_of_turned_topologies(trees, true_tree):
@@ -35,9 +36,9 @@ def identity(x):
 def iterate_over_output_file(outfile, 
                              cols=[], 
                              pre_thin_data_set_function=identity, 
-                             while_thin_data_set_functions=always_true(),
+                             while_thin_data_set_functions=always_true,
                              row_summarize_functions=[],
-                             thinned_d_dic=[],
+                             thinned_d_dic=identity,
                              full_summarize_functions=[],
                              **constant_kwargs):
     
@@ -134,25 +135,24 @@ class get_pops(object):
     
 def compare_pops(object):
     def __init__(self, true_pops, min_w=0.0):
-        self.true_pops=true_pops
+        self.true_pops=set(true_pops)
         self.min_w=min_w
         
     def __call__(self, pops, **not_needed):
-        self
+        diffs=set(pops).symmetric_difference(self.true_pops)
+        return {'set_differences':len(diffs)}, False
         
-    def __call__(self, ):
     
-class extract_number_of_admixes(object):
+class extract_number_of_sadmixes(object):
     
     def __init__(self, filter_on_sadmixes=None):
         self.filter_on_sadmixes=filter_on_sadmixes
     
     def __call__(self, Rtree, **not_needed):
         no_sadmixes=effective_number_of_admixes(Rtree)
-        no_admixes=get_number_of_admixes(Rtree)
         if self.filter_on_sadmixes is not None and no_sadmixes!= self.filter_on_sadmixes:
             return {}, True
-        return {'no_sadmixes':no_sadmixes, 'no_admixes':no_admixes}, False
+        return {'no_sadmixes':no_sadmixes}, False
 
 
 class thinning(object):
@@ -182,10 +182,20 @@ class thinning(object):
         return df
     
     
-def thin_dataset(total, burn_in_fraction, layer,total):
-    def thinner(df):
-        df
-        
+def read_true_values(true_scaled_tree='', 
+                      true_tree='',
+                      true_add='',
+                      true_covariance_reduced='',
+                      true_covariance_and_multiplier='',
+                      true_no_admix='',
+                      true_m_scale='',
+                      variance_correction='',
+                      df=''):
+    if not true_scaled_tree:
+        scaled_tree=None
+    else:
+        scaled_tree=
+    
             
         
     
@@ -242,3 +252,8 @@ def extract_info(l):
 def get_df(fil):
        with open(fil, 'r') as f:
               return(float(f.readline()))
+          
+          
+if __name__=='__main__':
+    
+    
