@@ -434,7 +434,8 @@ def read_one_line_skip(filename):
 
 def read_one_line(filename):
     with open(filename, 'r') as f:
-        return f.readline().rstrip()
+        res=f.readline().rstrip()
+    return res
     
 if __name__=='__main__':
     #

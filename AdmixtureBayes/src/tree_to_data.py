@@ -153,29 +153,51 @@ def tree_to_data_perfect_model(tree, df):
 def normalise(m):
     return m-max(0,amin(m))
 
-def file_to_emp_cov(filename, reduce_column=None, nodes=None):
+def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabetically=False, vc=None):
     dat=[]
+    multiplier=None
     with open(filename, 'r') as f:
         actual_nodes=f.readline().rstrip().split(" ")
-        for l in f.readlines():
+        for i,l in enumerate(f.readlines()):
+            if i>=len(actual_nodes):
+                if len(l)>4:
+                    multiplier=float(l.split('=')[1])
+                break
             print l
             n=map(float, l.split()[1:])
             if len(n)>1:
                 dat.append(n)
+        
     m=array(dat)
+    if vc:
+        varc=loadtxt(vc)
     #print m
     mapping={val:key for key, val in enumerate(actual_nodes)}
     #print 'mapping', mapping
     #print 'nodes', nodes
+    if nodes is None and sort_nodes_alphabetically:
+        nodes=sorted(actual_nodes)
     if nodes is not None:
         new_order=[mapping[node] for node in nodes]
         #print 'new_order', new_order
         #print 'm.shape', m.shape
         m=m[:, new_order][new_order]
+        if vc:
+            varc=varc[:,new_order][new_order]
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)
         #m=normalise(m)
-    return m
+    res=[m]
+    if multiplier is not None:
+        res.append(multiplier)
+        if vc:
+            res.append(varc)
+        else:
+            res.append(None)
+    if len(res)==1:
+        return m
+    else:
+        return res
 
 def emp_cov_to_file(m, filename='emp_cov.txt', nodes=None):
     if nodes is None:
