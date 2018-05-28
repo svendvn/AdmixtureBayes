@@ -163,6 +163,16 @@ if 'mode_topology' in options.summary_summaries:
     def mode_topology(v):
         return row_sums[name_to_rowsum_index['top_identity']](mode(v))[0]['top_identity']
     possible_summary_summaries['mode_topology']=mode_topology
+if 'mode_pops' in options.summary_summaries:
+    def mode_pops(v):
+        v2=['-'.join(sorted(vi)) for vi in v]
+        vmax_s=mode(v2)
+        vmax=vmax_s.split('-')
+        return row_sums[name_to_rowsum_index['set_differences']](vmax)[0]['set_differences']
+    possible_summary_summaries['mode_pops']=mode_pops
+
+    
+    
     
 
 
@@ -181,8 +191,8 @@ with open(options.result_file, 'w') as f:
     for n,(summ_func_name, summ_name) in enumerate(zip(summary_summaries, options.save_summaries)):
         res.append(summ_results[n])
         header.append(summ_name+'_'+summ_func_name)
-    f.write(','.join(header)+'\n')
-    f.write(','.join(map(str,res)))
+    f.write(','.join(['input_file']+header)+'\n')
+    f.write(','.join([options.input_file]+map(str,res)))
     
 
         
