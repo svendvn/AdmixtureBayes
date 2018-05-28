@@ -77,9 +77,9 @@ if options.treemix_post_analysis:
 
 if options.constrain_number_of_admixes:
     if options.constrain_number_of_admixes=='true_val':
-        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=true_no_admix)
+        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(true_no_admix))
     else:
-        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=options.constrain_number_of_admixes)
+        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(options.constrain_number_of_admixes))
 else:
     thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total)
 
