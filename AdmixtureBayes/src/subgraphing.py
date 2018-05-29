@@ -12,7 +12,7 @@ def follow_branch(parent_key, branch_length, admixture_proportion):
     
     
 def follow_branch(parent_key, branch_length, population, target_nodes, child_key, dependent="none"):
-    covmat.update(branch_length, population)
+    if population
     return parent_key, population, dependent
 
 def get_subgraph(tree, subgraph_keys):
