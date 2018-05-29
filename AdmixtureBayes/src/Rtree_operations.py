@@ -1,4 +1,5 @@
 from copy import deepcopy
+import warnings
 
 def create_trivial_tree(size, total_height=1.0):
     '''
@@ -156,6 +157,9 @@ def rearrange_root_foolproof(tree, new_outgroup):
     return rearrange_root(tree, new_outgroup)
 
 def rearrange_root(tree, new_outgroup):
+    if tree[new_outgroup][0]=='r':
+        warnings.warn('The root was already in the requested location so no rearranging performed', UserWarning)
+        return tree
     assert non_admixture_path(tree, new_outgroup), 'There were admixtures on the path from the requested outgroup to the old root.'
     reversers=get_branches_to_reverse(tree, new_outgroup)
     print reversers[:-2]
