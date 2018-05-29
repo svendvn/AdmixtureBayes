@@ -279,6 +279,7 @@ if options.treemix_instead or options.treemix_also:
                        '-n', str(options.treemix_reps), 
                        '-i', treemix_in_file,
                        '-o', treemix_out_files+str(k),
+                       '-root', options.reduce_node,
                        '-m', str(k)] for k in options.treemix_no_admixtures]
     from subprocess import call
     for c in calls_to_treemix:
