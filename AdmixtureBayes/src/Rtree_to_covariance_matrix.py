@@ -48,6 +48,17 @@ class Population:
         self.weights=weights
         self.members=members
         
+    def get_weight(self, member):
+        for m,w in zip(self.members, self.weights):
+            if m==member:
+                return w
+        
+    def contain_partly_any_of_the_candidates(self,candidates):
+        if any((cand in self.members for cand in candidates)):
+            if any((   (cand not in self.members) or (get_weight(cand)<1.0) for cand in candidates)):
+                return True
+    return False
+        
     def get_population_string(self, min_w):
         return '.'.join(sorted([m for m,w in zip(self.members,self.weights) if w>min_w]))
         
