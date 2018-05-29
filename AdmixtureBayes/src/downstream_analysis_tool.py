@@ -260,9 +260,9 @@ def read_true_values(true_scaled_tree='',
     if true_add:
         add=float(read_one_line(true_add))
     if true_covariance_reduced:
-        covariance_reduced=file_to_emp_cov(true_covariance_reduced, sort_nodes_alphabetically=True)
+        covariance_reduced=file_to_emp_cov(true_covariance_reduced, sort_nodes_alphabetically=True, return_only_covariance=False)
     if true_covariance_and_multiplier:
-        Rcovariance,multiplier,vc=file_to_emp_cov(true_covariance_and_multiplier, sort_nodes_alphabetically=True, vc=true_variance_correction)
+        Rcovariance,multiplier,vc=file_to_emp_cov(true_covariance_and_multiplier, sort_nodes_alphabetically=True, vc=true_variance_correction, return_only_covariance=False)
     if true_no_admix:
         no_admix=int(true_no_admix)
     if true_m_scale:

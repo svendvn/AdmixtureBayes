@@ -153,7 +153,7 @@ def tree_to_data_perfect_model(tree, df):
 def normalise(m):
     return m-max(0,amin(m))
 
-def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabetically=False, vc=None):
+def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabetically=False, vc=None, return_only_covariance=True):
     dat=[]
     multiplier=None
     with open(filename, 'r') as f:
@@ -194,7 +194,7 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabe
             res.append(varc)
         else:
             res.append(None)
-    if len(res)==1:
+    if len(res)==1 or return_only_covariance:
         return m
     else:
         return res

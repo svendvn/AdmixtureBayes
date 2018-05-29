@@ -161,13 +161,16 @@ else:
 possible_summary_summaries={'mean':float_mean}
 if 'mode_topology' in options.summary_summaries:
     def mode_topology(v):
-        return row_sums[name_to_rowsum_index['top_identity']](mode(v))[0]['top_identity']
+        a=mode(v)
+        print a
+        return row_sums[name_to_rowsum_index['top_identity']](a)[0]['top_identity']
     possible_summary_summaries['mode_topology']=mode_topology
 if 'mode_pops' in options.summary_summaries:
     def mode_pops(v):
         v2=['-'.join(sorted(vi)) for vi in v]
         vmax_s=mode(v2)
         vmax=vmax_s.split('-')
+        print vmax
         return row_sums[name_to_rowsum_index['set_differences']](vmax)[0]['set_differences']
     possible_summary_summaries['mode_pops']=mode_pops
 
