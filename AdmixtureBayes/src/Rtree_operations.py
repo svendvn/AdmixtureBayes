@@ -148,6 +148,9 @@ def rearrange_root_foolproof(tree, new_outgroup):
     '''
     Like rearrange_root this changes the outgroup by reversing branches. When the 
     '''
+    if tree[new_outgroup][0]=='r' or tree[new_outgroup][1]=='r':
+        warnings.warn('The root was already in the requested location so no rearranging performed', UserWarning)
+        return tree
     while True:
         admixture_to_remove=get_first_admixture_meeting(tree, new_outgroup)
         print 'tryna remove', admixture_to_remove
