@@ -615,8 +615,25 @@ def has_child_admixture(tree, key):
     if child2 is not None:
         return (node_is_admixture(tree[child2]))
     return False
-        
 
+def screen_and_prune_one_in_one_out(tree):
+    for key in tree:
+        node=tree[key]
+        children=get_real_children(node)
+        parents=get_real_parents(node)
+        if len(children)==1 and len(parents)==1:
+            tree=remove_one_in_one_out(tree, children[0], key, parents[0])
+    return tree
+        
+def remove_one_in_one_out(tree, child, key, parent_key):
+    branch=mother_or_father(tree, key, parent_key)
+    length=get_branch_length(tree, key, branch)
+    child_branch=mother_or_father(tree, child_key, key)
+    child_length=get_branch_length(tree, child_key, child_branch)
+    tree=update_parent_and_branch_length(tree, child, child_branch, new_parent=parent_key, new_branch_length=child_length+length)
+    tree[parent_key]=_update_child(tree[parent_key], key, child)
+    return tree
+    
     
 def get_leaf_keys(tree):
     res=[]

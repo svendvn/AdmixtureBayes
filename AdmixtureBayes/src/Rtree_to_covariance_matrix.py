@@ -6,6 +6,7 @@ from itertools import izip
 
 from Rtree_operations import node_is_non_admixture, node_is_coalescence, get_leaf_keys
 import warnings
+from __builtin__ import True
 
 try:
     from covariance_matrix_wrapper import Covariance_Matrix2
@@ -53,11 +54,13 @@ class Population:
             if m==member:
                 return w
         
-    def contain_partly_any_of_the_candidates(self,candidates):
+    def subset_of_the_candidates(self,candidates):
         if any((cand in self.members for cand in candidates)):
-            if any((   (cand not in self.members) or (get_weight(cand)<1.0) for cand in candidates)):
-                return True
-    return False
+            if any((   (cand not in self.members) or (self.get_weight(cand)<1.0) for cand in candidates)):
+                return 'partly'
+            else:
+                return 'all'
+        return 'none'
         
     def get_population_string(self, min_w):
         return '.'.join(sorted([m for m,w in zip(self.members,self.weights) if w>min_w]))
