@@ -62,8 +62,8 @@ class Population:
                 return 'all'
         return 'none'
         
-    def get_population_string(self, min_w):
-        return '.'.join(sorted([m for m,w in zip(self.members,self.weights) if w>min_w]))
+    def get_population_string(self, min_w, keys_to_remove=[]):
+        return '.'.join(sorted([m for m,w in zip(self.members,self.weights) if w>min_w and m not in keys_to_remove]))
         
     def remove_partition(self, weight):
         #print "weight",weight
@@ -205,8 +205,13 @@ class dummy_covmat(object):
         pass
         
 
-def get_populations(tree, min_w=0.0):
+def get_populations(tree, min_w=0.0, keys_to_include=None):
+    
     node_keys=sorted(get_leaf_keys(tree))
+    if keys_to_include is None:
+        keys_to_remove=[]
+    else:
+        keys_to_remove=list(set(node_keys)-set(keys_to_include))
     pops=[Population([1.0],[node]) for node in node_keys]
     ready_nodes=zip(node_keys,pops)
     waiting_nodes={}
@@ -215,7 +220,7 @@ def get_populations(tree, min_w=0.0):
     pop_strings=[]
     while True:
         for key,pop in ready_nodes:
-            pop_strings.append(pop.get_population_string(min_w))
+            pop_strings.append(pop.get_population_string(min_w, keys_to_remove))
             upds=leave_node(key, tree[key], pop, covmat)
             for upd in upds:
                 waiting_nodes=_add_to_waiting(waiting_nodes, upd,tree)
@@ -228,9 +233,10 @@ def get_populations(tree, min_w=0.0):
             return None
         if len(ready_nodes)==1 and ready_nodes[0][0]=="r":
             big_pop=ready_nodes[0][1]
-            pop_strings.append(big_pop.get_population_string(min_w))
+            pop_strings.append(big_pop.get_population_string(min_w, keys_to_remove))
             break
-
+    if '' in pop_strings:
+        pop_strings.remove('')
     return sorted(list(set(pop_strings)))
                  
             
@@ -358,7 +364,7 @@ if __name__=="__main__":
                     return False
         return True
     
-    print get_populations(tree_on_the_border2)
+    print get_populations(tree_on_the_border2, keys_to_include=['s1','s2','s4'])
         
     import sys
     sys.exit()

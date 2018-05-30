@@ -615,6 +615,8 @@ def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edg
                                return_format=['None', 'arbitrary_rooted','outgroup_rooted','outgroup_removed','outgroup_removed_tuple']):
     return_format=initor(return_format)
     tree=read_treemix_file2(filename_treeout, filename_vertices, filename_edges)
+
+    
     arbitrary_rooted=deepcopy(tree)
     nodes=get_leaf_keys(tree)
     if snodes is not None:
@@ -629,6 +631,7 @@ def treemix_file_to_admb_files(filename_treeout, filename_vertices, filename_edg
         snodes=nodes
     save_stage(tree, 4, prefix='not_needed', full_nodes=snodes, before_added_outgroup_nodes=['not_needed'], after_reduce_nodes=['not_needed'], filename=
                prefix+'_treemix_arbitrary_rooted_tree.txt')
+   
     if outgroup is not None:
         if force:
             tree=rearrange_root_foolproof(tree, outgroup)
@@ -799,6 +802,9 @@ if __name__=='__main__':
     from tree_warner import check
     
     check(tree)
+    
+    
+    
 
     print pretty_string(tree)
     import numpy as np

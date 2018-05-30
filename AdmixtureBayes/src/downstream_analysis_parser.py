@@ -1,10 +1,12 @@
 from argparse import ArgumentParser
 from downstream_analysis_tool import (thinning, iterate_over_output_file, always_true, make_Rtree, make_full_tree, read_true_values,
                                       make_Rcovariance, cov_truecov, topology_identity,get_pops,compare_pops,extract_number_of_sadmixes, 
-                                      read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode)
+                                      read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode,
+                                      create_treemix_sfull_tree_csv_output)
 from numpy import mean
 from copy import deepcopy
 from collections import Counter
+from Rtree_operations import get_leaf_keys
 
 
 possible_summaries={'Rtree': make_Rtree,
@@ -52,6 +54,7 @@ parser.add_argument('--emp_covariance_reduced', default='', type=str)
 parser.add_argument('--treemix_post_analysis', action='store_true', default=False, help='this will convert the treemix input fil ../../../../Dropbox/Bioinformatik/AdmixtureBayes/test_final_grid/ai_2_5true/_true_tree.txtes into a suitable csv file for ')
 parser.add_argument('--treemix_tree', default='', type=str, help='')
 parser.add_argument('--treemix_add', default='', type=str, help='')
+parser.add_argument('--treemix_full_tree', default='')
 parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str, help='')
 
 options= parser.parse_args()
@@ -69,11 +72,17 @@ outp=read_true_values(true_covariance_reduced=options.emp_covariance_reduced,
 _, _, _, emp_covariance_reduced, (emp_covariance_scaled,multiplier), _, emp_m_scale, vc, df=outp
 
 if options.treemix_post_analysis:
-    outp=read_true_values(true_tree=options.treemix_tree,
-                      true_add=options.treemix_add)
-    _, treemix_tree, treemix_add, _, _, _, _, _, _=outp
-    create_treemix_csv_output(treemix_tree,treemix_add*multiplier, emp_m_scale, options.treemix_csv_output)
-    
+    if not options.treemix_full_tree:
+        outp=read_true_values(true_tree=options.treemix_tree,
+                          true_add=options.treemix_add)
+        _, treemix_tree, treemix_add, _, _, _, _, _, _=outp
+        create_treemix_csv_output(treemix_tree,treemix_add*multiplier, emp_m_scale, options.treemix_csv_output)
+    elif options.treemix_full_tree:
+        outp=read_true_values(true_scaled_tree=options.treemix_full_tree)
+        full_treemix_tree, _, _, _, _, _, _, _, _=outp
+        create_treemix_sfull_tree_csv_output(full_treemix_tree, emp_m_scale, options.treemix_csv_output)
+        full_nodes=sorted(get_leaf_keys(full_treemix_tree))
+            
 
 if options.constrain_number_of_admixes:
     if options.constrain_number_of_admixes=='true_val':
@@ -109,7 +118,7 @@ if 'Rtree' in options.summaries:
     row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees))
     name_to_rowsum_index('Rtree')
 if 'full_tree' in options.summaries:
-    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name))
+    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name, remove_sadtrees=options.constrain_sadmix_trees))
     name_to_rowsum_index('full_tree')
 if 'Rcov' in options.summaries:
     row_sums.append(possible_summaries['Rcov'](deepcopy(nodes), add_multiplier=1.0/multiplier))
@@ -124,10 +133,10 @@ if 'top_identity' in options.summaries:
     row_sums.append(possible_summaries['top_identity'](true_tree, nodes=nodes))
     name_to_rowsum_index('top_identity')
 if 'pops' in options.summaries:
-    row_sums.append(possible_summaries['pops'](min_w=options.min_w))
+    row_sums.append(possible_summaries['pops'](min_w=options.min_w, keys_to_include=nodes))
     name_to_rowsum_index('pops')
 if 'set_differences' in options.summaries:
-    row_sums.append(possible_summaries['set_differences'](true_tree, min_w=options.min_w))
+    row_sums.append(possible_summaries['set_differences'](true_tree, min_w=options.min_w, keys_to_include=nodes))
     name_to_rowsum_index('set_differences')
 if 'no_sadmixes' in options.summaries:
     if options.constrain_number_of_effective_admixes:
@@ -142,13 +151,18 @@ def save_thin_columns(d_dic):
     
     
 if options.treemix_post_analysis:
+    if options.treemix_full_tree:
+        constant_kwargs={'full_nodes':full_nodes}
+    else:
+        constant_kwargs={}
     all_results,_=iterate_over_output_file(options.treemix_csv_output, 
                                          cols=options.use_cols, 
                                          pre_thin_data_set_function=thinner, 
                                          while_thin_data_set_function=always_true,
                                          row_summarize_functions=row_sums,
                                          thinned_d_dic=save_thin_columns,
-                                         full_summarize_functions=[])
+                                         full_summarize_functions=[],
+                                         **constant_kwargs)
 else:
     all_results,_=iterate_over_output_file(options.input_file, 
                                          cols=options.use_cols, 

@@ -15,7 +15,7 @@ from copy import deepcopy
 from tree_to_data import file_to_emp_cov
 
 from tree_statistics import admixture_sorted_unique_identifier
-from Rtree_operations import get_leaf_keys
+from Rtree_operations import get_leaf_keys, rearrange_root_foolproof, remove_outgroup
 print 'imported software'
 
 from argparse import ArgumentParser
@@ -61,6 +61,8 @@ def iterate_over_output_file(outfile,
         if not while_thin_data_set_function(**d_dic):
             continue
         for row_summarize_function in row_summarize_functions:
+            #print row_summarize_function
+            #print d_dic
             add_dic, skip=row_summarize_function(**d_dic)
             if skip:
                 cont=True
@@ -78,6 +80,13 @@ def create_treemix_csv_output(tree,add,m_scale, outfile):
     with open(outfile, 'w') as f:
         f.write('tree,add'+'\n')
         f.write(unique_identifier_and_branch_lengths(tree)+','+str(add))
+        
+def create_treemix_sfull_tree_csv_output(tree,m_scale, outfile):
+    if m_scale is not None:
+        tree=scale_tree(tree,1.0/m_scale)
+    with open(outfile, 'w') as f:
+        f.write('sfull_tree'+'\n')
+        f.write(unique_identifier_and_branch_lengths(tree))
 
 class make_Rtree(object):
     
@@ -95,12 +104,21 @@ class make_Rtree(object):
     
 class make_full_tree(object):
     
-    def __init__(self, add_multiplier=1, outgroup_name='out'):
+    def __init__(self, add_multiplier=1, outgroup_name='out', remove_sadtrees=False):
         self.add_multiplier=add_multiplier
         self.outgroup_name=outgroup_name
+        self.remove_sadtrees=remove_sadtrees
         
-    def __call__(self, Rtree, add, **not_needed):
-        full_tree= add_outgroup(Rtree,  
+    def __call__(self, Rtree=None, add=None, **kwargs):
+        if Rtree is None:
+            assert 'sfull_tree' in kwargs, 'sfull_tree not specified'
+            nodes=sorted(kwargs['full_nodes'])
+            sfull_tree=kwargs['sfull_tree']
+            full_tree=identifier_to_tree_clean(sfull_tree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+            if self.remove_sadtrees and (not admixes_are_sadmixes(full_tree)):
+                return {'full_tree':full_tree}, True
+            return {'full_tree':full_tree}, False
+        full_tree= add_outgroup(deepcopy(Rtree),  
                                 inner_node_name='new_node', 
                                 to_new_root_length=float(add)*self.add_multiplier, 
                                 to_outgroup_length=0, 
@@ -113,7 +131,15 @@ class make_Rcovariance(object):
         self.nodes=nodes
         self.add_multiplier=add_multiplier
         
-    def __call__(self, Rtree, add, **not_needed):
+    def __call__(self, Rtree=None, add=None, **kwargs):
+        if Rtree is None:
+            full_tree=kwargs['full_tree']
+            outgroup_name=list(set(get_leaf_keys(full_tree))-set(self.nodes))[0]
+            cov=make_covariance(full_tree, node_keys=[outgroup_name]+self.nodes)
+            Rcov=reduce_covariance(cov, 0)
+            return {'Rcov':Rcov}, False
+        #print get_leaf_keys(Rtree)
+        #print self.nodes
         Rcov=make_covariance(Rtree, node_keys=self.nodes)+float(add)*self.add_multiplier
         
         return {'Rcov':Rcov}, False
@@ -134,7 +160,12 @@ class topology(object):
     def __init__(self, nodes):
         self.nodes=nodes
         
-    def __call__(self, Rtree, **not_needed):
+    def __call__(self, Rtree=None, **kwargs):
+        if Rtree is None:
+            full_tree=kwargs['full_tree']
+            outgroup=list(set(get_leaf_keys(full_tree))-set(self.nodes))[0]
+            cfull_tree=rearrange_root_foolproof(deepcopy(full_tree), outgroup) #this removes the admixtures between the outgroup and the root.
+            Rtree=remove_outgroup(cfull_tree, outgroup)
         top=admixture_sorted_unique_identifier(Rtree, leaf_order=self.nodes, not_opposite=True)
         return {'topology':top}, False
     
@@ -149,16 +180,21 @@ class topology_identity(object):
     
 class get_pops(object):
     
-    def __init__(self, min_w=0.0):
+    def __init__(self, min_w=0.0, keys_to_include=None):
         self.min_w=min_w
+        self.keys_to_include=keys_to_include
             
-    def __call__(self, Rtree, **not_needed):
-        pops=get_populations(Rtree, self.min_w)
+    def __call__(self, Rtree=None, **kwargs):
+        if Rtree is None:
+            tree=kwargs['full_tree']
+        else:
+            tree=Rtree
+        pops=get_populations(tree, self.min_w, keys_to_include=self.keys_to_include)
         return {'pops':pops}, False 
     
 class compare_pops(object):
-    def __init__(self, true_Rtree, min_w=0.0):
-        self.true_pops=set(get_populations(true_Rtree, min_w))
+    def __init__(self, true_tree, min_w=0.0, keys_to_include=None):
+        self.true_pops=set(get_populations(true_tree, min_w, keys_to_include))
         
     def __call__(self, pops, **not_needed):
         diffs=set(pops).symmetric_difference(self.true_pops)
@@ -178,7 +214,9 @@ class extract_number_of_sadmixes(object):
     def __init__(self, filter_on_sadmixes=None):
         self.filter_on_sadmixes=filter_on_sadmixes
     
-    def __call__(self, Rtree, **not_needed):
+    def __call__(self, Rtree=None, **kwargs):
+        if Rtree is None:
+            Rtree=kwargs['full_tree']
         no_sadmixes=effective_number_of_admixes(Rtree)
         if self.filter_on_sadmixes is not None and no_sadmixes!= self.filter_on_sadmixes:
             return {}, True
