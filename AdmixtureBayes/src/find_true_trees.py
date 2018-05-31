@@ -1,6 +1,6 @@
 from tree_statistics import identifier_to_tree_clean, unique_identifier_and_branch_lengths
 from post_analysis import read_tree_file
-from Rtree_operations import change_admixture, get_categories
+from Rtree_operations import change_admixture, get_categories, get_leaf_keys
 from copy import deepcopy
 
 
@@ -11,8 +11,12 @@ def make_possible_files(true_tree_file, res_file):
         f.write(' '.join(nodes)+'\n')
         for stree in possible_strees:
             f.write(stree+'\n')
-    
-        
+            
+def get_unique_plottable_tree(tree, nodes=None):
+    if nodes is None:
+        nodes=sorted(tree.get_leaf_keys())
+    possible_strees=sorted(get_possible_strees(tree, nodes))
+    return possible_strees[0]
     
 def get_possible_strees(tree, nodes):
     

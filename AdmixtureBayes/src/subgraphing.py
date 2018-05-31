@@ -1,5 +1,8 @@
 from Rtree_to_covariance_matrix import leave_node, _thin_out_dic, Population, _merge_pops, _full_node, _add_to_waiting
-from Rtree_operations import node_is_non_admixture, get_leaf_keys, get_real_parents, rename_root, screen_and_prune_one_in_one_out
+from Rtree_operations import node_is_non_admixture, get_leaf_keys, get_real_parents, get_real_children, rename_root, screen_and_prune_one_in_one_out
+from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
+from copy import deepcopy
+from find_true_trees import get_unique_plottable_tree
 
 def leave_node(key, node, population, target_nodes, follow_branch):
     if node_is_non_admixture(node): 
@@ -65,14 +68,48 @@ def find_root_name(tree):
     assert len(rootset)==1, 'wrong size of set'+str(rootset)
     return next(iter(rootset))
 
-def create_subtree(tree,branches_to_keep):
+def prune_to_subtree(tree,branches_to_keep):
     sub_tree={}
     for key,b in branches_to_keep:
         sub_tree[key]=tree[key]
     root_name=find_root_name(sub_tree)
     sub_tree=rename_root(sub_tree, root_name)
+    sub_tree=remove_empty_children(sub_tree)
     sub_tree=screen_and_prune_one_in_one_out(sub_tree)
     return sub_tree
+
+def get_subtree(tree, subgraph_keys):
+    branches_to_keep=get_branches_to_keep(tree, subgraph_keys)
+    return prune_to_subtree(tree, branches_to_keep)
+
+def remove_empty_children(tree):
+    for k in tree:
+        child_keys=get_real_children(tree[k])
+        children_to_keep=[]
+        for child_key in child_keys:
+            if child_key in tree:
+                children_to_keep.append(child_key)
+        if len(child_keys)!=len(children_to_keep):
+            for n,ch in enumerate(children_to_keep):
+                tree[k][5+n]=ch
+            for n in range(n+1,2):
+                tree[k][5+n]=None
+    return tree
+
+def get_most_likely_subgraphs_list(strees, nodes, subgraph_keys, sort_nodes=True):
+    if sort_nodes:
+        nodes=sorted(nodes)
+    topologies={}
+    for stree in strees:
+        tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+        sub_tree=get_subtree(tree, subgraph_keys)
+        sub_stree=get_unique_plottable_tree(sub_tree)
+        sub_topology, sbranch_lengths, sadmixture_proportions = sub_stree.split(';')
+        if sub_topology in topologies:
+            topologies[sub_topology]
+        
+        
+    
 
 
 def prune_subtree(tree):
@@ -84,13 +121,10 @@ if __name__=='__main__':
     from generate_prior_trees import generate_phylogeny
     from tree_plotting import plot_as_directed_graph
     from Rtree_operations import pretty_string
-    tree=generate_phylogeny(10,2)
+    tree=generate_phylogeny(6,3)
     print plot_as_directed_graph(tree)
-    a=get_branches_to_keep(tree, ['s1','s2','s3'])
-    print a
-    sub_tree=create_subtree(tree,a)
-    print pretty_string(sub_tree)
-    
+    sub_tree=get_subtree(tree, ['s1','s2','s3'])
+
     plot_as_directed_graph(sub_tree, drawing_name='tt.png')
     
     
