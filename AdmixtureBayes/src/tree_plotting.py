@@ -57,9 +57,9 @@ def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawin
     G.format = image_format
     G.render(view=popup)    
         
-def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True):
+def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True, plot_edge_lengths=False):
 
-    leaves, admixture_nodes, coalescence_nodes, root, edges= to_networkx_format(tree)
+    leaves, admixture_nodes, coalescence_nodes, root, edges, edge_lengths= to_networkx_format(tree)
     filename, image_format= drawing_name.split('.')
     G=Digraph('G', filename=filename)
     
@@ -82,7 +82,11 @@ def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=T
     G.subgraph(admixture_graph)
     G.subgraph(coalescence_graph)
     G.node('r', shape='egg', color='black', style='filled', fontcolor='white')
-    G.edges(edges)
+    if plot_edge_lengths:
+        for (to_node, from_node),label in zip(edges, edge_lengths):
+            G.edge(to_node, from_node, label=label)
+    else:
+        G.edges(edges)
     G.format = image_format
     G.render(view=popup)
     

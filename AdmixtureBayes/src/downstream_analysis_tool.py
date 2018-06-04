@@ -16,11 +16,13 @@ from tree_to_data import file_to_emp_cov
 
 from tree_statistics import admixture_sorted_unique_identifier
 from Rtree_operations import get_leaf_keys, rearrange_root_foolproof, remove_outgroup
-print 'imported software'
+
 
 from argparse import ArgumentParser
 from collections import Counter
+from subgraphing import get_subtree, get_unique_plottable_tree,get_and_save_most_likely_substrees
 
+print 'imported software'
 
 def get_list_of_turned_topologies(trees, true_tree):
     nodes=get_leaf_keys(true_tree)
@@ -155,6 +157,18 @@ class cov_truecov(object):
         #print 'true_cov', self.true_covariance
         return {'cov_dist':dist}, False
     
+def get_subpops(pops, sub_graph_keys):
+    ss_subgraph_keys=set(sub_graph_keys)
+    new_pops=[]
+    for pop in pops:
+        new_pop=ss_subgraph_keys.intersection(pop.split('.'))
+        new_pops.append('.'.join(new_pop))
+    if '' in new_pops:
+        new_pops.remove('')
+    return '_'.join(sorted(list(set(new_pops))))
+        
+
+
 class topology(object):
     
     def __init__(self, nodes):
@@ -168,6 +182,59 @@ class topology(object):
             Rtree=remove_outgroup(cfull_tree, outgroup)
         top=admixture_sorted_unique_identifier(Rtree, leaf_order=self.nodes, not_opposite=True)
         return {'topology':top}, False
+
+
+    
+class subgraph(object):
+    
+    def __init__(self, subgraph_keys, identifier='', max_num=10, total_probability=1.0, prefix='',**not_needed):
+        self.subgraph_keys=subgraph_keys
+        self.identifier=identifier
+        self.max_num=max_num
+        self.total_probability=total_probability
+        self.prefix=prefix
+        
+    def __call__(self, Rtree=None, **kwargs):
+        if Rtree is None:
+            Rtree=kwargs['full_tree']
+        Rtree=deepcopy(Rtree)
+        print 'Rtree',Rtree
+        subgraph=get_subtree(Rtree, self.subgraph_keys)
+        print 'subgraph', subgraph
+        sub_stree=get_unique_plottable_tree(subgraph)
+        print 'sub_stree', sub_stree
+        return {'subgraph_'+self.identifier:sub_stree}, False
+    
+    def summarise(self, sub_strees):
+        get_and_save_most_likely_substrees(sub_strees, 
+                                           self.subgraph_keys,
+                                           self.max_num,
+                                           self.total_probability,
+                                           self.prefix)
+        return 'check_accompanying_files'    
+    
+class subsets(object):
+    
+    def __init__(self, subgraph_keys, identifier='', prefix='', max_num=10, **not_needed):
+        self.subgraph_keys=subgraph_keys
+        self.identifier=identifier
+        self.prefix=prefix
+        self.max_num=max_num
+        
+    def __call__(self, pops, **kwargs):
+        subsets=get_subpops(pops, self.subgraph_keys)
+        return {'subsets_'+self.identifier:subsets}, False   
+    
+    def summarise(self, pops, prefix=''):
+        n=len(pops)
+        c=Counter(pops)
+        tops=c.most_common(self.max_num)
+        print 'summarizing subsets..'
+        with open(prefix+'subsets_'+self.identifier+'_tops.txt', 'w') as f:
+            for i in range(min(len(tops),self.max_num)):    
+                f.write(','.join([str(i+1),str(float(tops[i][1])/n),tops[i][0]])+'\n')
+        return tops[0][0]
+         
     
 class topology_identity(object):
     

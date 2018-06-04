@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 from downstream_analysis_tool import (thinning, iterate_over_output_file, always_true, make_Rtree, make_full_tree, read_true_values,
                                       make_Rcovariance, cov_truecov, topology_identity,get_pops,compare_pops,extract_number_of_sadmixes, 
                                       read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode,
-                                      create_treemix_sfull_tree_csv_output)
+                                      create_treemix_sfull_tree_csv_output, subgraph, subsets)
+from subgraphing import read_subgraphing_dict, get_most_likely_subgraphs_list, save_top_subgraphs
 from numpy import mean
 from copy import deepcopy
 from collections import Counter
@@ -14,6 +15,8 @@ possible_summaries={'Rtree': make_Rtree,
                     'Rcov':make_Rcovariance,
                     'cov_dist':cov_truecov,
                     'topology':topology,
+                    'subgraph':subgraph,
+                    'subsets':subsets,
                     'top_identity':topology_identity,
                     'pops':get_pops,
                     'set_differences':compare_pops,
@@ -27,7 +30,7 @@ parser.add_argument('--test_run', default=False, action='store_true', help='will
 parser.add_argument('--input_file', default='result_mc3.csv', type=str, help='The input file that should contain a column named tree or the option no_header should be turned on in which case every line is assumed to hold just one tree')
 parser.add_argument('--nodes', default='', type=str, help='file where the first line is the leaf nodes')
 parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
-parser.add_argument('--burn_in_fraction', default=0.2, type=float, help='the proportion of the rows that are discarded as burn in period')
+parser.add_argument('--burn_in_fraction', default=0.5, type=float, help='the proportion of the rows that are discarded as burn in period')
 parser.add_argument('--total', default=886, type=int, help='an upper limit on the number of rows to reduce computational pressure')
 parser.add_argument('--prefix', default='sletmig/', type=str,help='place to put the temporary files')
 parser.add_argument('--result_file', default='sletmig/row.txt', type=str,help='the result file')
@@ -38,8 +41,8 @@ parser.add_argument('--constrain_number_of_admixes', default='', type=str, choic
 parser.add_argument('--constrain_number_of_effective_admixes', default='',choices=['','true_val']+map(str, range(21)), type=str, help='The number of effective_admixture events that there are constrained on in the data set. If negative there are no constraints.')
 parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true', help='this will remove the ')
 parser.add_argument('--summaries', default=['Rtree','Rcov','cov_dist','topology','top_identity','pops','set_differences'], choices=possible_summaries.keys(),nargs='+', type=str, help='The summaries to calculate')
-parser.add_argument('--save_summaries', default=['no_admixes','add','cov_dist','top_identity','set_differences'], nargs='+', type=str, help='The list of summaries to save')
-parser.add_argument('--summary_summaries', default=['mean'], nargs='+', type=str, help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
+parser.add_argument('--save_summaries', default=['no_admixes','add','cov_dist','top_identity','set_differences'], nargs='*', type=str, help='The list of summaries to save')
+parser.add_argument('--summary_summaries', default=['mean'], nargs='*', type=str, help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
 parser.add_argument('--true_scaled_tree',  type=str, default='')
 parser.add_argument('--true_tree',  type=str, default='')
 parser.add_argument('--true_add',  type=str, default='')
@@ -56,6 +59,7 @@ parser.add_argument('--treemix_tree', default='', type=str, help='')
 parser.add_argument('--treemix_add', default='', type=str, help='')
 parser.add_argument('--treemix_full_tree', default='')
 parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str, help='')
+parser.add_argument('--subgraph_file', default='', type=str, help='file where each line has a space separated list of leaf labels to calculate subtrees from. If a double underscore(__) occurs, it means that the following two arguments are max number of sub topologies and total posterior probability.')
 
 options= parser.parse_args()
 
@@ -112,7 +116,7 @@ class pointers(object):
         return self.dic[key]
     
 name_to_rowsum_index=pointers()
-    
+possible_summary_summaries={'mean':float_mean}
 
 if 'Rtree' in options.summaries:
     row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees))
@@ -120,6 +124,18 @@ if 'Rtree' in options.summaries:
 if 'full_tree' in options.summaries:
     row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name, remove_sadtrees=options.constrain_sadmix_trees))
     name_to_rowsum_index('full_tree')
+if 'subgraph' in options.summaries:
+    subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['full'])
+    for dic in subgraph_dicts:
+        skeys=dic['subgraph_keys']
+        identifier='.'.join(skeys)
+        code='subgraph_'+identifier
+        sum_func=possible_summaries['subgraph'](skeys,identifier)
+        row_sums.append(sum_func)
+        name_to_rowsum_index(code)
+        options.save_summaries.append(code)
+        options.summary_summaries.append(code)
+        possible_summary_summaries[code]=sum_func.summarise
 if 'Rcov' in options.summaries:
     row_sums.append(possible_summaries['Rcov'](deepcopy(nodes), add_multiplier=1.0/multiplier))
     name_to_rowsum_index('Rcov')
@@ -135,6 +151,18 @@ if 'top_identity' in options.summaries:
 if 'pops' in options.summaries:
     row_sums.append(possible_summaries['pops'](min_w=options.min_w, keys_to_include=nodes))
     name_to_rowsum_index('pops')
+if 'subsets' in options.summaries:
+    subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['topological'])
+    for dic in subgraph_dicts:
+        skeys=dic['subgraph_keys']
+        identifier='.'.join(skeys)
+        code='subsets_'+identifier
+        sum_func=possible_summaries['subsets'](skeys,identifier)
+        row_sums.append(sum_func)
+        name_to_rowsum_index(code)
+        options.save_summaries.append(code)
+        options.summary_summaries.append(code)
+        possible_summary_summaries[code]=sum_func.summarise
 if 'set_differences' in options.summaries:
     row_sums.append(possible_summaries['set_differences'](true_tree, min_w=options.min_w, keys_to_include=nodes))
     name_to_rowsum_index('set_differences')
@@ -172,21 +200,46 @@ else:
                                          thinned_d_dic=save_thin_columns,
                                          full_summarize_functions=[])
     
-possible_summary_summaries={'mean':float_mean}
-if 'mode_topology' in options.summary_summaries:
-    def mode_topology(v):
+
+def save_wrapper(filename):
+    def save(listi):
+        with open(filename,'w') as f:
+            for ele in listi:
+                f.write(str(ele))
+    
+
+    
+if 'mode_topology_compare' in options.summary_summaries or 'mode_topology' in options.summary_summaries:
+    def mode_topology_compare(v):
         a=mode(v)
         print a
         return row_sums[name_to_rowsum_index['top_identity']](a)[0]['top_identity']
+    def mode_topology(v):
+        a=mode(v)
+        return(a)
     possible_summary_summaries['mode_topology']=mode_topology
-if 'mode_pops' in options.summary_summaries:
+    possible_summary_summaries['mode_topology_compare']=mode_topology_compare
+if 'mode_pops_compare' in options.summary_summaries or 'mode_pops' in options.summary_summaries:
     def mode_pops(v):
+        v2=['-'.join(sorted(vi)) for vi in v]
+        vmax_s=mode(v2)
+        return vmax_s
+    def mode_pops_compare(v):
         v2=['-'.join(sorted(vi)) for vi in v]
         vmax_s=mode(v2)
         vmax=vmax_s.split('-')
         print vmax
         return row_sums[name_to_rowsum_index['set_differences']](vmax)[0]['set_differences']
+    possible_summary_summaries['mode_pops_compare']=mode_pops_compare
     possible_summary_summaries['mode_pops']=mode_pops
+if 'subgraph' in options.summary_summaries:
+    subgraph_dicts=read_subgraphing_dict(options.subgraph_file)
+    def subgraphing(trees):
+        for dic in subgraph_dicts:
+            sgraphs=get_most_likely_subgraphs_list(strees=trees, nodes=nodes, subgraph_keys=dic['subgraph_keys'])
+            save_top_subgraphs(topologies=sgraphs, nodes=dic['subgraph_keys'], **dic)
+    possible_summary_summaries['subgraph']=subgraphing
+    
 
     
     

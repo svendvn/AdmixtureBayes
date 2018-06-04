@@ -6,6 +6,7 @@ from argparse import ArgumentParser
 from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string
 from copy import deepcopy
 from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph
+import sys
 
 parser = ArgumentParser(usage='pipeline for consensus tree maker', version='1.0.0')
 
@@ -25,7 +26,74 @@ parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold 
 
 parser.add_argument('--posterior_threshold', default=[0.25,0.5,0.75,0.9,0.95,0.99], type=float, nargs='+', help='The posterior threshold at which to include ')
 
+parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
+
 options= parser.parse_args()
+
+
+
+def combine_nodes(node_structure, new_node, seen_sets):
+    candidate=new_node.name
+    seen=[]
+    for lists_of_fixed_size in seen_sets[::-1]:
+        for attached_branch in lists_of_fixed_size:
+            if( attached_branch.issubset(candidate) and 
+               ((not attached_branch.issubset(seen)) or (not node_structure[attached_branch].has_parent()))):
+                seen.extend(list(attached_branch))
+                new_node.add_child(node_structure[attached_branch])
+                node_structure[attached_branch].add_parent(new_node)
+    return node_structure
+                
+                
+    
+    
+def node_combinations_to_node_structure(node_combinations):
+    length_sorted={}
+    for node_combination in node_combinations:
+        leaves=frozenset(node_combination.split('.'))
+        k=len(leaves)
+        if k in length_sorted:
+            length_sorted[k].append(leaves)
+        else:
+            length_sorted[k]=[leaves]
+    length_sorted_list=[length_sorted.get(k,[]) for k in range(1,max(length_sorted.keys())+1)]
+    #length_sorted_list is of the form [[[A],[B],[C]],[[A,B],[B,C]],...,[[A,B,C]]]
+    node_structure={}
+    for leaf_node in length_sorted_list[0]:
+        node_structure[leaf_node]=Node(leaf_node)
+    added_sets=[length_sorted_list[0]]
+    for lists_of_fixed_size in length_sorted_list[1:]:
+        for branch_set in lists_of_fixed_size:
+            new_node=Node(branch_set)
+            combine_nodes(node_structure, new_node, added_sets)
+            node_structure[branch_set]=new_node
+        added_sets.append(lists_of_fixed_size)
+    return node_structure
+            
+        
+if options.plot_tops_file:
+    with open(options.input_file, 'r') as f:
+        for lin in f.readlines():
+            rank, probability, combination=lin.rstrip().split(',')
+            all_nodes=[c.split('.') for c in combination.split('_')]
+            flattened=[item for sublist in all_nodes for item in sublist]
+            a=list(set(flattened))
+            code=rank+'_'+str(int(100*round(float(probability),2)))+'_'+'_'.join(a)
+            print 'code',code
+            combination.split('_')
+            node_structure=node_combinations_to_node_structure()
+            print node_structure
+            plot_node_structure_as_directed_graph(node_structure, drawing_name=code+'.png')
+    sys.exit()
+    
+tenth=len(nstrees)//10
+for i,stree in enumerate(nstrees):
+    if i%tenth==0:
+        print i//tenth*10, '%'
+    tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    ad=get_populations(tree, min_w=options.min_w)
+    for a in ad:
+        seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
 
 if options.test_run:
     from generate_prior_trees import generate_phylogeny
@@ -90,56 +158,6 @@ if not options.no_sort:
     nodes=sorted(nodes)
 
 
-def combine_nodes(node_structure, new_node, seen_sets):
-    candidate=new_node.name
-    seen=[]
-    for lists_of_fixed_size in seen_sets[::-1]:
-        for attached_branch in lists_of_fixed_size:
-            if( attached_branch.issubset(candidate) and 
-               ((not attached_branch.issubset(seen)) or (not node_structure[attached_branch].has_parent()))):
-                seen.extend(list(attached_branch))
-                new_node.add_child(node_structure[attached_branch])
-                node_structure[attached_branch].add_parent(new_node)
-    return node_structure
-                
-                
-    
-    
-def node_combinations_to_node_structure(node_combinations):
-    length_sorted={}
-    for node_combination in node_combinations:
-        leaves=frozenset(node_combination.split('.'))
-        k=len(leaves)
-        if k in length_sorted:
-            length_sorted[k].append(leaves)
-        else:
-            length_sorted[k]=[leaves]
-    length_sorted_list=[length_sorted.get(k,[]) for k in range(1,max(length_sorted.keys())+1)]
-    #length_sorted_list is of the form [[[A],[B],[C]],[[A,B],[B,C]],...,[[A,B,C]]]
-    node_structure={}
-    for leaf_node in length_sorted_list[0]:
-        node_structure[leaf_node]=Node(leaf_node)
-    added_sets=[length_sorted_list[0]]
-    for lists_of_fixed_size in length_sorted_list[1:]:
-        for branch_set in lists_of_fixed_size:
-            new_node=Node(branch_set)
-            combine_nodes(node_structure, new_node, added_sets)
-            node_structure[branch_set]=new_node
-        added_sets.append(lists_of_fixed_size)
-    return node_structure
-            
-        
-        
-        
-    
-tenth=len(nstrees)//10
-for i,stree in enumerate(nstrees):
-    if i%tenth==0:
-        print i//tenth*10, '%'
-    tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
-    ad=get_populations(tree, min_w=options.min_w)
-    for a in ad:
-        seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
 
 for threshold in options.posterior_threshold:
     total_threshold=int(N*threshold)

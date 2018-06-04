@@ -190,15 +190,17 @@ def _list_double_to_string(list_of_doubles, digits=3):
 class generate_numbered_nodes(object):
     
     def __init__(self, prefix='n', admixture_prefix='a'):
-        self.count=0
+        self.node_count=0
+        self.admixture_count=0
         self.prefix='n'
         self.admixture_prefix='a'
         
     def __call__(self, admixture=False):
-        self.count+=1
         if admixture:
-            return self.admixture_prefix+str(self.count)
-        return self.prefix+str(self.count)
+            self.admixture_count+=1
+            return self.admixture_prefix+str(self.admixture_count)
+        self.node_count+=1
+        return self.prefix+str(self.node_count)
     
 class generate_predefined_list(object):
     

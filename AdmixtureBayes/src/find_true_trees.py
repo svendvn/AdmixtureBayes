@@ -14,7 +14,7 @@ def make_possible_files(true_tree_file, res_file):
             
 def get_unique_plottable_tree(tree, nodes=None):
     if nodes is None:
-        nodes=sorted(tree.get_leaf_keys())
+        nodes=sorted(get_leaf_keys(tree))
     possible_strees=sorted(get_possible_strees(tree, nodes))
     return possible_strees[0]
     

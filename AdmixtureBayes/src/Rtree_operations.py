@@ -1279,6 +1279,7 @@ def to_networkx_format(tree):
     leaves=[]
     root=['r']
     coalescence_nodes=[]
+    edge_lengths=[]
     for key,node in tree.items():
         if node_is_leaf_node(node):
             leaves.append(key)
@@ -1290,7 +1291,9 @@ def to_networkx_format(tree):
         ps=get_real_parents(node)
         for p in ps:
             edges.append((p,key))
-    return leaves, admixture_nodes, coalescence_nodes, root, edges
+            branch=mother_or_father(tree, key, p)
+            edge_lengths.append(get_branch_length(tree, key, branch))
+    return leaves, admixture_nodes, coalescence_nodes, root, edges, edge_lengths
     
 
 def make_consistency_checks(tree, leaf_nodes=None):
