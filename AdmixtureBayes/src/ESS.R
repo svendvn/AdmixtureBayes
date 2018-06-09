@@ -13,26 +13,56 @@ library('rwty')
 
 summaries_without_trees=c()
 tree_summaries=c()
+subset_summary=FALSE
 
 for(summary in summaries){
 	if(grepl('Ntree', summary)){
 		tree_summaries=c(tree_summaries, summary)
 	}
+  else if(grepl('descendant_sets', summary)){
+    subset_summary=TRUE
+  }
 	else{
 		summaries_without_trees=c(summaries_without_trees, summary)
 	}
 }
 
+get_focal_element=function(listi){
+  return(listi[sample(length(listi),1)])
+}
 
+convert_to_sets=function(listi){
+  return(strsplit(listi, split = '-',fixed = T))
+}
+
+distance=function(a,v){
+  return(length(c(setdiff(a,v),setdiff(v,a))))
+}
 
 
 df=read.csv(filename, header=T)
-dfa=subset(df, layer==0)
+
+if( 'layer' %in% colnames(df)){
+dfa=subset(df, layer==0)} else{
+  dfa=df
+}
+#print(df)
 dfa=dfa[(floor(proportion*nrow(dfa))):nrow(dfa),]
 #print(dfa)
 dfb=as.data.frame(dfa[,summaries_without_trees])
 colnames(dfb) <- summaries_without_trees
 df2=apply(dfb,c(1,2),as.numeric)
+
+if(subset_summary){
+  l=as.character(dfa$descendant_sets)
+  l2=convert_to_sets(l)
+  focal_set=get_focal_element(l2)[[1]]
+  set_dists=sapply(X = l2, FUN = distance, v=focal_set)
+  old_cols=colnames(df2)
+  df2=cbind(df2,as.numeric(set_dists))
+  colnames(df2) <- c(old_cols, 'descendant_sets')
+  summaries_without_trees=c(summaries_without_trees, 'descendant_sets')
+}
 
 all_nums=function(df){
   mcmcobj=mcmc(df)

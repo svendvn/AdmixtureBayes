@@ -238,7 +238,9 @@ def get_populations(tree, min_w=0.0, keys_to_include=None):
     if '' in pop_strings:
         pop_strings.remove('')
     return sorted(list(set(pop_strings)))
-                 
+
+def get_populations_string(tree, min_w=0.0, keys_to_include=None):
+    return '-'.join(get_populations(tree, min_w, keys_to_include))
             
             
             
