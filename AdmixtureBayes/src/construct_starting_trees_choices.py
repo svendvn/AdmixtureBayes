@@ -1,11 +1,10 @@
 from generate_prior_trees import generate_phylogeny, simulate_number_of_admixture_events, generate_add
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
-from Rtree_operations import create_trivial_tree, scale_tree, rename_leaves
+from Rtree_operations import create_trivial_tree, scale_tree, rename_leaves, pretty_string
 from Rtree_to_covariance_matrix import make_covariance
 from rescale_covariance import rescale_empirical_covariance
 from copy import deepcopy
 from warnings import warn
-
 
 
 def get_starting_trees(inputs, 
@@ -38,7 +37,9 @@ def get_starting_trees(inputs,
             trees=[]
             for _ in range(no_chains):
                 tree=create_trivial_tree(no_pops,1.0)
+                #print pretty_string(tree)
                 rename_leaves(tree, nodes)
+                #print pretty_string(tree)
                 trees.append(tree)
         elif start=='random':
             no_pops=len(nodes) #error if nodes is not specified
@@ -193,9 +194,9 @@ if __name__=='__main__':
     
     import os
     
-    (tree,add),_= get_starting_trees(inputs=['sletmig'+os.sep+'annoying_tree.txt'],
+    (tree,add),_= get_starting_trees(inputs=[],
                        no_chains=2, 
-                       adds=['sletmig'+os.sep+'annoying_add.txt'], 
+                       adds=[], 
                        nodes=['s'+str(i) for i in range(1,11)], 
                        pipeline=[],
                        multiplier=1,
@@ -203,10 +204,12 @@ if __name__=='__main__':
                        start='trivial',
                        add_start=None,
                        prefix='',
-                       starting_tree_scaling='starting_tree_trace',
-                       starting_tree_use_scale_tree_factor=False,
+                       starting_tree_scaling='empirical_trace',
+                       starting_tree_use_scale_tree_factor=True,
                        scale_goal='max')
     from tree_statistics import unique_identifier_and_branch_lengths
+    from Rtree_operations import pretty_string
+    print pretty_string(tree)
     print unique_identifier_and_branch_lengths(scale_tree(tree,1.0/11.2707700297))
     print 'add',add
     
