@@ -71,7 +71,7 @@ all_nums=function(df){
 }
 
 tree_nums=function(df){
-	ids=floor(seq(1,nrow(df), length.out = min(nrow(df),500)))
+	ids=floor(seq(1,nrow(df), length.out = min(nrow(df),1000)))
 	df=df[ids,,drop=F]
 	res=c()
 	for(tree_summary in tree_summaries){

@@ -4,7 +4,7 @@ import os
 
 class stop_criteria(object):
     
-    TOPOLOGICAL_MIN=50
+    TOPOLOGICAL_MIN=200
     CONTINUOUS_MIN=200
     BURN_IN=0.5
     
