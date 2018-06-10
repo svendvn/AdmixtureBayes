@@ -37,7 +37,7 @@ class temperature_adapting(object):
         update_sizes=[exp(gamma*(0-0.234)), exp(gamma*(1-0.234))]
         self.temps=[1.0]
         for d, crossed in zip(diffs, being_crosseds):
-            self.temps.append(self.temps[-1]*d*update_sizes[crossed])
+            self.temps.append(max(self.temps[-1],self.temps[-1]*d*update_sizes[crossed]))
         self.no_updates+=1
         self.average=[av+cr for av,cr in zip(self.average, being_crosseds)]
         print 'new temperatures:', [round(f,3) for f in self.temps]
