@@ -6,7 +6,7 @@ from construct_covariance_choices import get_covariance
 from construct_nodes_choices import get_nodes
 from construct_summary_choices import get_summary_scheme
 from construct_filter_choices import make_filter
-from temperature_scheme import fixed_geometrical
+from temperature_scheme import fixed_geometrical, temperature_adapting
 from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import posterior_class
 from MCMCMC import MCMCMC
@@ -148,6 +148,7 @@ parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of ch
 parser.add_argument('--n', type=int, default=200, help='the number of MCMCMC flips throughout the chain.')
 parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
 parser.add_argument('--max_temp', type=float, default=100, help='the maximum temperature used in the MCMCMC.')
+parser.add_argument('--adaptive_temperatures', action='store_true', default=False, help='this will make the temperature scheme update itself based on the transition probabilities.')
 parser.add_argument('--thinning_coef', type=int, default=40, help='the number of iterations between each data recording point.')
 parser.add_argument('--store_permuts', action='store_true', default=False, help='If applied, the permutations from the MCMCMC flips are recorded in a file with a similar filename to the result_file')
 parser.add_argument('--stop_criteria', action='store_true', default=True, help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at ')
@@ -415,6 +416,11 @@ posterior= posterior_class(emp_cov=covariance[0],
                        prefix=prefix,
                        variance_correction_file=options.variance_correction_input_file)
 
+if options.adaptive_temperatures:
+    temperature_scheme=temperature_adapting(options.max_temp, options.MCMC_chains)
+else:
+    temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_chains)
+
 
 print 'EVERYTHING IS INITIALIZED'
     
@@ -423,7 +429,7 @@ def multi_chain_run():
     res=MCMCMC(starting_trees=starting_trees, 
            posterior_function= posterior,
            summaries=summaries, 
-           temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_chains), 
+           temperature_scheme=temperature_scheme, 
            printing_schemes=summary_verbose_scheme, 
            iteration_scheme=sim_lengths, 
            overall_thinnings=int(options.thinning_coef), 

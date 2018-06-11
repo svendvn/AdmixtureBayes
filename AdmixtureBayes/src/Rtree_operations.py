@@ -23,11 +23,12 @@ def create_trivial_tree(size, total_height=1.0):
 
 def rename_leaves(tree, new_leaf_names):
     old_keys=get_leaf_keys(tree)
-    print 'old_keys', old_keys
-    print 'new_keys', new_leaf_names
+    #print 'old_keys', old_keys
+    #print 'new_keys', new_leaf_names
     assert len(new_leaf_names)== len(old_keys), 'number of renamed nodes did not match the actual number of nodes'
     for old_key, new_key in zip(old_keys, new_leaf_names): 
-        tree=rename_key(tree, old_key, new_key)
+        if not old_key in new_leaf_names:
+            tree=rename_key(tree, old_key, new_key)
     return tree
 
 def max_distance_to_leaf(tree,key, parent_key=None):

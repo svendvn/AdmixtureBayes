@@ -1,6 +1,7 @@
 import summary
 import Rtree_operations
 import tree_statistics
+import Rtree_to_covariance_matrix
 from copy import deepcopy
 
 def get_summary_scheme(majority_tree=False, 
@@ -28,7 +29,8 @@ def get_summary_scheme(majority_tree=False,
                summary.s_basic_tree_statistics(Rtree_operations.get_number_of_ghost_populations, 'ghost_pops', output='integer'),
                summary.s_basic_tree_statistics(Rtree_operations.get_max_distance_to_root, 'max_root'),
                summary.s_basic_tree_statistics(Rtree_operations.get_min_distance_to_root, 'min_root'),
-               summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root')]
+               summary.s_basic_tree_statistics(Rtree_operations.get_average_distance_to_root, 'average_root'),
+               summary.s_basic_tree_statistics(Rtree_to_covariance_matrix.get_populations_string, 'descendant_sets', output='string')]
     if full_tree:
         summaries.append(summary.s_basic_tree_statistics(tree_statistics.unique_identifier_and_branch_lengths, 'tree', output='string'))
     if admixture_proportion_string:
