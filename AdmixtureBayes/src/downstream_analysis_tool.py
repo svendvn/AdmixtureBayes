@@ -55,8 +55,9 @@ def iterate_over_output_file(outfile,
     
     all_results=[]
     
-    n=len(df)
-    for i,r in df.iterrows():
+    for n,(i,r) in enumerate(df.iterrows()):
+        if n%10==0:
+            print float(n)/len(df)
         cont=False
         d_dic={colname:r[k] for k, colname in enumerate(cols)}
         d_dic.update(constant_kwargs)
@@ -198,11 +199,11 @@ class subgraph(object):
         if Rtree is None:
             Rtree=kwargs['full_tree']
         Rtree=deepcopy(Rtree)
-        print 'Rtree',Rtree
+        #print 'Rtree',Rtree
         subgraph=get_subtree(Rtree, self.subgraph_keys)
-        print 'subgraph', subgraph
+        #print 'subgraph', subgraph
         sub_stree=get_unique_plottable_tree(subgraph)
-        print 'sub_stree', sub_stree
+        #print 'sub_stree', sub_stree
         return {'subgraph_'+self.identifier:sub_stree}, False
     
     def summarise(self, sub_strees):

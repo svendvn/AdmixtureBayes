@@ -85,15 +85,7 @@ if options.plot_tops_file:
             print node_structure
             plot_node_structure_as_directed_graph(node_structure, drawing_name=code+'.png')
     sys.exit()
-    
-tenth=len(nstrees)//10
-for i,stree in enumerate(nstrees):
-    if i%tenth==0:
-        print i//tenth*10, '%'
-    tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
-    ad=get_populations(tree, min_w=options.min_w)
-    for a in ad:
-        seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
+
 
 if options.test_run:
     from generate_prior_trees import generate_phylogeny
@@ -157,7 +149,15 @@ nodes=read_one_line(options.nodes)
 if not options.no_sort:
     nodes=sorted(nodes)
 
-
+    
+tenth=len(nstrees)//10
+for i,stree in enumerate(nstrees):
+    if i%tenth==0:
+        print i//tenth*10, '%'
+    tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    ad=get_populations(tree, min_w=options.min_w)
+    for a in ad:
+        seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
 
 for threshold in options.posterior_threshold:
     total_threshold=int(N*threshold)

@@ -40,7 +40,7 @@ parser.add_argument('--use_cols', default=['tree','add','layer','no_admixes'], t
 parser.add_argument('--constrain_number_of_admixes', default='', type=str, choices=['','true_val']+map(str, range(21)), help='The number of admixture events that there are constrained on in the data set. If negative there are no constraints')
 parser.add_argument('--constrain_number_of_effective_admixes', default='',choices=['','true_val']+map(str, range(21)), type=str, help='The number of effective_admixture events that there are constrained on in the data set. If negative there are no constraints.')
 parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true', help='this will remove the ')
-parser.add_argument('--summaries', default=['Rtree','Rcov','cov_dist','topology','top_identity','pops','set_differences'], choices=possible_summaries.keys(),nargs='+', type=str, help='The summaries to calculate')
+parser.add_argument('--summaries', default=['Rtree','Rcov','cov_dist','topology','top_identity','pops','set_differences'], choices=possible_summaries.keys(),nargs='*', type=str, help='The summaries to calculate')
 parser.add_argument('--save_summaries', default=['no_admixes','add','cov_dist','top_identity','set_differences'], nargs='*', type=str, help='The list of summaries to save')
 parser.add_argument('--summary_summaries', default=['mean'], nargs='*', type=str, help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
 parser.add_argument('--true_scaled_tree',  type=str, default='')
