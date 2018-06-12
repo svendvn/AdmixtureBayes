@@ -107,6 +107,8 @@ def order_covariance(xnn_tuple, outgroup=''):
     xs,ns,names=xnn_tuple
     #print self.full_nodes, self.outgroup
     n_outgroup=next((n for n, e in enumerate(names) if e==outgroup))
+    print 'n_outgroup', n_outgroup
+    print 'xs shape', xs.shape
     xs_o=xs[n_outgroup,:]
     ns_o=ns[n_outgroup,:]
     names_o=names[n_outgroup]
