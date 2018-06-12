@@ -7,7 +7,7 @@ from tree_statistics import get_timing, identifier_to_tree_clean, unique_identif
 from load_data import read_data
 from reduce_covariance import reduce_covariance
 
-from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones,nan
+from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones,nan, dtype
 from numpy.linalg import det
 from copy import deepcopy
 from operator import itemgetter
@@ -97,8 +97,8 @@ def get_xs_and_ns_from_treemix_file(snp_file, locus_filter):
     else:
         new_filename=snp_file
     allele_freqs, names, ns, minors, total_sum= read_freqs(new_filename, locus_filter)
-    xs=array(minors).T
-    ns=array(ns).T
+    xs=array(minors, dtype=dtype(float)).T
+    ns=array(ns, dtype=dtype(float)).T
     return xs,ns,names
 
 def order_covariance(xnn_tuple, outgroup=''):

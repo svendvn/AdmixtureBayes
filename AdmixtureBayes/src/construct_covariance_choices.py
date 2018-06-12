@@ -92,8 +92,11 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     #for i,j in est_args.items():
     #    print i,j
     #print xnn_tuple
+    #print xnn_tuple
+    print 'shapes',(xnn_tuple[0].shape,xnn_tuple[1].shape)
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
     xs,ns,names=xnn_tuple
+    
 
     est= make_estimator(reduce_method='outgroup', 
                    reduce_also=True,

@@ -5,6 +5,7 @@ from subgraphing import get_subtree
 from tree_to_data import unzip, gzip
 import pandas as pd
 from copy import deepcopy
+from subprocess import call
 
 
 
@@ -50,7 +51,7 @@ if options.input_type=='tree':
         f.write(unique_identifier_and_branch_lengths(subtree))
 if options.input_type=='snps':
     if options.input_file.endswith('.gz'):
-        options.input_file=unzip(options.input_file, overwrite=True)
+        options.input_file=unzip(options.input_file, overwrite=False)
     df=pd.read_csv(options.input_file, usecols=options.populations, sep=' ')
     if not options.output_file:
         options.output_file=options.input_file+'_'.join(options.populations)
