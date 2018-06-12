@@ -5,7 +5,7 @@ import pandas as pd
 from argparse import ArgumentParser
 from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean
 from copy import deepcopy
-from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph
+#from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
 
 parser = ArgumentParser(usage='pipeline for consensus tree maker', version='1.0.0')
@@ -95,6 +95,7 @@ if options.plot_tops_file:
 if options.test_run:
     from generate_prior_trees import generate_phylogeny
     from tree_statistics import unique_identifier_and_branch_lengths
+    from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph 
     N=5
     tree1=generate_phylogeny(N,1)
     plot_as_directed_graph(tree1, drawing_name='tree1.png')
@@ -177,6 +178,7 @@ for threshold in options.posterior_threshold:
             effictive_admixtures=get_number_of_tadmixtures(final_node_structure)
             f.write(str(effictive_admixtures))
     if not options.suppress_plot:
+        from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph 
         plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(total_threshold)+'.png')
     
     
