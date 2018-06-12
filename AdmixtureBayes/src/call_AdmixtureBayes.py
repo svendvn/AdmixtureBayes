@@ -277,13 +277,17 @@ if options.treemix_instead or options.treemix_also:
 
     dir = os.path.dirname(__file__)
     program=os.path.join(dir,'treemixrunner.py')
+    if options.treemix_output_names:
+        outfiles=options.treemix_output_names
+    else:
+        outfiles=[treemix_out_files+str(k) for k in options.treemix_no_admixtures]
     calls_to_treemix=[['python',program, 
                        '-p', str(options.treemix_processes), 
                        '-n', str(options.treemix_reps), 
                        '-i', treemix_in_file,
-                       '-o', treemix_out_files+str(k),
+                       '-o', o_file,
                        '-root', options.reduce_node,
-                       '-m', str(k)] for k in options.treemix_no_admixtures]
+                       '-m', str(k)] for k, o_file in zip(options.treemix_no_admixtures,outfiles)]
     from subprocess import call
     for c in calls_to_treemix:
         call(c)
