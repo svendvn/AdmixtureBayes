@@ -3,7 +3,7 @@ from Treemix_to_AdmixtureBayes import Node
 from construct_nodes_choices import read_one_line
 import pandas as pd
 from argparse import ArgumentParser
-from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string
+from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean
 from copy import deepcopy
 from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph
 import sys
@@ -20,7 +20,6 @@ parser.add_argument('--burn_in_fraction', default=0.0, type=float, help='the pro
 parser.add_argument('--tree_column_name', default='tree', type=str, help='the name in the header of the column with all the trees.')
 parser.add_argument('--max_number_of_trees', default=10000, type=int, help='an upper limit on the number of trees to reduce computational pressure')
 parser.add_argument('--sep', default=',', type=str, help='the separator used in the input file')
-parser.add_argument('--prefix', default='sletmig/', type=str,help='place to put the temporary files')
 parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help='Which method should be used to calculate the consensus tree?')
 parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
 
@@ -28,6 +27,9 @@ parser.add_argument('--posterior_threshold', default=[0.25,0.5,0.75,0.9,0.95,0.9
 
 parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
 
+parser.add_argument('--get_effective_number_of_admixtures', action='store_true', default=False, help='this will cancel all the other analysis and only print the topological number of admixes(tadmixes) to a a file.')
+parser.add_argument('--effective_number_of_admixtures_file', type=str, default='no_tadmixes.txt', help='this is the file in which to write the effective number of admixes in the file')
+parser.add_argument('--suppress_plot', default=False, action='store_true')
 options= parser.parse_args()
 
 
@@ -45,7 +47,11 @@ def combine_nodes(node_structure, new_node, seen_sets):
     return node_structure
                 
                 
-    
+def get_number_of_tadmixtures(node_structure):
+    total=0
+    for key in node_structure:
+        total+=max(0,node_structure[key].get_number_of_parents()-1)
+    return total
     
 def node_combinations_to_node_structure(node_combinations):
     length_sorted={}
@@ -80,12 +86,11 @@ if options.plot_tops_file:
             a=list(set(flattened))
             code=rank+'_'+str(int(100*round(float(probability),2)))+'_'+'_'.join(a)
             print 'code',code
-            combination.split('_')
-            node_structure=node_combinations_to_node_structure()
+            node_structure=node_combinations_to_node_structure(combination.split('_'))
             print node_structure
             plot_node_structure_as_directed_graph(node_structure, drawing_name=code+'.png')
     sys.exit()
-
+    
 
 if options.test_run:
     from generate_prior_trees import generate_phylogeny
@@ -152,9 +157,12 @@ if not options.no_sort:
     
 tenth=len(nstrees)//10
 for i,stree in enumerate(nstrees):
-    if i%tenth==0:
+    if tenth>0 and i%tenth==0:
         print i//tenth*10, '%'
-    tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    if ';' in stree:
+        tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    else:
+        tree=topological_identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
     ad=get_populations(tree, min_w=options.min_w)
     for a in ad:
         seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
@@ -164,7 +172,13 @@ for threshold in options.posterior_threshold:
     final_node_combinations=[k for k,v in seen_node_combinations.items() if v > total_threshold]
     print 'final_node_combinations', final_node_combinations
     final_node_structure=node_combinations_to_node_structure(final_node_combinations)
-    plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(total_threshold)+'.png')
+    if options.get_effective_number_of_admixtures:
+        with open(options.effective_number_of_admixtures_file, 'w') as f:
+            effictive_admixtures=get_number_of_tadmixtures(final_node_structure)
+            f.write(str(effictive_admixtures))
+    if not options.suppress_plot:
+        plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(total_threshold)+'.png')
+    
     
 
 

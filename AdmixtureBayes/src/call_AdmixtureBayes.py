@@ -50,6 +50,8 @@ parser.add_argument('--treemix_processes', type=int, default=1, help='the number
 parser.add_argument('--alternative_treemix_infile', type=str, default='', help='By default the program will use the treemix file generated in the covariance pipeline (or go looking for the file that would have been made if 6 was part of the pipeline). This will override that')
 #parser.add_argument('--treemix_file', type=str, default='', help= 'the filename of the intermediate step that contains the ms output.')
 parser.add_argument('--treemix_output_prefix', type=str, default='', help= 'the filename prefix of all the treemix output files. Each file will get the suffix k.txt where k is the number of admixture events.')
+parser.add_argument('--treemix_output_names', type=str, nargs='+', default=[], help='if supplied, this will choose the name of the output files for treemix, disregarding the treemix output prefix')
+
 
 #covariance matrix options
 parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,8,9], help='skewed admixture proportion prior in the simulated datasets')
