@@ -112,8 +112,11 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
         savetxt(filename, vc)
     if 'm_scale' in extra_info_dic:
         if 'mscale_file' in kwargs: 
+            print kwargs['mscale_file']
             with open(kwargs['mscale_file'], 'w') as f:
-                f.write(str(extra_info_dic['m_scale']))
+                txt=str(extra_info_dic['m_scale'])
+                assert '\0' not in txt, 'binary content in m_scale file'
+                f.write(txt)
         if 'return_also_mscale' in kwargs and kwargs['return_also_mscale']:
             return cov, extra_info_dic['m_scale']
     return cov
