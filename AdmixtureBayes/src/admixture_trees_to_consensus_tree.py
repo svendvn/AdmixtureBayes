@@ -5,6 +5,8 @@ import pandas as pd
 from argparse import ArgumentParser
 from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean
 from copy import deepcopy
+from generate_sadmix_trees import effective_number_of_admixes
+from Rtree_operations import get_number_of_admixes
 #from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
 
@@ -27,8 +29,9 @@ parser.add_argument('--posterior_threshold', default=[0.25,0.5,0.75,0.9,0.95,0.9
 
 parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
 
-parser.add_argument('--get_effective_number_of_admixtures', action='store_true', default=False, help='this will cancel all the other analysis and only print the topological number of admixes(tadmixes) to a a file.')
+parser.add_argument('--get_effective_number_of_admixtures', action='store_true', default=False, help='this will cancel all the other analysis and only print the effective number of admixes(tadmixes/sadmixes or admixes) to a a file.')
 parser.add_argument('--effective_number_of_admixtures_file', type=str, default='no_tadmixes.txt', help='this is the file in which to write the effective number of admixes in the file')
+parser.add_argument('--type_of_effective_admixtures', type=str, choices=['sadmix','tadmix','admix'], help='this is the type of admixes to write to the file.')
 parser.add_argument('--suppress_plot', default=False, action='store_true')
 options= parser.parse_args()
 
@@ -157,6 +160,7 @@ if not options.no_sort:
 
     
 tenth=len(nstrees)//10
+trees=[]
 for i,stree in enumerate(nstrees):
     if tenth>0 and i%tenth==0:
         print i//tenth*10, '%'
@@ -164,6 +168,7 @@ for i,stree in enumerate(nstrees):
         tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
     else:
         tree=topological_identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    trees.append(tree)
     ad=get_populations(tree, min_w=options.min_w)
     for a in ad:
         seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
@@ -175,8 +180,29 @@ for threshold in options.posterior_threshold:
     final_node_structure=node_combinations_to_node_structure(final_node_combinations)
     if options.get_effective_number_of_admixtures:
         with open(options.effective_number_of_admixtures_file, 'w') as f:
-            effictive_admixtures=get_number_of_tadmixtures(final_node_structure)
-            f.write(str(effictive_admixtures))
+            if options.type_of_effective_admixtures=='tadmix':
+                effictive_admixtures=get_number_of_tadmixtures(final_node_structure)
+                f.write(str(effictive_admixtures))
+            elif options.type_of_effective_admixtures=='sadmix':
+                val=0
+                count=0
+                for tree in trees:
+                    val+=effective_number_of_admixes(tree)
+                    count+=1
+                if count==1:
+                    f.write(str(int(val)))
+                else:
+                    f.write(str(float(val)/count))
+            elif options.type_of_effective_admixtures=='admix':
+                val=0
+                count=0
+                for tree in trees:
+                    val+=get_number_of_admixes(tree)
+                    count+=1
+                if count==1:
+                    f.write(str(int(val)))
+                else:
+                    f.write(str(float(val)/count))
     if not options.suppress_plot:
         from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph 
         plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(total_threshold)+'.png')
