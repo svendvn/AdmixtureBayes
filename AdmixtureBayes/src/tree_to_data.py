@@ -5,7 +5,7 @@ from Rtree_operations import (find_rooted_nodes, get_number_of_leaves, get_real_
                               time_adjust_tree, get_max_timing, get_all_branch_lengths, get_number_of_admixes)
 from tree_statistics import get_timing, identifier_to_tree_clean, unique_identifier_and_branch_lengths
 from load_data import read_data
-from reduce_covariance import reduce_covariance
+from reduce_covariance import reduce_covariance, thin_covariance
 
 from numpy import loadtxt, cov, array, mean, vstack, sum, identity, insert, hstack, vsplit, amin, sqrt, zeros, delete, ix_, ones,nan, dtype
 from numpy.linalg import det
@@ -155,7 +155,7 @@ def tree_to_data_perfect_model(tree, df):
 def normalise(m):
     return m-max(0,amin(m))
 
-def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabetically=False, vc=None, return_only_covariance=True):
+def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabetically=False, vc=None, return_only_covariance=True, subnodes=[]):
     dat=[]
     multiplier=None
     with open(filename, 'r') as f:
@@ -189,6 +189,10 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabe
     if reduce_column is not None:
         m=reduce_covariance(m, reduce_column)
         #m=normalise(m)
+    if subnodes:
+        m=thin_covariance(m, nodes, subnodes)
+        if vc:
+            varc=thin_covariance(vc, nodes,subnodes)
     res=[m]
     if multiplier is not None:
         res.append(multiplier)
@@ -196,6 +200,7 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabe
             res.append(varc)
         else:
             res.append(None)
+
     if len(res)==1 or return_only_covariance:
         return m
     else:

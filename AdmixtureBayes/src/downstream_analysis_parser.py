@@ -29,6 +29,7 @@ parser = ArgumentParser(usage='pipeline for post analysis', version='1.0.0')
 parser.add_argument('--test_run', default=False, action='store_true', help='will overwrite everything and run a test function')
 parser.add_argument('--input_file', default='result_mc3.csv', type=str, help='The input file that should contain a column named tree or the option no_header should be turned on in which case every line is assumed to hold just one tree')
 parser.add_argument('--nodes', default='', type=str, help='file where the first line is the leaf nodes')
+parser.add_argument('--subnodes', default=[], type=str, nargs='+', help='The subnodes to do the analysis on. If not declared, the analysis will be done on the full nodes.')
 parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
 parser.add_argument('--burn_in_fraction', default=0.5, type=float, help='the proportion of the rows that are discarded as burn in period')
 parser.add_argument('--total', default=886, type=int, help='an upper limit on the number of rows to reduce computational pressure')
@@ -63,26 +64,47 @@ parser.add_argument('--subgraph_file', default='', type=str, help='file where ea
 
 options= parser.parse_args()
 
+if options.subnodes:
+    if options.outgroup_name in options.subnodes:
+        subnodes_with_outgroup=options.subnodes
+        subnodes_wo_outgroup=deepcopy(options.subnodes)
+        subnodes_wo_outgroup.remove(options.outgroup_name)
+    else:
+        subnodes_with_outgroup=deepcopy(options.subnodes)+[options.outgroup_name]
+        subnodes_wo_outgroup=options.subnodes
+else:
+    subnodes_with_outgroup=[]
+    subnodes_wo_outgroup=[]
+    
+
 outp=read_true_values(true_scaled_tree=options.true_scaled_tree, 
                       true_tree=options.true_tree,
                       true_add=options.true_add,
                       true_covariance_reduced=options.true_covariance_reduced,
                       true_covariance_and_multiplier=options.true_covariance_and_multiplier,
-                      true_no_admix=options.true_no_admix)
+                      true_no_admix=options.true_no_admix,
+                      subnodes_with_outgroup=subnodes_with_outgroup,
+                      subnodes_wo_outgroup=subnodes_wo_outgroup)
 true_scaled_tree, true_tree, true_add, true_covariance_reduced, (true_covariance_scaled,true_multiplier), true_no_admix, _, _, _=outp
 outp=read_true_values(true_covariance_reduced=options.emp_covariance_reduced,
                       true_covariance_and_multiplier=options.emp_covariance_and_multiplier,
-                      true_m_scale=options.emp_m_scale)
+                      true_m_scale=options.emp_m_scale,
+                      subnodes_with_outgroup=subnodes_with_outgroup,
+                      subnodes_wo_outgroup=subnodes_wo_outgroup)
 _, _, _, emp_covariance_reduced, (emp_covariance_scaled,multiplier), _, emp_m_scale, vc, df=outp
 
 if options.treemix_post_analysis:
     if not options.treemix_full_tree:
         outp=read_true_values(true_tree=options.treemix_tree,
-                          true_add=options.treemix_add)
+                          true_add=options.treemix_add,
+                      subnodes_with_outgroup=subnodes_with_outgroup,
+                      subnodes_wo_outgroup=subnodes_wo_outgroup)
         _, treemix_tree, treemix_add, _, _, _, _, _, _=outp
         create_treemix_csv_output(treemix_tree,treemix_add*multiplier, emp_m_scale, options.treemix_csv_output)
     elif options.treemix_full_tree:
-        outp=read_true_values(true_scaled_tree=options.treemix_full_tree)
+        outp=read_true_values(true_scaled_tree=options.treemix_full_tree,
+                      subnodes_with_outgroup=subnodes_with_outgroup,
+                      subnodes_wo_outgroup=subnodes_wo_outgroup)
         full_treemix_tree, _, _, _, _, _, _, _, _=outp
         create_treemix_sfull_tree_csv_output(full_treemix_tree, emp_m_scale, options.treemix_csv_output)
         full_nodes=sorted(get_leaf_keys(full_treemix_tree))
@@ -119,11 +141,13 @@ name_to_rowsum_index=pointers()
 possible_summary_summaries={'mean':float_mean}
 
 if 'Rtree' in options.summaries:
-    row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees))
+    row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
     name_to_rowsum_index('Rtree')
 if 'full_tree' in options.summaries:
-    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name, remove_sadtrees=options.constrain_sadmix_trees))
+    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name, remove_sadtrees=options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
     name_to_rowsum_index('full_tree')
+if options.subnodes:
+    nodes=subnodes_wo_outgroup
 if 'subgraph' in options.summaries:
     subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['full'])
     for dic in subgraph_dicts:

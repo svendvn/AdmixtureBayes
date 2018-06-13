@@ -93,24 +93,28 @@ def create_treemix_sfull_tree_csv_output(tree,m_scale, outfile):
 
 class make_Rtree(object):
     
-    def __init__(self, nodes_to_be_sorted, remove_sadtrees=False):
+    def __init__(self, nodes_to_be_sorted, remove_sadtrees=False, subnodes=[]):
         self.nodes=sorted(nodes_to_be_sorted)
         self.remove_sadtrees=remove_sadtrees
+        self.subnodes=subnodes
         
     def __call__(self, tree, **not_needed):
         #print tree
         #print not_needed
         Rtree=identifier_to_tree_clean(tree, leaves=generate_predefined_list_string(deepcopy(self.nodes)))
+        if self.subnodes:#DETTE TAGER IKKE ORDENTLIG HOJDE FOR KOVARIANSMATRICERNE SOM BLIVER FORKERTE
+            Rtree=get_subtree(Rtree, self.subnodes)
         if self.remove_sadtrees and (not admixes_are_sadmixes(Rtree)):
             return {'Rtree':Rtree}, True
         return {'Rtree':Rtree}, False
     
 class make_full_tree(object):
     
-    def __init__(self, add_multiplier=1, outgroup_name='out', remove_sadtrees=False):
+    def __init__(self, add_multiplier=1, outgroup_name='out', remove_sadtrees=False, subnodes=[]):
         self.add_multiplier=add_multiplier
         self.outgroup_name=outgroup_name
         self.remove_sadtrees=remove_sadtrees
+        self.subnodes=subnodes
         
     def __call__(self, Rtree=None, add=None, **kwargs):
         if Rtree is None:
@@ -118,6 +122,8 @@ class make_full_tree(object):
             nodes=sorted(kwargs['full_nodes'])
             sfull_tree=kwargs['sfull_tree']
             full_tree=identifier_to_tree_clean(sfull_tree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+            if self.subnodes:
+                full_tree=get_subtree(full_tree, self.subnodes)
             if self.remove_sadtrees and (not admixes_are_sadmixes(full_tree)):
                 return {'full_tree':full_tree}, True
             return {'full_tree':full_tree}, False
@@ -126,6 +132,8 @@ class make_full_tree(object):
                                 to_new_root_length=float(add)*self.add_multiplier, 
                                 to_outgroup_length=0, 
                                 outgroup_name=self.outgroup_name)
+        if self.subnodes:
+            full_tree=get_subtree(full_tree, self.subnodes)
         return {'full_tree':full_tree}, False
     
 class make_Rcovariance(object):
@@ -357,18 +365,24 @@ def read_true_values(true_scaled_tree='',
                       true_no_admix='',
                       true_m_scale='',
                       true_variance_correction=None,
-                      true_df=''):
+                      true_df='',
+                      subnodes_wo_outgroup=[],
+                      subnodes_with_outgroup=[]):
     scaled_tree,tree,add,covariance_reduced,(Rcovariance,multiplier), no_admix,m_scale,vc,df=None,None,None,None,(None,None),None,None,None,None
     if true_scaled_tree:
         scaled_tree=identifier_file_to_tree_clean(true_scaled_tree)
+        if subnodes_with_outgroup:
+            scaled_tree=get_subtree(scaled_tree, subnodes_with_outgroup)
     if true_tree:
         tree=identifier_file_to_tree_clean(true_tree)
+        if subnodes_wo_outgroup:
+            tree=get_subtree(tree, subnodes_wo_outgroup)
     if true_add:
         add=float(read_one_line(true_add))
     if true_covariance_reduced:
-        covariance_reduced=file_to_emp_cov(true_covariance_reduced, sort_nodes_alphabetically=True, return_only_covariance=False)
+        covariance_reduced=file_to_emp_cov(true_covariance_reduced, sort_nodes_alphabetically=True, return_only_covariance=False, subnodes=sorted(subnodes_wo_outgroup))
     if true_covariance_and_multiplier:
-        Rcovariance,multiplier,vc=file_to_emp_cov(true_covariance_and_multiplier, sort_nodes_alphabetically=True, vc=true_variance_correction, return_only_covariance=False)
+        Rcovariance,multiplier,vc=file_to_emp_cov(true_covariance_and_multiplier, sort_nodes_alphabetically=True, vc=true_variance_correction, return_only_covariance=False, subnodes=sorted(subnodes_wo_outgroup))
     if true_no_admix:
         no_admix=int(true_no_admix)
     if true_m_scale:
