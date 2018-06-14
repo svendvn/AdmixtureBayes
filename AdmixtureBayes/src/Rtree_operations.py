@@ -157,6 +157,7 @@ def rearrange_root_foolproof(tree, new_outgroup):
         print 'tryna remove', admixture_to_remove
         if admixture_to_remove is None:
             break
+        print tree
         tree=remove_admix(tree, admixture_to_remove, 1)[0]
     return rearrange_root(tree, new_outgroup)
 
@@ -1001,7 +1002,7 @@ def remove_admix(tree, rkey, rbranch):
     if parent_key!='r':
         tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
     if source_key=='r':
-        tree,_,t3,_=remove_root_attachment(tree, rkey) #now sorphanota_key is new root
+        tree,_,t3,_=remove_root_attachment(tree, rkey, other_branch(rbranch)) #now sorphanota_key is new root
         del tree[rkey]
         return tree, (t1,t2,t3,None,t5),alpha,(orphanota_key,orphanota_branch)
     del tree[rkey]

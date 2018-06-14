@@ -144,10 +144,14 @@ if 'Rtree' in options.summaries:
     row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
     name_to_rowsum_index('Rtree')
 if 'full_tree' in options.summaries:
-    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, outgroup_name=options.outgroup_name, remove_sadtrees=options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
+    row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier, 
+                                                    outgroup_name=options.outgroup_name, 
+                                                    remove_sadtrees=options.constrain_sadmix_trees, 
+                                                    subnodes=subnodes_with_outgroup))
     name_to_rowsum_index('full_tree')
 if options.subnodes:
     nodes=subnodes_wo_outgroup
+    full_nodes=sorted(list(set(nodes[:]+[options.outgroup_name])))
 if 'subgraph' in options.summaries:
     subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['full'])
     for dic in subgraph_dicts:
