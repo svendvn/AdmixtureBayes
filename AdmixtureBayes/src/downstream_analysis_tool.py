@@ -73,7 +73,6 @@ def iterate_over_output_file(outfile,
             d_dic.update(add_dic)
         if cont:
             continue
-        print d_dic
         all_results.append(thinned_d_dic(d_dic))
     return all_results, full_summs
 
@@ -144,8 +143,8 @@ class make_Rcovariance(object):
         self.add_multiplier=add_multiplier
         
     def __call__(self, Rtree=None, add=None, **kwargs):
-        print kwargs['full_tree']
-        print self.nodes
+        #print kwargs['full_tree']
+        #print self.nodes
         if Rtree is None:
             full_tree=kwargs['full_tree']
             outgroup_name=list(set(get_leaf_keys(full_tree))-set(self.nodes))[0]
@@ -190,12 +189,12 @@ class topology(object):
         if Rtree is None:
             full_tree=kwargs['full_tree']
             outgroup=list(set(get_leaf_keys(full_tree))-set(self.nodes))[0]
-            print full_tree, outgroup
+            #print full_tree, outgroup
             cfull_tree=rearrange_root_foolproof(deepcopy(full_tree), outgroup) #this removes the admixtures between the outgroup and the root.
             Rtree=remove_outgroup(cfull_tree, outgroup)
-        print 'topology calculation'
-        print self.nodes
-        print Rtree
+        #print 'topology calculation'
+        #print self.nodes
+        #print Rtree
         top=admixture_sorted_unique_identifier(Rtree, leaf_order=self.nodes, not_opposite=True)
         return {'topology':top}, False
 
@@ -255,13 +254,13 @@ class subsets(object):
 class topology_identity(object):
     
     def __init__(self, true_Rtree, nodes):
-        print 'true tree'
-        print true_Rtree
-        print nodes
+        #print 'true tree'
+        #print true_Rtree
+        #print nodes
         self.full_scaled_turned_topology=admixture_sorted_unique_identifier(true_Rtree, leaf_order=nodes, not_opposite=True)
         
     def __call__(self, topology, **not_needed):
-        print topology, self.full_scaled_turned_topology
+        #print topology, self.full_scaled_turned_topology
         ident_top=(topology==self.full_scaled_turned_topology)
         return {'top_identity':ident_top}, False
     
