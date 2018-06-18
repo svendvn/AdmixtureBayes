@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from downstream_analysis_tool import (thinning, iterate_over_output_file, always_true, make_Rtree, make_full_tree, read_true_values,
                                       make_Rcovariance, cov_truecov, topology_identity,get_pops,compare_pops,extract_number_of_sadmixes, 
                                       read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode,
-                                      create_treemix_sfull_tree_csv_output, subgraph, subsets)
+                                      create_treemix_sfull_tree_csv_output, subgraph, subsets, thinning_on_admixture_events)
 from subgraphing import read_subgraphing_dict, get_most_likely_subgraphs_list, save_top_subgraphs
 from numpy import mean
 from copy import deepcopy
@@ -40,6 +40,7 @@ parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold 
 parser.add_argument('--use_cols', default=['tree','add','layer','no_admixes'], type=str, nargs='+', help='The columns to load from the input file')
 parser.add_argument('--constrain_number_of_admixes', default='', type=str, choices=['','true_val']+map(str, range(21)), help='The number of admixture events that there are constrained on in the data set. If negative there are no constraints')
 parser.add_argument('--constrain_number_of_effective_admixes', default='',choices=['','true_val']+map(str, range(21)), type=str, help='The number of effective_admixture events that there are constrained on in the data set. If negative there are no constraints.')
+parser.add_argument('--choice_if_no_thinned_graphs', default='error', choices=['error', 'nearest_admixture_events'], help='If the thinning leaves no graphs left, this is what will be done in stead. error will throw an error and nearest_admixture_events will expand the band of allowed number of admixture events(if the chain has been thinned on number of admixture events).')
 parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true', help='this will remove the ')
 parser.add_argument('--summaries', default=['Rtree','Rcov','cov_dist','topology','top_identity','pops','set_differences'], choices=possible_summaries.keys(),nargs='*', type=str, help='The summaries to calculate')
 parser.add_argument('--save_summaries', default=['no_admixes','add','cov_dist','top_identity','set_differences'], nargs='*', type=str, help='The list of summaries to save')
@@ -112,9 +113,9 @@ if options.treemix_post_analysis:
 
 if options.constrain_number_of_admixes:
     if options.constrain_number_of_admixes=='true_val':
-        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(true_no_admix))
+        thinner=thinning_on_admixture_events(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(true_no_admix), if_no_trees=options.choice_if_no_thinned_graphs)
     else:
-        thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(options.constrain_number_of_admixes))
+        thinner=thinning_on_admixture_events(burn_in_fraction=options.burn_in_fraction, total=options.total, no_admixes=int(options.constrain_number_of_admixes),if_no_trees=options.choice_if_no_thinned_graphs)
 else:
     thinner=thinning(burn_in_fraction=options.burn_in_fraction, total=options.total)
 

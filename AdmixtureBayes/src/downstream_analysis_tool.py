@@ -21,6 +21,7 @@ from Rtree_operations import get_leaf_keys, rearrange_root_foolproof, remove_out
 from argparse import ArgumentParser
 from collections import Counter
 from subgraphing import get_subtree, get_unique_plottable_tree,get_and_save_most_likely_substrees
+from numpy import True_
 
 print 'imported software'
 
@@ -308,6 +309,38 @@ class extract_number_of_sadmixes(object):
             return {}, True
         return {'no_sadmixes':no_sadmixes}, False
 
+class thinning_on_admixture_events(object):
+    
+    def __init__(self, burn_in_fraction=None, total=None, no_admixes=None, if_no_trees='error'):
+         self.burn_in_fraction=burn_in_fraction
+         self.total=total
+         self.no_admixes=no_admixes
+         self.if_no_trees=if_no_trees
+        
+    def __call__(self, df):
+        n=len(df)
+        print 'removing burn in from dataframe with ', n, 'rows.'
+        if self.burn_in_fraction is not None:
+            df=df[int(n*self.burn_in_fraction):]
+        print 'burn_in operation finished. Now ', len(df), 'rows.'
+        if self.no_admixes is not None:
+            print 'filtering on ', 'no_admixes','==',self.no_admixes
+            df2=df.loc[df['no_admixes']==self.no_admixes,:]
+            no_admixtures=[self.no_admixes]
+            if self.if_no_trees=='nearest_admixture_events':
+                while len(df2)==0:
+                    no_admixtures=map(str,[int(no_admixtures[0])-1]+no_admixtures+[int(no_admixtures[-1])+1])
+                    print 'No graphs with requested number of admixtures! - now increasing to', no_admixtures
+                    df2=df.loc[df['no_admixes'].isin(no_admixtures),:]
+            df=df2
+        print 'after filtering operations there are now', len(df),'rows'
+        if self.total is not None:
+            n=len(df)
+            stepsize=max(n//self.total,1)
+            df=df[::stepsize]
+            print 'thinning complete. Now', len(df), 'rows'
+        return df
+        
 
 class thinning(object):
     
