@@ -49,7 +49,7 @@ def iterate_over_output_file(outfile,
                              full_summarize_functions=[],
                              **constant_kwargs):
     
-    df= pd.read_csv(outfile, usecols=cols)
+    df= pd.read_csv(outfile, usecols=cols, dtype={'no_admixes':object})
     df = df[cols]
     df= pre_thin_data_set_function(df)
     full_summs=[full_summarize_function(df) for full_summarize_function in full_summarize_functions]
@@ -328,7 +328,10 @@ class thinning_on_admixture_events(object):
             df2=df.loc[df['no_admixes']==self.no_admixes,:]
             no_admixtures=[self.no_admixes]
             if self.if_no_trees=='nearest_admixture_events':
-                while len(df2)==0:
+                max_count=22
+                count=0
+                while len(df2)==0 and count<max_count:
+                    count+=1
                     no_admixtures=map(str,[int(no_admixtures[0])-1]+no_admixtures+[int(no_admixtures[-1])+1])
                     print 'No graphs with requested number of admixtures! - now increasing to', no_admixtures
                     df2=df.loc[df['no_admixes'].isin(no_admixtures),:]
