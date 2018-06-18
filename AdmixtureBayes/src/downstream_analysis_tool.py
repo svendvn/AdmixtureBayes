@@ -325,9 +325,13 @@ class thinning_on_admixture_events(object):
         print 'burn_in operation finished. Now ', len(df), 'rows.'
         if self.no_admixes is not None:
             print 'filtering on ', 'no_admixes','==',self.no_admixes
+            print 'the admixture column is of type', df['no_admixes'].dtype
+            print 'the first entry(', str(df.iloc[0]['no_admixes']) ,')is of type', type(df.iloc[0]['no_admixes'])
+            print 'the no_admixes(',str(self.no_admixes) ,') is of type', type(self.no_admixes)
             df2=df.loc[df['no_admixes']==self.no_admixes,:]
             no_admixtures=[self.no_admixes]
             if self.if_no_trees=='nearest_admixture_events':
+                print 'CHANGES THE REQUESTED NUMBER OF ADMIXTURE EVENTS!!'
                 max_count=22
                 count=0
                 while len(df2)==0 and count<max_count:
