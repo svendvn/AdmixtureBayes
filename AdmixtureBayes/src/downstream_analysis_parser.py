@@ -141,6 +141,8 @@ class pointers(object):
 name_to_rowsum_index=pointers()
 possible_summary_summaries={'mean':float_mean}
 
+print 'subnodes_wo_outgroup', subnodes_wo_outgroup
+
 if 'Rtree' in options.summaries:
     row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
     name_to_rowsum_index('Rtree')
@@ -228,6 +230,8 @@ else:
                                          row_summarize_functions=row_sums,
                                          thinned_d_dic=save_thin_columns,
                                          full_summarize_functions=[])
+#print 'all_results:'
+#print all_results
     
 
 def save_wrapper(filename):
@@ -241,15 +245,17 @@ def save_wrapper(filename):
 if 'mode_topology_compare' in options.summary_summaries or 'mode_topology' in options.summary_summaries:
     def mode_topology_compare(v):
         a=mode(v)
-        print a
+        #print a
         return row_sums[name_to_rowsum_index['top_identity']](a)[0]['top_identity']
     def mode_topology(v):
+        #print 'tops', v
         a=mode(v)
         return(a)
     possible_summary_summaries['mode_topology']=mode_topology
     possible_summary_summaries['mode_topology_compare']=mode_topology_compare
 if 'mode_pops_compare' in options.summary_summaries or 'mode_pops' in options.summary_summaries:
     def mode_pops(v):
+        #print 'pops',v
         v2=['-'.join(sorted(vi)) for vi in v]
         vmax_s=mode(v2)
         return vmax_s
@@ -257,7 +263,7 @@ if 'mode_pops_compare' in options.summary_summaries or 'mode_pops' in options.su
         v2=['-'.join(sorted(vi)) for vi in v]
         vmax_s=mode(v2)
         vmax=vmax_s.split('-')
-        print vmax
+        #print vmax
         return row_sums[name_to_rowsum_index['set_differences']](vmax)[0]['set_differences']
     possible_summary_summaries['mode_pops_compare']=mode_pops_compare
     possible_summary_summaries['mode_pops']=mode_pops

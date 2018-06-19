@@ -1128,6 +1128,24 @@ def _update_child(node, old_child, new_child):
     else:
         assert False, 'child could not be updated'
     return node
+
+def remove_non_mixing_admixtures(tree, limit=1e-7):
+    '''
+    Trees can have admixture events with admixture proportion very close to 0 or 1. This will remove those admixture proportions.
+    '''
+    admixtures_to_remove=[]
+    for key, node in tree.items():
+        if node_is_admixture(node):
+            if node[2]<limit:
+                admixtures_to_remove.append((key,0))
+            elif node[2]>1.0-limit:
+                admixtures_to_remove.append((key,1))
+    for adm_key, adm_branch in admixtures_to_remove:
+        if adm_key in tree:#it could have been removed by others
+            tree=remove_admixture(tree, adm_key, adm_branch)
+    return tree
+        
+    
         
 def get_parents(node):
     return node[:2]

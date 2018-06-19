@@ -1,5 +1,6 @@
 from Rtree_to_covariance_matrix import leave_node, _thin_out_dic, Population, _merge_pops, _full_node, _add_to_waiting
-from Rtree_operations import node_is_non_admixture, get_leaf_keys, get_real_parents, get_real_children, rename_root, screen_and_prune_one_in_one_out, pretty_string
+from Rtree_operations import (node_is_non_admixture, get_leaf_keys, get_real_parents, get_real_children, rename_root, 
+                              screen_and_prune_one_in_one_out, pretty_string, remove_non_mixing_admixtures)
 from tree_statistics import identifier_to_tree_clean, generate_predefined_list_string
 from copy import deepcopy
 from find_true_trees import get_unique_plottable_tree
@@ -87,8 +88,9 @@ def prune_to_subtree(tree,branches_to_keep):
     return sub_tree
 
 def get_subtree(tree, subgraph_keys):
-    branches_to_keep=get_branches_to_keep(tree, subgraph_keys)
-    return prune_to_subtree(tree, branches_to_keep)
+    tree2=remove_non_mixing_admixtures(deepcopy(tree))
+    branches_to_keep=get_branches_to_keep(tree2, subgraph_keys)
+    return prune_to_subtree(tree2, branches_to_keep)
 
 def remove_empty_children(tree):
     for k in tree:
@@ -242,10 +244,28 @@ if __name__=='__main__':
     from tree_plotting import plot_as_directed_graph
     from Rtree_operations import pretty_string
     tree={'n12': ['n13', None, None, 0.03029546, None, 'a1', 'n9'], 'n13': ['n14', None, None, 0.005071189, None, 'n12', 's10'], 'n10': ['n14', None, None, 0.008448681, None, 'a7', 'n8'], 'n11': ['n16', None, None, 0.015004037, None, 's2', 'a7'], 'n16': ['r', None, None, 0.003602743, None, 'n11', 'n15'], 'n14': ['n15', None, None, 0.033262905, None, 'n13', 'n10'], 'n15': ['n16', None, None, 0.004648582, None, 'n14', 'n6'], 's9': ['n3', None, None, 0.004760768, None, None, None], 's8': ['n6', None, None, 0.007454988, None, None, None], 's3': ['n8', None, None, 0.007021142, None, None, None], 's2': ['n11', None, None, 0.006707348, None, None, None], 's1': ['a1', None, None, 0.002359764, None, None, None], 's7': ['n9', None, None, 0.00869728, None, None, None], 's6': ['n3', None, None, 0.016867736, None, None, None], 's5': ['a2', None, None, 0.002292605, None, None, None], 's4': ['n5', None, None, 0.000109382, None, None, None], 's10': ['n13', None, None, 0.017452689, None, None, None], 'a1': ['a4', 'n12', 0.32, 0.008438453, 0.006708239, 's1', None], 'a2': ['n5', 'n6', 0.135, 0.12066482, 0.001733599, 's5', None], 'a4': ['a7', 'n9', 0.599, 0.035053964, 0.041518206, 'a1', None], 'a7': ['n10', 'n11', 0.401, 0.029920208, 0.009904888, 'a4', None], 'n8': ['n10', None, None, 0.009578977, None, 's3', 'n5'], 'n9': ['n12', None, None, 0.033982401, None, 's7', 'a4'], 'n3': ['r', None, None, 0.069890962, None, 's9', 's6'], 'n5': ['n8', None, None, 0.008113672, None, 's4', 'a2'], 'n6': ['n15', None, None, 0.002455554, None, 's8', 'a2']}
-    print plot_as_directed_graph(tree)
+    
+    #print plot_as_directed_graph(tree)
     sub_tree=get_subtree(tree, ['s1','s2','s3'])
-    print plot_as_directed_graph(sub_tree)
+    #print plot_as_directed_graph(sub_tree)
     print pretty_string(sub_tree)
     #plots=get_unique_plottable_tree(sub_tree)
     #print 'gotten unique_plottable'
     #print plots
+    
+    stree_difficult='a.w.w.c.c.w.c.4.3.6-c.w.0.w.c.w.w.4-c.w.w.w.w.0-c.w.w.w.0-c.0.w.w-c.0.w-c.0;0.014843959-0.003602704-0.002128203-0.027030132-0.008484730-0.067616899-0.021207056-0.027455759-0.011647297-0.009065170-0.053386961-0.001718477-0.009310923-0.010471979-0.036314546-0.004808845-0.055956235-0.004694887-0.003482668-0.039323330-0.014821628;1.000'
+    from tree_statistics import (identifier_to_tree_clean, generate_predefined_list_string, 
+                             identifier_file_to_tree_clean, unique_identifier_and_branch_lengths)
+    from Rtree_to_covariance_matrix import make_covariance
+    nodes=sorted(['s'+str(i+1) for i in range(10)])
+    tree_difficult=identifier_to_tree_clean(stree_difficult, leaves=generate_predefined_list_string(deepcopy(nodes)))
+    cov1=make_covariance(tree_difficult)
+    tree_difficult2=remove_non_mixing_admixtures(deepcopy(tree_difficult))
+    cov2=make_covariance(tree_difficult2)
+    print cov1
+    print cov2
+    print cov1-cov2
+    print pretty_string(tree_difficult)
+    print get_branches_to_keep(tree_difficult, ['s1','s2','s3'])
+    sub_tree=get_subtree(tree_difficult, ['s1','s2','s3'])
+    print pretty_string(sub_tree)

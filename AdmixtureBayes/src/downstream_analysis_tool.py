@@ -15,7 +15,7 @@ from copy import deepcopy
 from tree_to_data import file_to_emp_cov
 
 from tree_statistics import admixture_sorted_unique_identifier
-from Rtree_operations import get_leaf_keys, rearrange_root_foolproof, remove_outgroup
+from Rtree_operations import get_leaf_keys, rearrange_root_foolproof, remove_outgroup, pretty_string
 
 
 from argparse import ArgumentParser
@@ -63,16 +63,19 @@ def iterate_over_output_file(outfile,
         d_dic={colname:r[k] for k, colname in enumerate(cols)}
         d_dic.update(constant_kwargs)
         if not while_thin_data_set_function(**d_dic):
+            print 'breaking from while_thin'
             continue
         for row_summarize_function in row_summarize_functions:
             #print row_summarize_function
             #print d_dic
             add_dic, skip=row_summarize_function(**d_dic)
             if skip:
+                print 'breaks because of the value', add_dic
                 cont=True
                 break
             d_dic.update(add_dic)
         if cont:
+            print 'breaking because of cont'
             continue
         all_results.append(thinned_d_dic(d_dic))
     return all_results, full_summs
@@ -102,10 +105,22 @@ class make_Rtree(object):
     def __call__(self, tree, **not_needed):
         #print tree
         #print not_needed
+        #print tree
         Rtree=identifier_to_tree_clean(tree, leaves=generate_predefined_list_string(deepcopy(self.nodes)))
+        #print pretty_string(Rtree)
         if self.subnodes:#DETTE TAGER IKKE ORDENTLIG HOJDE FOR KOVARIANSMATRICERNE SOM BLIVER FORKERTE
-            Rtree=get_subtree(Rtree, self.subnodes)
+            try:
+                Rtree=get_subtree(Rtree, self.subnodes)
+            except AssertionError:
+                print pretty_string(Rtree)
+                from tree_plotting import plot_as_directed_graph
+                plot_as_directed_graph(Rtree)
+                print 'input_tree', tree
+                print 'nodes', self.nodes
+                print 'subnodes', self.subnodes
+                assert False
         if self.remove_sadtrees and (not admixes_are_sadmixes(Rtree)):
+            print 'returned true because adtrees are not sad'
             return {'Rtree':Rtree}, True
         return {'Rtree':Rtree}, False
     
@@ -152,6 +167,7 @@ class make_Rcovariance(object):
             cov=make_covariance(full_tree, node_keys=[outgroup_name]+self.nodes)
             Rcov=reduce_covariance(cov, 0)
             return {'Rcov':Rcov}, False
+        #print pretty_string(Rtree)
         #print get_leaf_keys(Rtree)
         #print self.nodes
         Rcov=make_covariance(Rtree, node_keys=self.nodes)+float(add)*self.add_multiplier
@@ -306,6 +322,7 @@ class extract_number_of_sadmixes(object):
             Rtree=kwargs['full_tree']
         no_sadmixes=effective_number_of_admixes(Rtree)
         if self.filter_on_sadmixes is not None and no_sadmixes!= self.filter_on_sadmixes:
+            print 'returns true from sadmixes'
             return {}, True
         return {'no_sadmixes':no_sadmixes}, False
 

@@ -55,7 +55,7 @@ class Population:
                 return w
         
     def subset_of_the_candidates(self,candidates):
-        if any((cand in self.members for cand in candidates)):
+        if any(( (cand in self.members) and (self.get_weight(cand)>1e-7) for cand in candidates)):
             if any((   (cand not in self.members) or (self.get_weight(cand)<1.0-1e-7) for cand in candidates)):
                 return 'partly'
             else:
