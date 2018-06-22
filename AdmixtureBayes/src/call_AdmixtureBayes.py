@@ -35,6 +35,7 @@ parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this direct
 
 #special run options
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
+parser.add_argument('--prior_run', action='store_true', default=False, help='Run the MCMC without likelihood and only the prior ')
 parser.add_argument('--treemix_instead', action= 'store_true', default=False, help='this will call treemix instead of AdmixtureBayes')
 parser.add_argument('--treemix_also', action='store_true', default=False, help='this will call treemix in addition to AdmixtureBayes')
 parser.add_argument('--likelihood_treemix', action='store_true', default=False, help='this will use the likelihood from treemix instead of the wishart distribution.')
@@ -420,7 +421,8 @@ posterior= posterior_class(emp_cov=covariance[0],
                        treemix=options.likelihood_treemix,
                        add_variance_correction_to_graph=options.add_variance_correction_to_graph,
                        prefix=prefix,
-                       variance_correction_file=options.variance_correction_input_file)
+                       variance_correction_file=options.variance_correction_input_file,
+                       prior_run=options.prior_run)
 
 if options.adaptive_temperatures:
     temperature_scheme=temperature_adapting(options.max_temp, options.MCMC_chains)

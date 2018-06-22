@@ -131,6 +131,9 @@ def initialize_posterior(emp_cov, M=10, p=0.5, use_skewed_distr=False, multiplie
         return posterior, multiplier
     return posterior
 
+def zero_likelihood(*args, **kwargs):
+    return 0
+
 class posterior_class(object):
     
     def __init__(self, 
@@ -144,7 +147,8 @@ class posterior_class(object):
                  treemix=False,
                  add_variance_correction_to_graph=False,
                  prefix='',
-                 variance_correction_file=''):
+                 variance_correction_file='',
+                 prior_run=False):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
         or M can be a matrix - the same size of emp_cov where each entry is the variance of that entry. 
@@ -156,8 +160,12 @@ class posterior_class(object):
             self.lik=likelihood_treemix
             self.likmat=likelihood_treemix_from_matrix
         else:
-            self.lik=likelihood
-            self.likmat=likelihood_from_matrix
+            if prior_run:
+                self.lik=zero_likelihood
+                self.likmat=zero_likelihood
+            else:
+                self.lik=likelihood
+                self.likmat=likelihood_from_matrix
             
         self.use_skewed_distr=use_skewed_distr
         self.multiplier=multiplier
