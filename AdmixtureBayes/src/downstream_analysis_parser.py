@@ -267,6 +267,25 @@ if 'mode_pops_compare' in options.summary_summaries or 'mode_pops' in options.su
         return row_sums[name_to_rowsum_index['set_differences']](vmax)[0]['set_differences']
     possible_summary_summaries['mode_pops_compare']=mode_pops_compare
     possible_summary_summaries['mode_pops']=mode_pops
+if 'node_count' in options.summary_summaries:
+    def count_measure(v):
+        ad=Counter([a for k in v for a in k])
+        l=ad.most_common(4000)
+        total=len(v)
+        with open('node_counts.txt','w') as f:
+            for key,count_num in l:
+                f.write(key+' '+str(float(count_num)/total)+'\n')
+    possible_summary_summaries['node_count']=count_measure
+if 'top_pops' in options.summary_summaries:
+    def write_top_pops(v):
+        v2=['_'.join(sorted(vi)) for vi in v]
+        ad=Counter(v2)
+        l=ad.most_common(10)
+        total=len(v)
+        with open('top_pops.txt','w') as f:
+            for n,(key,count_num) in enumerate(l):
+                f.write(str(n+1)+','+str(float(count_num)/total)+','+key+'\n')
+    possible_summary_summaries['top_pops']=write_top_pops
 if 'subgraph' in options.summary_summaries:
     subgraph_dicts=read_subgraphing_dict(options.subgraph_file)
     def subgraphing(trees):

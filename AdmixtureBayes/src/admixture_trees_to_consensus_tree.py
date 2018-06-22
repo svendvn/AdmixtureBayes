@@ -7,8 +7,9 @@ from tree_statistics import identifier_to_tree_clean,generate_predefined_list_st
 from copy import deepcopy
 from generate_sadmix_trees import effective_number_of_admixes
 from Rtree_operations import get_number_of_admixes
-#from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
+from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph #NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
+from statsmodels.tsa.tsatools import freq_to_period
 
 parser = ArgumentParser(usage='pipeline for consensus tree maker', version='1.0.0')
 
@@ -33,6 +34,8 @@ parser.add_argument('--get_effective_number_of_admixtures', action='store_true',
 parser.add_argument('--effective_number_of_admixtures_file', type=str, default='no_tadmixes.txt', help='this is the file in which to write the effective number of admixes in the file')
 parser.add_argument('--type_of_effective_admixtures', type=str, choices=['sadmix','tadmix','admix'], help='this is the type of admixes to write to the file.')
 parser.add_argument('--suppress_plot', default=False, action='store_true')
+parser.add_argument('--node_count_file', default='', type=str, help='if plot_tops option is supplied')
+parser.add_argument('--node_count_probs', default='', type=str, help='if supplied this will make a new ')
 options= parser.parse_args()
 
 
@@ -78,11 +81,20 @@ def node_combinations_to_node_structure(node_combinations):
             node_structure[branch_set]=new_node
         added_sets.append(lists_of_fixed_size)
     return node_structure
-            
+
+if options.node_count_file:
+    with open(options.node_count_file, 'r') as f:
+        node_count_dic={}
+        for lin in f.readlines():
+            key,freq=lin.rstrip().split()
+            node_count_dic[frozenset(key.split('.'))]=float(freq)
+else:
+    node_count_dic=None
+
         
 if options.plot_tops_file:
     with open(options.input_file, 'r') as f:
-        for lin in f.readlines():
+        for n,lin in enumerate(f.readlines()):
             rank, probability, combination=lin.rstrip().split(',')
             all_nodes=[c.split('.') for c in combination.split('_')]
             flattened=[item for sublist in all_nodes for item in sublist]
@@ -90,8 +102,9 @@ if options.plot_tops_file:
             code=rank+'_'+str(int(100*round(float(probability),2)))+'_'+'_'.join(a)
             print 'code',code
             node_structure=node_combinations_to_node_structure(combination.split('_'))
+                    
             print node_structure
-            plot_node_structure_as_directed_graph(node_structure, drawing_name=code+'.png')
+            plot_node_structure_as_directed_graph(node_structure, drawing_name=code+'.png', node_dic=node_count_dic)
     sys.exit()
     
 
@@ -117,65 +130,73 @@ if options.test_run:
     options.no_header=True
     options.posterior_threshold=[0.25,0.5,0.9]
     
-    
-print 'Reading file...'
-#loading trees
-if options.no_header:
-    strees=[]
-    with open(options.input_file, 'r') as f:
-        for lin in f.readlines():
-            strees.append(lin.rstrip())
-else:
-    df=pd.read_csv(options.input_file, sep=options.sep, usecols=[options.tree_column_name])
-    strees=df[options.tree_column_name].tolist()
-n=len(strees)
-print 'trees read: ',n
-
-#thinning tree list
-    
-rows_to_remove_from_fraction=int(options.burn_in_fraction*n)
-rows_to_remove=max(rows_to_remove_from_fraction, options.burn_in_rows)
-strees=strees[rows_to_remove:]
-
-print 'removed burn-in:', rows_to_remove
-print 'In list are now', len(strees),'trees'
-
-#thinning
-
-distance_between=max(1,len(strees)//options.max_number_of_trees)
-nstrees=[]
-for a,stree in enumerate(strees):
-    if a%distance_between==0 and len(nstrees)<options.max_number_of_trees:
-        nstrees.append(stree)
-print 'thinned'
-print 'In list are now', len(nstrees),'trees'
-
-N=len(nstrees)
-
-seen_node_combinations={}
-
-nodes=read_one_line(options.nodes)
-if not options.no_sort:
-    nodes=sorted(nodes)
-
-    
-tenth=len(nstrees)//10
-trees=[]
-for i,stree in enumerate(nstrees):
-    if tenth>0 and i%tenth==0:
-        print i//tenth*10, '%'
-    if ';' in stree:
-        tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+if options.input_file==options.node_count_file:
+    node_combinations=[]
+    print 'using population sets from ', options.node_count_file
+    for threshold in options.posterior_threshold:
+        final_node_combinations=['.'.join(sorted(list(k))) for k,v in node_count_dic.items() if v > threshold]
+        node_combinations.append(final_node_combinations)
+else:    
+    print 'Reading file...'
+    #loading trees
+    if options.no_header:
+        strees=[]
+        with open(options.input_file, 'r') as f:
+            for lin in f.readlines():
+                strees.append(lin.rstrip())
     else:
-        tree=topological_identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
-    trees.append(tree)
-    ad=get_populations(tree, min_w=options.min_w)
-    for a in ad:
-        seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
-
-for threshold in options.posterior_threshold:
-    total_threshold=int(N*threshold)
-    final_node_combinations=[k for k,v in seen_node_combinations.items() if v > total_threshold]
+        df=pd.read_csv(options.input_file, sep=options.sep, usecols=[options.tree_column_name])
+        strees=df[options.tree_column_name].tolist()
+    n=len(strees)
+    print 'trees read: ',n
+    
+    #thinning tree list
+        
+    rows_to_remove_from_fraction=int(options.burn_in_fraction*n)
+    rows_to_remove=max(rows_to_remove_from_fraction, options.burn_in_rows)
+    strees=strees[rows_to_remove:]
+    
+    print 'removed burn-in:', rows_to_remove
+    print 'In list are now', len(strees),'trees'
+    
+    #thinning
+    
+    distance_between=max(1,len(strees)//options.max_number_of_trees)
+    nstrees=[]
+    for a,stree in enumerate(strees):
+        if a%distance_between==0 and len(nstrees)<options.max_number_of_trees:
+            nstrees.append(stree)
+    print 'thinned'
+    print 'In list are now', len(nstrees),'trees'
+    
+    N=len(nstrees)
+    
+    seen_node_combinations={}
+    
+    nodes=read_one_line(options.nodes)
+    if not options.no_sort:
+        nodes=sorted(nodes)
+  
+    tenth=len(nstrees)//10
+    trees=[]
+    for i,stree in enumerate(nstrees):
+        if tenth>0 and i%tenth==0:
+            print i//tenth*10, '%'
+        if ';' in stree:
+            tree=identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+        else:
+            tree=topological_identifier_to_tree_clean(stree, leaves=generate_predefined_list_string(deepcopy(nodes)))
+        trees.append(tree)
+        ad=get_populations(tree, min_w=options.min_w)
+        for a in ad:
+            seen_node_combinations[a]=seen_node_combinations.get(a,0)+1
+    node_combinations=[]
+    for threshold in options.posterior_threshold:
+        total_threshold=int(N*threshold)
+        final_node_combinations=[k for k,v in seen_node_combinations.items() if v > total_threshold]
+        node_combinations.append(final_node_combinations)
+    
+for i,final_node_combinations in enumerate(node_combinations):    
     print 'final_node_combinations', final_node_combinations
     final_node_structure=node_combinations_to_node_structure(final_node_combinations)
     if options.get_effective_number_of_admixtures:
@@ -205,7 +226,7 @@ for threshold in options.posterior_threshold:
                     f.write(str(float(val)/count))
     if not options.suppress_plot:
         from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph 
-        plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(total_threshold)+'.png')
+        plot_node_structure_as_directed_graph(final_node_structure, drawing_name='tmp'+str(i+1)+'.png', node_dic=node_count_dic)
     
     
 
