@@ -45,6 +45,7 @@ parser.add_argument('--constrain_sadmix_trees', default=False, action='store_tru
 parser.add_argument('--summaries', default=['Rtree','Rcov','cov_dist','topology','top_identity','pops','set_differences'], choices=possible_summaries.keys(),nargs='*', type=str, help='The summaries to calculate')
 parser.add_argument('--save_summaries', default=['no_admixes','add','cov_dist','top_identity','set_differences'], nargs='*', type=str, help='The list of summaries to save')
 parser.add_argument('--summary_summaries', default=['mean'], nargs='*', type=str, help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
+parser.add_argument('--number_of_top_pops', default=10, type=int, help='if top_pops is added to summary_summaries this is the number of set topologies saved. negative values means all topologies are saved.')
 parser.add_argument('--true_scaled_tree',  type=str, default='')
 parser.add_argument('--true_tree',  type=str, default='')
 parser.add_argument('--true_add',  type=str, default='')
@@ -188,7 +189,7 @@ if 'subsets' in options.summaries:
         skeys=dic['subgraph_keys']
         identifier='.'.join(skeys)
         code='subsets_'+identifier
-        sum_func=possible_summaries['subsets'](skeys,identifier)
+        sum_func=possible_summaries['subsets'](identifier=identifier, **dic)
         row_sums.append(sum_func)
         name_to_rowsum_index(code)
         options.save_summaries.append(code)
@@ -280,7 +281,10 @@ if 'top_pops' in options.summary_summaries:
     def write_top_pops(v):
         v2=['_'.join(sorted(vi)) for vi in v]
         ad=Counter(v2)
-        l=ad.most_common(10)
+        if options.number_of_top_pops<=0:
+            l=ad.most_common()
+        else:
+            l=ad.most_common(options.number_of_top_pops)
         total=len(v)
         with open('top_pops.txt','w') as f:
             for n,(key,count_num) in enumerate(l):

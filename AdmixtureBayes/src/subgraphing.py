@@ -222,7 +222,8 @@ def read_subgraphing_dict(filename, types=['full','topological']):
                 i=elements.index('++')
                 outp=elements[i+1:]
                 if len(outp)>0:
-                    arguments['max_num']=outp[0]
+                    arguments['max_num']=int(outp[0])
+                    print 'setting max num to ', arguments['max_num']
                 if len(outp)>1:
                     arguments['prefix']=outp[1]
                 elements=elements[:i]

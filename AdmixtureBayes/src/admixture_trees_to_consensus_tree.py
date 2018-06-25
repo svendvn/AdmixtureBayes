@@ -9,7 +9,6 @@ from generate_sadmix_trees import effective_number_of_admixes
 from Rtree_operations import get_number_of_admixes
 from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph #NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
-from statsmodels.tsa.tsatools import freq_to_period
 
 parser = ArgumentParser(usage='pipeline for consensus tree maker', version='1.0.0')
 
