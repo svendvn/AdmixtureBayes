@@ -17,7 +17,7 @@ def calculate_branch_prior(branches, k):
     n=n2k-k*3
     d=float(n2k)/float(n)
     
-    return -sum(branches)*d+log(d)*len(branches)
+    return -sum(branches)/len(branches)-log(len(branches))
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
