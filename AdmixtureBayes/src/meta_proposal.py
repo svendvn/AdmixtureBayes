@@ -239,8 +239,8 @@ def draw_proposal(props, k, proportions):
     effect_of_chosen_index=props[chosen_index].admixture_change
     if effect_of_chosen_index!=0:
         legal_indices2=[i for i,prop in enumerate(props) if prop.require_admixture <= k+effect_of_chosen_index]    
-        normaliser2=sum([proportion for n,proportion in enumerate(proportions) if n in legal_indices])
-        new_proportions2=[float(proportion)/normaliser for n,proportion in enumerate(proportions) if n in legal_indices]
+        normaliser2=sum([proportion for n,proportion in enumerate(proportions) if n in legal_indices2])
+        new_proportions2=[float(proportion)/normaliser for n,proportion in enumerate(proportions) if n in legal_indices2]
         reverse_type= props[chosen_index].reverse
         reverse_index= next((index for index, prop in enumerate(props) if prop.proposal_name==reverse_type))
         return chosen_index, new_proportions[chosen_index], new_proportions2[reverse_index]
