@@ -6,30 +6,31 @@ from scipy.special import binom
 import linear_distribution
 from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
 
-def calculate_branch_prior(branches, k):
+def calculate_branch_prior(branches, n):
     #if all((b<10 for b in branches)):
     #    return -len(branches)*log(10)
     #else:
     #    return -float('inf')
     #return 0.0
     #return sum((pareto.logpdf(br,2, scale=0.01) for br in branches))
+    rate=float(n)/len(branches)
     n2k=len(branches)
-    n=n2k-k*3
     d=float(n2k)/float(n)
     
-    return -sum(branches)/len(branches)-log(len(branches))
+    return -sum(branches)*rate+log(rate)*len(branches)
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
 def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False):
     tree, add=x
+    no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
     if not all(prop>=0 and prop <=1 for prop in admixtures):
         return -float('inf')
     branches=get_all_branch_lengths(tree)
     if not all(branch>=0 for branch in branches):
         return -float('inf')
-    branch_prior=calculate_branch_prior(branches, len(admixtures))
+    branch_prior=calculate_branch_prior(branches, no_leaves)
     no_admix_prior=no_admixes(p, len(admixtures))
     if use_skewed_distr:
         admix_prop_prior=linear_admixture_proportions(admixtures)
