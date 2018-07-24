@@ -6,12 +6,19 @@ from Rproposal_admix import addadmix
 from Rtree_to_covariance_matrix import make_covariance
 from Rtree_operations import add_outgroup, get_number_of_leaves, scale_tree_copy
 from tree_to_data import reduce_covariance, tree_to_ms_command, call_ms_string, emp_cov_to_file
+from minimal_topology import *
 
 def plot_string_tree(stree):
     plot_graph(identifier_to_tree_clean(stree))
     
 def plot_big_tree(stree):
     plot_as_directed_graph(identifier_to_tree_clean(stree))
+    
+def plot_minimal_topology(stree):
+    tree=identifier_to_tree_clean(stree)
+    node_combination=tree_to_node_combinations(tree)
+    node_structure=node_combination_to_node_structure(node_combination)
+    plot_node_structure(node_structure,'minimal')
     
 def simulate_tree(no_leaves, no_admixes=None):
     if no_admixes is None:
@@ -79,15 +86,15 @@ if __name__=='__main__':
     #save_tree(s, 'tree.txt')
     #print_tree(s)
     
-    designed_tree={
-                   's1':['n1',None, None, 0.1,None,None, None],
-                   's2':['n2',None,None,1,None,None,None],
-                   's3':['n1',None, None, 0.05, None, None, None],
-                   'out':['r',None, None, 1, None, None, None],
-                   'n1':['n2',None, None, 4, None, 's1', 's3'],
-                   'n2':['r',None, None, 1,None,'s2','n1' ]}
-    s=unique_identifier_and_branch_lengths(designed_tree)
-    save_tree(s, 'tree_d.txt')
+    #designed_tree={
+#                    's1':['n1',None, None, 0.1,None,None, None],
+#                    's2':['n2',None,None,1,None,None,None],
+#                    's3':['n1',None, None, 0.05, None, None, None],
+#                    'out':['r',None, None, 1, None, None, None],
+#                    'n1':['n2',None, None, 4, None, 's1', 's3'],
+#                    'n2':['r',None, None, 1,None,'s2','n1' ]}
+#     s=unique_identifier_and_branch_lengths(designed_tree)
+#     save_tree(s, 'tree_d.txt')
     #print(s)
     
     #s=load_tree('tree.txt')
@@ -96,10 +103,11 @@ if __name__=='__main__':
     #plot_big_tree(s)
     #save_tree(s, 'tree2.txt')
     
-    #s=load_tree('tree2.txt')
-    #s=add_random_admix(s)
-    #plot_big_tree(s)
-    #save_tree(s, 'tree3.txt')
+    s=load_tree('tree2.txt')
+    s=add_random_admix(s)
+    plot_big_tree(s)
+    plot_minimal_topology(s)
+    save_tree(s, 'tree3.txt')
     
     #s=load_tree('tree3.txt')
     #see_covariance_matrix(s)
