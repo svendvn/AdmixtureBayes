@@ -22,9 +22,9 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
         img=Image.open(drawing_name)
         img.show()
         
-def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawing_name='tmp_.png', popup=True):
-    pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges= node_structure_to_networkx(node_structure)
-    print pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges
+def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawing_name='tmp_.png', popup=True, node_dic=None):
+    pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges, inner_node_colors= node_structure_to_networkx(node_structure, node_dic)
+    print pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges, inner_node_colors
     filename, image_format= drawing_name.split('.')
     G=Digraph('G', filename=filename)
     
@@ -41,12 +41,12 @@ def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawin
     admixture_graph=Digraph()
     admixture_graph.node_attr.update(style='filled', fillcolor='coral1', shape='box')
     for adm_n in admix_coalescence:
-        admixture_graph.node(adm_n)
+        admixture_graph.node(adm_n, fillcolor=inner_node_colors[adm_n])
         
     coalescence_graph=Digraph()
     coalescence_graph.node_attr.update(style='filled', fillcolor='greenyellow')
     for cn in pure_coalescence:
-        coalescence_graph.node(cn)
+        coalescence_graph.node(cn, fillcolor=inner_node_colors[cn])
         
     G.subgraph(leaves_graph)
     G.subgraph(aleaves_graph)
@@ -141,6 +141,16 @@ def make_R_draw_from_files(drawing_name, file_names):
     call(cmd)
     
 if __name__=='__main__':
+    tree={'n8': ['n10', None, None, 0.066292414, None, 'a1', 'n7'], 'n10': ['r', None, None, 0.014904509, None, 'n8', 's2'], 's3':['a1', None, None, 0.001105965, None, None, None], 's2': ['n10', None, None, 0.025937769, None, None, None], 's1': ['r', None, None, 0.002542553, None, None, None], 's4': ['n4', None, None, 0.003734284, None, None, None], 'a1': ['n8', 'a2', 0.63, 0.004041829, 0.043759672, 's3', None], 'a2': ['n7', 'n4', 0.613, 0.173875014, 0.010851242, 'a1', None], 'n4': ['n7', None, None, 0.040479891000000004, None, 's4', 'a2'], 'n7': ['n8', None, None, 0.001569646, None, 'a2', 'n4']}
+    for a,e in tree.items():
+        print a
+        print '\t',str(e)
+    add=0
+    #tree,add=({'s3': ['n2', None, None, 0.3333333333333333, None, None, None], 's6': ['r', None, None, 0.8333333333333333, None, None, None], 'n1': ['n2', None, None, 0.16666666666666666, None, 's1', 's2'], 'n2': ['n3', None, None, 0.16666666666666666, None, 's3', 'n1'], 'n3': ['n4', None, None, 0.16666666666666666, None, 's4', 'n2'], 'n4': ['r', None, None, 0.16666666666666666, None, 's5', 'n3']}, 0)
+    print pretty_string(tree)
+    plot_as_directed_graph(tree)
+    import sys 
+    sys.exit()
     from Rtree_operations import insert_children_in_tree, create_trivial_tree
     from Rcatalogue_of_trees import tree_on_the_border2
     tree2=insert_children_in_tree(tree_on_the_border2)

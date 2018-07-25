@@ -13,7 +13,7 @@ def calculate_branch_prior(branches, n):
     #    return -float('inf')
     #return 0.0
     #return sum((pareto.logpdf(br,2, scale=0.01) for br in branches))
-    rate=float(n)/len(branches)
+    rate=float(2*n-2)/len(branches)
     n2k=len(branches)
     d=float(n2k)/float(n)
     
@@ -278,14 +278,18 @@ if __name__=='__main__':
     from generate_prior_trees import generate_admix_topology
     from tree_plotting import pretty_print
     
+    print 'ttt'
+    for i in range(25):
+        print exp(no_admixes(0.5,i,20))
+    
     tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None], 's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None], 'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
     #print tree_prior(tree_trouble)
     
     for i in range(200):
         tree=generate_admix_topology(3,1)
-        print tree
-        pretty_print(tree)
-        print exp(prior((tree,0))),
+        #print tree
+        #pretty_print(tree)
+        #print exp(prior((tree,0))),
         
     import sys
     sys.exit()
