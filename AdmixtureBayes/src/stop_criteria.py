@@ -8,12 +8,18 @@ class stop_criteria(object):
     CONTINUOUS_MIN=200
     BURN_IN=0.5
     
-    def __init__(self, frequency=20000, summaries=['no_admixes','average_branch_length','add','descendant_sets'], outfile='tmp_stop_criteria.txt', topological=False):
+    def __init__(self, 
+                        frequency=20000, 
+                        summaries=['no_admixes','average_branch_length','add','descendant_sets'], 
+                        outfile='tmp_stop_criteria.txt', 
+                        topological=False, 
+                        verbose_level='normal'):
         self.counter=0
         self.frequency=frequency
         self.summaries=summaries
         self.non_topological_summaries=len(summaries)
         self.outfile=outfile
+        self.verbose_level=verbose_level
         if topological:
             self.summaries.extend(['Zero_Ntree','random_Ntree','mode_Ntree'])
         
@@ -31,8 +37,9 @@ class stop_criteria(object):
     
     def stop_yet(self, filename):
         dir = os.path.dirname(__file__)
-        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, str(stop_criteria.BURN_IN), self.outfile]+self.summaries
-        print command
+        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, str(stop_criteria.BURN_IN), self.outfile,  str(self.verbose_level)]+self.summaries
+        if self.verbose_level=='normal':
+            print command
         call(command)
         return self.check_outfile()
     
@@ -42,7 +49,8 @@ class stop_criteria(object):
             for n,lin in enumerate(f.readlines()):
                 ess=float(lin.split()[-1])
                 name=lin.split()[0]
-                print n, name, ess
+                if self.verbose_level=='normal':
+                    print n, name, ess
                 if n<self.non_topological_summaries:
                     if ess<stop_criteria.CONTINUOUS_MIN:
                         return False

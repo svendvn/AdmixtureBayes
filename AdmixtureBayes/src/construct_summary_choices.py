@@ -12,7 +12,8 @@ def get_summary_scheme(majority_tree=False,
                        admixture_proportion_string=False,
                        priors=False,
                        no_chains=1,
-                       nodes=None):
+                       nodes=None, 
+                       verbose_level='normal'):
     
     if proposals is not None:
         props=proposals.props
@@ -48,7 +49,7 @@ def get_summary_scheme(majority_tree=False,
                     summaries.append(summary.s_variable(prop_name+"_adap_param", output= 'double_missing'))
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme_first=deepcopy(sample_verbose_scheme)
-    if 'posterior' in sample_verbose_scheme:
+    if 'posterior' in sample_verbose_scheme and verbose_level!='silent':
         sample_verbose_scheme_first['posterior']=(1,1)
         #sample_verbose_scheme_first['prior']=(1,1)
         sample_verbose_scheme_first['no_admixes']=(1,1)

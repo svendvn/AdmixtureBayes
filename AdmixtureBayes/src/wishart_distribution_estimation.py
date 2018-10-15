@@ -13,7 +13,6 @@ from construct_covariance_choices import empirical_covariance_wrapper_directly
 from pathos.multiprocessing import Pool
 from df_estimators import variance_mean_based, likelihood_mean_based
 import os
-from dill.dill import FileNotFoundError
 
 
 

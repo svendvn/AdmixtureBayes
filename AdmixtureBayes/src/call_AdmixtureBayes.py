@@ -31,7 +31,7 @@ parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
 #input/output options
 parser.add_argument('--input_file', type=str, default='(4,2)', help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
 parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file to save results in. The prefix will not be prepended the result_file.')
-parser.add_argument('--prefix', type=str, default='sletmig/', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
+parser.add_argument('--prefix', type=str, default='', help= 'this directory will be the beginning of every temporary file created in the covariance pipeline and in the estimation of the degrees of freedom in the wishart distribution.')
 
 #special run options
 parser.add_argument('--profile', action='store_true', default=False, help="this will embed the MCMC part in a profiler")
@@ -43,6 +43,7 @@ parser.add_argument('--evaluate_likelihood', action='store_true', default=False,
 parser.add_argument('--evaluate_bootstrap_likelihoods', action='store_true', default=False, help='If evaluate likelihood is turned on this will calculate the likelihood of all bootstrapped covariances(if bootstrapping is also turned on)')
 parser.add_argument('--stop_evaluations', action='store_true', default=False, help='This will stop the analysis after the data preparation')
 parser.add_argument('--save_after_hours', type=float, nargs='+', default=[], help='This will save a copy of the output file after the number of hours specified here. One would do that to easily access how converged the chain is after certain number of hours.')
+parser.add_argument('--verbose_level',  default='normal',choices=['normal',  'silent'],  help='this will set the amount of status out prints throughout running the program.')
 
 #treemix arguments
 parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -167,9 +168,10 @@ options=parser.parse_args()
 mp=make_proposal(options)
 
 before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
-print 'before_nodes', before_added_outgroup
-print 'full_nodes', full_nodes
-print 'reduced_nodes', reduced_nodes
+if options.verbose_level !='silent':
+    print 'before_nodes', before_added_outgroup
+    print 'full_nodes', full_nodes
+    print 'reduced_nodes', reduced_nodes
 
 
 
@@ -268,7 +270,8 @@ covariance=get_covariance(options.covariance_pipeline,
                           unbounded_brownian=options.unbounded_brownian,
                           filter_on_outgroup=options.filter_on_outgroup,
                           locus_filter=locus_filter,
-                          estimator_arguments=estimator_arguments
+                          estimator_arguments=estimator_arguments, 
+                          verbose_level=options.verbose_level
                           )
 
 
@@ -358,8 +361,10 @@ starting_trees=get_starting_trees(options.starting_trees,
                                   scale_goal=options.scale_goal,
                                   mscale_file=mscale_file)
 
-for j in starting_trees:
-    print j
+if options.verbose_level!='silent':
+    print 'starting trees:'
+    for j in starting_trees:
+        print '\t'+str(j)
 
 # if not options.starting_trees:
 #     no_pops=len(reduced_nodes)
@@ -383,7 +388,8 @@ summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summa
                                           proposals=mp[0], 
                                           acceptance_rate_information=options.summary_acceptance_rate,
                                           admixture_proportion_string=options.summary_admixture_proportion_string,
-                                          no_chains=options.MCMC_chains)
+                                          no_chains=options.MCMC_chains, 
+                                          verbose_level=options.verbose_level)
 
 sim_lengths=[options.m]*options.n
 
@@ -403,7 +409,10 @@ sim_lengths=[options.m]*options.n
 # print 'options.store_permuts', options.store_permuts
 
 if options.stop_criteria:
-    sc=stop_criteria(frequency=options.stop_criteria_frequency, outfile=prefix+'stop_criteria.txt', topological=options.stop_criteria_topological)
+    sc=stop_criteria(frequency=options.stop_criteria_frequency, 
+                               outfile=prefix+'stop_criteria.txt', 
+                               topological=options.stop_criteria_topological, 
+                               verbose_level=options.verbose_level)
 else:
     sc=None
     
@@ -419,7 +428,8 @@ posterior= posterior_class(emp_cov=covariance[0],
                        nodes=reduced_nodes, 
                        use_uniform_prior=options.uniform_prior, 
                        treemix=options.likelihood_treemix,
-                       add_variance_correction_to_graph=options.add_variance_correction_to_graph,
+                       add_variance_correction_to_graph=(options.variance_correction!='None' and
+                                                                                 options.add_variance_correction_to_graph),
                        prefix=prefix,
                        variance_correction_file=options.variance_correction_input_file,
                        prior_run=options.prior_run)
@@ -429,8 +439,8 @@ if options.adaptive_temperatures:
 else:
     temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_chains)
 
-
-print 'EVERYTHING IS INITIALIZED'
+if options.verbose_level!='silent':
+    print 'EVERYTHING IS INITIALIZED'
     
 
 def multi_chain_run():

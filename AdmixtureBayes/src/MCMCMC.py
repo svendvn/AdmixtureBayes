@@ -191,7 +191,7 @@ def _unpack_everything(new_state, summaries, total_permutation):
     for summ_data, n, i in zip(summs, total_permutation, range(len(total_permutation))):
         iter_chain=chain((('iteration', summ_data[0]),),
                          ((summ_object.name,summ_col) for summ_object,summ_col in zip(summaries,summ_data[1:])))
-        df=pd.DataFrame.from_items(iter_chain)
+        df=pd.DataFrame.from_dict(dict(iter_chain))
         df['origin']=n
         df['layer']=i
         list_of_smaller_data_frames.append(df)

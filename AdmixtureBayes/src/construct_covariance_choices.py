@@ -16,6 +16,7 @@ import time
 from brownian_motion_generation import produce_p_matrix, calculate_covariance_matrix_from_p, simulate_with_binomial, remove_non_snps
 from numpy import array, ones, loadtxt, savetxt
 from construct_estimator_choices import make_estimator
+import warnings
 
 
 
@@ -67,8 +68,8 @@ def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
     est_args=kwargs['est']
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
     xs,ns,names=xnn_tuple
-    for e,a in est_args.items():
-        print e,a
+   # for e,a in est_args.items():
+     #   print e,a
     est= make_estimator(reduce_method='outgroup', 
                    reduce_also=False,
                    ns=ns,**est_args)
@@ -77,7 +78,7 @@ def xnn_to_covariance_wrapper(xnn_tuple, **kwargs):
     if ('add_variance_correction_to_graph' in est_args and 
         est_args['add_variance_correction_to_graph']):
         filename=est_args['prefix']+'variance_correction.txt'
-        print 'CHaningin VC'
+        #print 'CHaningin VC'
         vc=loadtxt(filename)
         vc=reorder_covariance(vc, names, kwargs['full_nodes'])
         savetxt(filename, vc)
@@ -93,7 +94,7 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
     #    print i,j
     #print xnn_tuple
     #print xnn_tuple
-    print 'shapes',(xnn_tuple[0].shape,xnn_tuple[1].shape)
+    #print 'shapes',(xnn_tuple[0].shape,xnn_tuple[1].shape)
     xnn_tuple=order_covariance(xnn_tuple, outgroup=est_args['reducer'])
     xs,ns,names=xnn_tuple
     
@@ -108,14 +109,14 @@ def xnn_to_covariance_wrapper_directly(xnn_tuple, **kwargs):
         est_args['add_variance_correction_to_graph'] and
         'save_variance_correction' in est_args and
         est_args['save_variance_correction']):
-        print 'CHaninging VC'
+       # print 'CHaninging VC'
         filename=est_args['prefix']+'variance_correction.txt'
         vc=loadtxt(filename)
         vc=reorder_reduced_covariance(vc, names, est_args['nodes'], outgroup=est_args['reducer'])
         savetxt(filename, vc)
     if 'm_scale' in extra_info_dic:
         if 'mscale_file' in kwargs: 
-            print kwargs['mscale_file']
+           # print kwargs['mscale_file']
             with open(kwargs['mscale_file'], 'w') as f:
                 txt=str(extra_info_dic['m_scale'])
                 assert '\0' not in txt, 'binary content in m_scale file'
@@ -155,7 +156,7 @@ def ms_simulate_wrapper(tree, **kwargs):
                        recomb_rate=kwargs['recomb_rate'],
                        leaf_keys=kwargs['full_nodes'])
     #kwargs['pks']['minmaxv']=minmaxv  #TO CHANGE BACK
-    print ms_command
+    #print ms_command
     call_ms_string(ms_command, kwargs['ms_file'])
     filename_gz=ms_to_treemix3(kwargs['ms_file'], 
                     samples_per_pop=kwargs['sample_per_pop'], 
@@ -274,10 +275,11 @@ def save_stage(value, stage_number, prefix, full_nodes, before_added_outgroup_no
     elif stage_number==4:
         write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==5:
-        print full_nodes
+       # print full_nodes
         write_two_lines_to_file(filename, ' '.join(full_nodes), unique_identifier_and_branch_lengths(value, full_nodes))
     elif stage_number==6:
-        print 'file is already made elsewhere'
+        pass
+        #print 'file is already made elsewhere'
     elif stage_number==7:
         emp_cov_to_file(value, filename, full_nodes)
     elif stage_number==8:
@@ -316,7 +318,8 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
                    locus_filter=None,
-                   estimator_arguments={}):
+                   estimator_arguments={}, 
+                   verbose_level='normal'):
     
     #if prefix[-1]!='_':
     #    prefix+='_'

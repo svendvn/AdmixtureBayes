@@ -107,8 +107,8 @@ def order_covariance(xnn_tuple, outgroup=''):
     xs,ns,names=xnn_tuple
     #print self.full_nodes, self.outgroup
     n_outgroup=next((n for n, e in enumerate(names) if e==outgroup))
-    print 'n_outgroup', n_outgroup
-    print 'xs shape', xs.shape
+    #print 'n_outgroup', n_outgroup
+    #print 'xs shape', xs.shape
     xs_o=xs[n_outgroup,:]
     ns_o=ns[n_outgroup,:]
     names_o=names[n_outgroup]
@@ -165,7 +165,7 @@ def file_to_emp_cov(filename, reduce_column=None, nodes=None, sort_nodes_alphabe
                 if len(l)>4:
                     multiplier=float(l.split('=')[1])
                 break
-            print l
+            #print l
             n=map(float, l.split()[1:])
             if len(n)>1:
                 dat.append(n)
@@ -214,7 +214,7 @@ def emp_cov_to_file(m, filename='emp_cov.txt', nodes=None):
         f.write(' '.join(nodes)+'\n')
         for i, node in enumerate(nodes):
             f.write(node+ ' '+ ' '.join(map(str, m[i]))+'\n')
-    print 'wrote matrix to file', filename
+    #print 'wrote matrix to file', filename
 
 def supplementary_text_ms_string():
     return 'ms 400 400 -t 200 -r 200 500000 -I 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 20 \
@@ -230,7 +230,7 @@ def supplementary_text_ms_string():
 
 def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nreps=2, 
                        theta=0.4, sites=500000, recomb_rate=1,
-                       leaf_keys=None, final_pop_size=100.0):
+                       leaf_keys=None, final_pop_size=100.0,  verbose_level='normal'):
     
     tree=deepcopy(time_adjusted_tree)
     if recomb_rate is None:
@@ -241,9 +241,9 @@ def time_adjusted_tree_to_ms_command(time_adjusted_tree, sample_per_pop=50, nrep
     callstring='ms '+str(sample_per_pop*n)+' '+str(nreps)+' -t '+ str(theta)+' ' +rec_part + ' '
     callstring+=' -I '+str(n)+' '+' '.join([str(sample_per_pop) for _ in xrange(n)])+' '
     times=get_max_timing(tree)
-    print times
+    #print times
     tree=extend_branch_lengths(tree,times)
-    print pretty_string(tree)
+    #print pretty_string(tree)
     if leaf_keys is None:
         leaf_keys= get_leaf_keys(tree)
     callstring+=construct_ej_es_string(tree, times, leaf_keys=leaf_keys, final_pop_size=final_pop_size)
@@ -301,7 +301,7 @@ def extend_branch_lengths(tree, times):
 def construct_ej_es_string(tree, times, leaf_keys, final_pop_size=1.0):
     s_times=sorted([(v,k) for k,v in times.items()])
     dic_of_lineages={(key,0):(n+1) for n,key in enumerate(leaf_keys)}
-    print dic_of_lineages
+    #print dic_of_lineages
     population_count=len(dic_of_lineages)
     res_string=''
     for time,key in s_times:
@@ -389,7 +389,7 @@ def calculate_covariance_matrix(file='tmp.txt', samples_per_pop=20, no_pops=4, n
     data=[]
     with open(file, 'r') as f:
         for r in f.readlines():
-            print r[:5]
+            #print r[:5]
             data.append(map(int,list(r.rstrip())))
     m= array(data)
     
@@ -525,7 +525,7 @@ def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also
     
     if reduce_also:
         n_outgroup=next((n for n, e in enumerate(names) if e==reducer))
-        print n_outgroup
+        #print n_outgroup
         p=p-p[n_outgroup,:]
     m=p.dot(p.T)/p.shape[1]
     #print m
@@ -543,7 +543,7 @@ def unzip(filename, overwrite=False, new_filename=None):
         warnings.warn('Not unzipping because unzipped file already exists')
         return new_filename
     command=['gunzip','-c',filename]
-    print command
+    #print command
     with open(new_filename, 'w') as f:
         subprocess.call(command, stdout=f)
     return new_filename
@@ -556,7 +556,7 @@ def gzip(filename, overwrite=False, new_filename=None):
         warnings.warn('Not zipping because zipped file already exists')
         return new_filename
     command=['gzip','-c',filename]
-    print command
+    #print command
     with open(new_filename, 'w') as f:
         subprocess.call(command, stdout=f)
     return new_filename
@@ -592,7 +592,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                     total_number_of_genes+=len(s_vec)*samples_per_pop
                     data=[]
                     
-                    print rep_count, pop_count
+                    #print rep_count, pop_count
                     
                     if pop_count==no_pops:
                         
@@ -607,7 +607,7 @@ def ms_to_treemix3(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, 
                         if rep_count>=n_reps:
                             break
     muhat=float(total_sum)/float(total_number_of_genes)
-    print 'muhat', muhat
+    #print 'muhat', muhat
     if not convert_to_gz:
         return filename2
     return gzip(filename2,overwrite=True)
@@ -616,12 +616,12 @@ def ms_to_treemix(filename='tmp.txt', samples_per_pop=20, no_pops=4, n_reps=1, f
     data=[]
     with open(filename, 'r') as f:
         for r in f.readlines():
-            print r[:5]
+            #print r[:5]
             data.append(map(int,list(r.rstrip())))
     m= array(data)
     if n_reps>1:#reorder the data so that there are more SNPs in stead of more samples/populations
-        print m.shape
-        print 'samples, pops, reps', samples_per_pop, no_pops, n_reps
+        #print m.shape
+        #print 'samples, pops, reps', samples_per_pop, no_pops, n_reps
         m=hstack(vsplit(m, n_reps))
         
     #print samples_per_pop
@@ -644,7 +644,7 @@ def empirical_covariance_from_tree(tree, scaling=0.01, pop_size=20, reps=400):
 def get_empirical_matrix(stree, factor=1.0, pop_size=20, reps=400):   
     tree= identifier_to_tree_clean(stree)
     ms_command=tree_to_ms_command(scale_tree_copy(tree, factor), pop_size, reps)
-    print ms_command
+    #print ms_command
     call_ms_string(ms_command, 'tmp.txt')
     empirical_covariance=ms_to_treemix2(filename='tmp.txt', samples_per_pop=pop_size, no_pops=get_number_of_leaves(tree), n_reps=reps, filename2='tmp.treemix_in')
     return reduce_covariance(empirical_covariance,0)
