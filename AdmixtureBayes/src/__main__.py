@@ -4,30 +4,6 @@ import sys
 from call_AdmixtureBayes import main as run_main
 import argparse
 
-import colorama
-from termcolor import colored
-
-from . import configuration
-
-
-
-# Enable colours on Windows
-colorama.init()
-
-
-# should always be set when we run a script!
-CONFIGS = configuration.Configurations()
-
-
-def _report_error(msg):
-    output_msg = colored("Error", "red", attrs=["bold"]) + ": " + msg
-    print(output_msg, file=sys.stderr)
-
-
-def _error(msg):
-    _report_error(msg)
-    sys.exit(1)
-
 
 def _collect_commands():
     commands = {}
@@ -77,8 +53,8 @@ def main():
 
     args = parser.parse_args(sys.argv[1:2])  # only first two
     if args.command not in commands:
-        _report_error("Unknown subcommand: {}".format(args.command))
         parser.print_help()
+        assert False,  "Unknown subcommand: {}".format(args.command)
         sys.exit(1)
 
     commands[args.command](sys.argv[2:])

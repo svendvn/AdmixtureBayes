@@ -11,8 +11,8 @@ extensions = [
             Extension(
                 # oddly, the module name (here, _interp) has to be the same as
                 # the basename (ie prefix) of the full filename.
-                'AdmixtureBayes/src/_covariance_matrix',
-                ['AdmixtureBayes/src/_covariance_matrix.pyx'],
+                os.path.join('AdmixtureBayes','src', '_covariance_matrix'),
+                [os.path.join('AdmixtureBayes','src', '_covariance_matrix.pyx')],
                 include_dirs=[np.get_include()],
                 extra_compile_args = compile_args)
             ]
@@ -35,11 +35,11 @@ setup(
             "pygraphviz"
         ],
         
-        package_dir = {'': 'AdmixtureBayes/src'}, 
-        packages=find_packages("AdmixtureBayes/src"),
+        package_dir = {'': 'AdmixtureBayes'}, 
+        packages=['src'],
         
         entry_points={'console_scripts': [
-            'AdmixtureBayes = src.__main__:main'
+            'AdmixtureBayes = '+os.path.join('src')+'.__main__:main'
         ]},
         )
         
