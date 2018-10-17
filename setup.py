@@ -11,8 +11,8 @@ extensions = [
             Extension(
                 # oddly, the module name (here, _interp) has to be the same as
                 # the basename (ie prefix) of the full filename.
-                os.path.join('AdmixtureBayes','src', '_covariance_matrix'),
-                [os.path.join('AdmixtureBayes','src', '_covariance_matrix.pyx')],
+                '_covariance_matrix',
+                [ os.path.join('AdmixtureBayes','src', '_covariance_matrix.pyx')],
                 include_dirs=[np.get_include()],
                 extra_compile_args = compile_args)
             ]
@@ -25,6 +25,7 @@ setup(
         license='Creative Commons Attribution-Noncommercial-Share Alike license',
         long_description=open('README.md').read(),
         ext_modules = cythonize(extensions), 
+        zip_safe=False, 
         
         install_requires=[
             "numpy>=1.11.0",

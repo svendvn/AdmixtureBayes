@@ -27,6 +27,7 @@ setup(
         license='Creative Commons Attribution-Noncommercial-Share Alike license',
         long_description=open('README.md').read(),
         #ext_modules = cythonize(extensions), 
+        zip_safe=False, 
         
         install_requires=[
             "numpy>=1.11.0",
@@ -37,12 +38,11 @@ setup(
             "pygraphviz"
         ],
         
-        package_dir = {'': os.path.join('AdmixtureBayes','src')}, 
-        packages=['src'], 
+        package_dir = {'': 'AdmixtureBayes'}, 
+        packages=['src'],
         
         entry_points={'console_scripts': [
-            'AdmixtureBayes = '+os.path.join('AdmixtureBayes','src')+'.__main__:main'
+            'AdmixtureBayes = '+os.path.join('src')+'.__main__:main'
         ]},
         )
-        
 
