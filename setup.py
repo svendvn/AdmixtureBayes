@@ -40,7 +40,7 @@ setup(
         packages=['src'],
         
         entry_points={'console_scripts': [
-            'AdmixtureBayes = '+os.path.join('src')+'.__main__:main'
+            'AdmixtureBayes = src.__main__:main'
         ]},
         )
         
