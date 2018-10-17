@@ -4,6 +4,7 @@ from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 
+#maximizes the function, function in the interval [lower_limit,\infty).
 def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
     old_x=lower_limit
     new_x=lower_limit*2
