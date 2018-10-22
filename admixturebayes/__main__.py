@@ -2,6 +2,7 @@
 
 import sys
 from call_AdmixtureBayes import main as run_main
+from downstream_analysis_parser import run_posterior_main
 import argparse
 
 
@@ -22,6 +23,9 @@ class MixedFormatter(argparse.ArgumentDefaultsHelpFormatter,
 
 def run_command(args):
     run_main(args)
+
+def posterior_command(args):
+    run_posterior_main(args)
 
 
 # Main app

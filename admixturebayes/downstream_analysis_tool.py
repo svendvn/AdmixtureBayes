@@ -29,7 +29,6 @@ def get_list_of_turned_topologies(trees, true_tree):
     nodes=get_leaf_keys(true_tree)
     return [admixture_sorted_unique_identifier(tree, nodes) for tree in trees], admixture_sorted_unique_identifier(true_tree, nodes)
 
-
 def get_covariance(outfile):
     cov, _, mult= open_cov_file_admb(outfile, None)
     return cov, mult
@@ -293,7 +292,7 @@ class get_pops(object):
         else:
             tree=Rtree
         pops=get_populations(tree, self.min_w, keys_to_include=self.keys_to_include)
-        return {'pops':pops}, False 
+        return {'pops':'-'.join(pops)}, False
     
 class compare_pops(object):
     def __init__(self, true_tree, min_w=0.0, keys_to_include=None):

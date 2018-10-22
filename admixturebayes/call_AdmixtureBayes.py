@@ -147,7 +147,7 @@ def main(args):
     parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
     parser.add_argument('--summary_acceptance_rate', action='store_true', default=True, help='This will calculate and store summaries related to the acceptance rate')
     parser.add_argument('--summary_admixture_proportion_string', action='store_true', default=True, help='this will save a string in each step indicating names and values of all admixture proportions')
-    parser.add_argument('--save_only_coldest_chain', action='store_true', default=False, help='this will only save the coldest chain in the output file.')
+    parser.add_argument('--save_warm_chains', action='store_true', default=False, help='this will only save the coldest chain in the output file.')
 
     #MCMCMC setup
     parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of chains to run the MCMCMC with.')
@@ -391,7 +391,8 @@ def main(args):
                                               acceptance_rate_information=options.summary_acceptance_rate,
                                               admixture_proportion_string=options.summary_admixture_proportion_string,
                                               no_chains=options.MCMC_chains, 
-                                              verbose_level=options.verbose_level)
+                                              verbose_level=options.verbose_level, 
+                                              only_coldest_chain=not options.save_warm_chains)
 
     sim_lengths=[options.m]*options.n
 
@@ -461,7 +462,7 @@ def main(args):
                store_permuts=options.store_permuts, 
                stop_criteria=sc,
                make_outfile_stills=options.save_after_hours,
-               save_only_coldest_chain=options.save_only_coldest_chain)
+               save_only_coldest_chain=options.save_warm_chains)
         
     def single_chain_run():
         basic_chain(start_x= starting_trees[0],
