@@ -35,7 +35,7 @@ def main(args):
     parser.add_argument('--rankings_to_write_to_file', type=int, default=1000, help='the number of rankings(nodes, min topology or topology depending on --plot) to write to the ranking file.')
     parser.add_argument('--write_ranking_to_file', type=str, default='', help='if a file is supplied here, the plotted')
 
-    parser.add_argument('--annotate_node_posterior', default=False, action='store_true', help='This will color the nodes according to their posterior probability.')
+    parser.add_argument('--dont_annotate_node_posterior', default=False, action='store_true', help='This will not color the nodes according to their posterior probability.')
 
 
     parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
@@ -119,7 +119,7 @@ def main(args):
                 total_threshold = int(N * threshold)
                 final_node_combinations = [k for k, v in seen_combinations.items() if v > total_threshold]
                 node_combinations.append(final_node_combinations)
-            if options.annotate_node_posterior:
+            if not options.dont_annotate_node_posterior:
                 node_count_dic={frozenset(k.split('.')):float(v)/N for k,v in seen_combinations.items()}
             else:
                 node_count_dic=None
@@ -128,7 +128,7 @@ def main(args):
                 final_node_structure = node_combinations_to_node_structure(final_node_combinations)
                 if not options.suppress_plot:
                     from tree_plotting import plot_node_structure_as_directed_graph
-                    plot_node_structure_as_directed_graph(final_node_structure, drawing_name='consensus_'+str(int(options.consensus_threshold[i]))+'.png', node_dic=node_count_dic)
+                    plot_node_structure_as_directed_graph(final_node_structure, drawing_name='consensus_'+str(int(100*options.consensus_threshold[i]))+'.png', node_dic=node_count_dic)
             if options.write_ranking_to_file:
                 with open(options.write_ranking_to_file, 'w') as f:
                     c = Counter(seen_combinations)
@@ -142,9 +142,11 @@ def main(args):
                 with open(options.write_ranking_to_file, 'w') as f:
                     for tree, frequency in c.most_common(options.rankings_to_write_to_file):
                         f.write(tree + ',' + str(float(frequency) / N) + '\n')
-            if options.annotate_node_posterior:
+            if not options.dont_annotate_node_posterior:
                 c=Counter(seen_combinations)
                 node_count_dic={frozenset(key.split('.')):float(count)/N for key,count in c.most_common(1000)}
+            else:
+                node_count_dic=None
             if not options.suppress_plot:
                 from tree_plotting import plot_node_structure_as_directed_graph
                 for i, (to_plot,count) in enumerate(to_plots):

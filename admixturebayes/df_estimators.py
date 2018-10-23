@@ -1,5 +1,6 @@
 from scipy.stats import wishart
 import numpy as np
+
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
@@ -41,7 +42,7 @@ def I_cant_believe_I_have_to_write_this_function_myself(function, lower_limit):
     return new_x
         
 
-def likelihood_mean_based(sample_of_matrices):
+def likelihood_mean_based(sample_of_matrices, verbose_level='normal'):
     #print sample_of_matrices
     mean_wishart=  np.mean(sample_of_matrices, axis=0)
     #print [np.linalg.det(s) for s in sample_of_matrices]
@@ -51,9 +52,7 @@ def likelihood_mean_based(sample_of_matrices):
     #print sample_of_matrices
     dets=[ np.linalg.det(mat) for mat in sample_of_matrices]
     #print dets
-    if (not all(det>0 for det in dets)) or np.linalg.det(mean_wishart)==0:
-        print 'RETURNING NONE'
-        return None
+    assert not ((not all(det>0 for det in dets)) or np.linalg.det(mean_wishart)==0), 'Some covariance was not invertible. Perhaps using "var_opt" in the flag --bootstrap_type_of_estimation will fix the issue'
     
     r=mean_wishart.shape[0]
     
@@ -67,7 +66,7 @@ def likelihood_mean_based(sample_of_matrices):
     return I_cant_believe_I_have_to_write_this_function_myself(joint_density, r)
 
 
-def variance_mean_based(sample_of_matrices, divisor=None):
+def variance_mean_based(sample_of_matrices, divisor=None, verbose_level='normal'):
     #print len(sample_of_matrices), sample_of_matrices[0].shape
     mean_wishart=  np.mean(sample_of_matrices, axis=0)
     var_wishart= np.var(sample_of_matrices, axis=0)
@@ -81,7 +80,8 @@ def variance_mean_based(sample_of_matrices, divisor=None):
     def penalty_function(df_l):
         df=df_l
         val=np.linalg.norm(var_wishart-var_rom_mean_wishart/df)**2
-        print df, '::', np.log(val)
+        if verbose_level!='silent':
+            print df, '::', np.log(val)
         return np.log(val)
     
 

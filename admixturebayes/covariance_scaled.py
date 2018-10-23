@@ -58,7 +58,7 @@ def m_scaler(scale_type, allele_freqs, n_outgroup=None):
         scaler=mu*(1.0-mu)
     elif scale_type.endswith('sum'):
         scaler=nanmean(s*(1.0-s))
-    print 'm_scale', scaler
+    #print 'm_scale', scaler
     return scaler
 
 def avg_var(ps):

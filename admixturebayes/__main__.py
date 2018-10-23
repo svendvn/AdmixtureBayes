@@ -3,6 +3,7 @@
 import sys
 from call_AdmixtureBayes import main as run_main
 from downstream_analysis_parser import run_posterior_main
+from admixture_trees_to_consensus_tree import main as plot_main
 import argparse
 
 
@@ -26,6 +27,9 @@ def run_command(args):
 
 def posterior_command(args):
     run_posterior_main(args)
+
+def plot_command(args):
+    plot_main(args)
 
 
 # Main app

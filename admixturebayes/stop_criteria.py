@@ -4,23 +4,29 @@ import os
 
 class stop_criteria(object):
     
-    TOPOLOGICAL_MIN=200
-    CONTINUOUS_MIN=200
-    BURN_IN=0.5
+
     
     def __init__(self, 
                         frequency=20000, 
                         summaries=['no_admixes','average_branch_length','add','descendant_sets'], 
-                        outfile='tmp_stop_criteria.txt', 
-                        topological=False, 
-                        verbose_level='normal'):
+                        outfile='tmp_stop_criteria.txt',
+                        verbose_level='normal',
+                        burn_in=0.5,
+                        topological_threshold=200,
+                        continuous_threshold=200,
+                        Rscript_path='Rscript',
+                 ):
         self.counter=0
         self.frequency=frequency
         self.summaries=summaries
         self.non_topological_summaries=len(summaries)
         self.outfile=outfile
+        self.topological_threshold = topological_threshold
+        self.continuous_threshold = continuous_threshold
+        self.Rscript_path = Rscript_path
+        self.burn_in = burn_in
         self.verbose_level=verbose_level
-        if topological:
+        if not topological_threshold<0:
             self.summaries.extend(['Zero_Ntree','random_Ntree','mode_Ntree'])
         
         
@@ -37,7 +43,7 @@ class stop_criteria(object):
     
     def stop_yet(self, filename):
         dir = os.path.dirname(__file__)
-        command=['Rscript',os.path.join(dir, 'ESS.R'), filename, str(stop_criteria.BURN_IN), self.outfile,  str(self.verbose_level)]+self.summaries
+        command=[self.Rscript_path,os.path.join(dir, 'ESS.R'), filename, str(self.burn_in), self.outfile,  str(self.verbose_level)]+self.summaries
         if self.verbose_level=='normal':
             print command
         call(command)
@@ -52,10 +58,10 @@ class stop_criteria(object):
                 if self.verbose_level=='normal':
                     print n, name, ess
                 if n<self.non_topological_summaries:
-                    if ess<stop_criteria.CONTINUOUS_MIN:
+                    if ess < self.continuous_threshold:
                         return False
                 else:
-                    if ess<stop_criteria.TOPOLOGICAL_MIN:
+                    if ess < self.topological_threshold:
                         return False
         return True
     

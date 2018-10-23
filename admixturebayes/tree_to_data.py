@@ -106,6 +106,7 @@ def order_covariance(xnn_tuple, outgroup=''):
         return xnn_tuple
     xs,ns,names=xnn_tuple
     #print self.full_nodes, self.outgroup
+    assert outgroup in names, 'The outgroup was not found in the data. Did you spell it correctly?'
     n_outgroup=next((n for n, e in enumerate(names) if e==outgroup))
     #print 'n_outgroup', n_outgroup
     #print 'xs shape', xs.shape
@@ -536,11 +537,12 @@ def treemix_to_cov(filename='treemix_in.txt.gz', outfile='not_used', reduce_also
     return m
 
 def unzip(filename, overwrite=False, new_filename=None):
+    original_filename=filename[:]
     assert filename.endswith('.gz'), 'file with non-zipped ending was passed to the unzip function'
     if new_filename is None:
         new_filename=filename[:-3]
     if (not overwrite) and os.path.exists(new_filename):
-        warnings.warn('Not unzipping because unzipped file already exists')
+        #warnings.warn('Not unzipping '+original_filename + ' because '+ new_filename+ ' already exists')
         return new_filename
     command=['gunzip','-c',filename]
     #print command
@@ -549,11 +551,12 @@ def unzip(filename, overwrite=False, new_filename=None):
     return new_filename
 
 def gzip(filename, overwrite=False, new_filename=None):
+    original_filename = filename[:]
     assert not filename.endswith('.gz'), 'file with zipped ending was passed to the zip function'
     if new_filename is None:
         new_filename=filename+'.gz'
     if (not overwrite) and os.path.exists(new_filename):
-        warnings.warn('Not zipping because zipped file already exists')
+        #warnings.warn('Not zipping ' + original_filename + ' because ' + new_filename + ' already exists')
         return new_filename
     command=['gzip','-c',filename]
     #print command

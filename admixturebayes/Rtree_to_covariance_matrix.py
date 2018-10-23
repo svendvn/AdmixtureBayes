@@ -38,7 +38,7 @@ if not imported_fast_covariance:
     Covariance_Matrix2=Covariance_Matrix
     warnings.warn('Using the slow covariance matrix implemented in numpy. If possible, run setup.py and restart.', RuntimeWarning)
 else:
-    print 'Using the fast C++ implemented covariance matrix'
+    print 'Using the fast C implemented covariance matrix'
 
 
 

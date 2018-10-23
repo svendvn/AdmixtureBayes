@@ -50,6 +50,9 @@ def get_partitions(lines, blocksize):
     list_of_lists=[]
     for i in range(0,len(lines)-blocksize, blocksize):
         list_of_lists.append(lines[i:(i+blocksize)])
+    #checking if we should add the last block
+    if len(lines)%blocksize == 0:
+        list_of_lists.append(lines[-blocksize:])
     return list_of_lists
 
 def bootstrap_indices(k):
@@ -101,7 +104,7 @@ def bootsrap_combine_covs(covs, cores, bootstrap_samples):
     p=Pool(cores)
     def t(empty):
         indices=bootstrap_indices(len(covs))
-        return combine_covs(covs,indices)
+        return combine_covs(covs, indices)
     result_covs=map(t, range(bootstrap_samples))
     return result_covs                
                 
@@ -122,7 +125,7 @@ def make_covariances(filenames, cores, **kwargs):
         warnings.warn('Erasing the files did not succeed',UserWarning)
     return covs
 
-def make_single_files(filename,blocksize, no_blocks, prefix=''):
+def make_single_files(filename,blocksize, no_blocks, prefix='', verbose_level='normal'):
     assert (blocksize is not None) or (no_blocks is not None), 'Has to specify either block size or number of blocks'
     filenames=[]
     if filename.endswith('.gz'):
@@ -131,14 +134,16 @@ def make_single_files(filename,blocksize, no_blocks, prefix=''):
     with open(filename, 'r') as f:
         first_line=f.readline()
         lines=f.readlines()
+        #print lines
     n=len(lines)
     if no_blocks is not None:
         blocksize=n/no_blocks
     line_sets=get_partitions(lines, blocksize)
-    print 'total SNPs=', n
-    print 'total blocksize', blocksize
-    print 'no_blocks', no_blocks
-    print 'len(line_sets)', len(line_sets)
+    if verbose_level!='silent':
+        print 'total SNPs=', n
+        print 'total blocksize', blocksize
+        #print 'no_blocks', no_blocks
+        print 'len(line_sets)', len(line_sets)
     for i,lins in enumerate(line_sets):
         new_filename= filename_reduced+str(i)
         with open(new_filename, 'w') as g:
@@ -157,11 +162,13 @@ def estimate_degrees_of_freedom_scaled_fast(filename,
                                             save_covs='',
                                             prefix='',
                                             load_bootstrapped_covariances=[],
+                                            verbose_level='normal',
                                             **kwargs):
     if not load_bootstrapped_covariances:
-        single_files, nodes=make_single_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, prefix=prefix)
-        print single_files
-        print nodes
+        single_files, nodes=make_single_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, prefix=prefix, verbose_level=verbose_level)
+        assert len(single_files)>1, 'There are ' +str(len(single_files)) + ' bootstrapped SNP blocks and that is not enough. Either add more data or lower the --bootstrap_blocksize'
+        if len(single_files)<39:
+            warnings.warn('There are only '+str(len(single_files))+' bootstrap blocks. Consider lowering the --bootstrap_blocksize or add more data.', UserWarning)
         single_covs=make_covariances(single_files, cores=cores, return_also_mscale=True, **kwargs)
         covs=bootsrap_combine_covs(single_covs, cores=cores, bootstrap_samples=no_bootstrap_samples)
         if save_covs:
@@ -171,44 +178,50 @@ def estimate_degrees_of_freedom_scaled_fast(filename,
     else:
         covs=[loadtxt(bcov) for bcov in load_bootstrapped_covariances]
     summarization=initor(summarization)
+    if verbose_level=='normal':
+        print 'Estimating df using bootstrap:'
     if summarization=='var':
         res=estimate(covs)
     elif summarization=='mle_opt':
-        res=likelihood_mean_based(covs)
+        if verbose_level == 'normal':
+            print 'df : likelihood'
+        res=likelihood_mean_based(covs, verbose_level=verbose_level)
     elif summarization=='var_opt':
-        res=variance_mean_based(covs)
+        if verbose_level == 'normal':
+            print 'df :: logarithm composite moment deviation'
+        res=variance_mean_based(covs, verbose_level=verbose_level)
     return res, covs
-
-
-def estimate_degrees_of_freedom(filename, 
-                                bootstrap_blocksize=100, 
-                                no_blocks=None, no_bootstrap_samples=10, 
-                                summarization=['mle_opt','var_opt','var'],
-                                cores=1, 
-                                save_covs='',
-                                prefix='',
-                                load_bootstrapped_covariances=[],
-                                **kwargs):
-    if not load_bootstrapped_covariances:
-        filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples, prefix=prefix)
-        print 'nodes', nodes
-        print filenames
-        covs=make_covariances(filenames, cores=cores, **kwargs)
-        if save_covs:
-            for i,cov in enumerate(covs):
-                filn=prefix+save_covs+str(i)+'.txt'
-                savetxt(filn, cov)
-    else:
-        covs=[loadtxt(bcov) for bcov in load_bootstrapped_covariances]
-    #print covs[1]
-    summarization=initor(summarization)
-    if summarization=='var':
-        res=estimate(covs)
-    elif summarization=='mle_opt':
-        res=likelihood_mean_based(covs)
-    elif summarization=='var_opt':
-        res=variance_mean_based(covs)
-    return res, covs
+#
+#
+# def estimate_degrees_of_freedom(filename,
+#                                 bootstrap_blocksize=100,
+#                                 no_blocks=None, no_bootstrap_samples=10,
+#                                 summarization=['mle_opt','var_opt','var'],
+#                                 cores=1,
+#                                 save_covs='',
+#                                 prefix='',
+#                                 load_bootstrapped_covariances=[],
+#                                 **kwargs):
+#     if not load_bootstrapped_covariances:
+#         filenames, nodes=make_bootstrap_files(filename, blocksize=bootstrap_blocksize, no_blocks=no_blocks, bootstrap_samples=no_bootstrap_samples, prefix=prefix)
+#         print 'nodes', nodes
+#         print filenames
+#         covs=make_covariances(filenames, cores=cores, **kwargs)
+#         if save_covs:
+#             for i,cov in enumerate(covs):
+#                 filn=prefix+save_covs+str(i)+'.txt'
+#                 savetxt(filn, cov)
+#     else:
+#         covs=[loadtxt(bcov) for bcov in load_bootstrapped_covariances]
+#     #print covs[1]
+#     summarization=initor(summarization)
+#     if summarization=='var':
+#         res=estimate(covs)
+#     elif summarization=='mle_opt':
+#         res=likelihood_mean_based(covs)
+#     elif summarization=='var_opt':
+#         res=variance_mean_based(covs)
+#     return res, covs
     
 
 

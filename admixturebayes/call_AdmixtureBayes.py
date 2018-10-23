@@ -10,7 +10,7 @@ from temperature_scheme import fixed_geometrical, temperature_adapting
 from analyse_results import save_permuts_to_csv, get_permut_filename
 from posterior import posterior_class
 from MCMCMC import MCMCMC
-from wishart_distribution_estimation import estimate_degrees_of_freedom, estimate_degrees_of_freedom_scaled_fast
+from wishart_distribution_estimation import estimate_degrees_of_freedom_scaled_fast
 from MCMC import basic_chain
 from stop_criteria import stop_criteria
 from one_evaluation import one_evaluation
@@ -46,6 +46,7 @@ def main(args):
     parser.add_argument('--stop_evaluations', action='store_true', default=False, help='This will stop the analysis after the data preparation')
     parser.add_argument('--save_after_hours', type=float, nargs='+', default=[], help='This will save a copy of the output file after the number of hours specified here. One would do that to easily access how converged the chain is after certain number of hours.')
     parser.add_argument('--verbose_level',  default='normal',choices=['normal',  'silent'],  help='this will set the amount of status out prints throughout running the program.')
+    parser.add_argument('--Rscript_command', default='Rscript', type=str, help='The command to start R from the terminal. If there is no valid path, the stop criteria should be set to False.')
 
     #treemix arguments
     parser.add_argument('--treemix_reps', type=int, default=1, help='the number of repititions of the treemix call. Only used when treemix_instead or treemix_also')
@@ -58,11 +59,15 @@ def main(args):
 
 
     #covariance matrix options
-    parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,8,9], help='skewed admixture proportion prior in the simulated datasets')
-    parser.add_argument('--outgroup_name', type=str, default='out', help='the name of the outgroup that should be added to a simulated dataset.')
-    parser.add_argument('--reduce_node', type=str, default='out', help='the name of the population that should be made root.')
+    parser.add_argument('--covariance_pipeline', nargs='+', type=int, default=[6,8,9], help='The list of steps the data should go through to become a covariance matrix. For the simulation data steps 1-5 I refer to the script construct_covariance_choices.'
+                                                                                            '6=data in treemix format (see Readme.md), '
+                                                                                            '7=raw covariance with outgroup, '
+                                                                                            '8=raw covariance without outgroup (or with respect to the outgroup).'
+                                                                                            '9=scaled covariance without outgroup and the scaling factor.')
+    parser.add_argument('--create_outgroup', type=str, default='', help='The name of the outgroup that should be added to a simulated dataset.')
+    parser.add_argument('--outgroup', type=str, default='', help='The name of the population that should be outgroup for the covariance matrix. If the covariance matrix is su')
     parser.add_argument('--nodes', type=str, nargs='+', default=[''], help= 'list of nodes of the populations or the filename of a file where the first line contains all population names. If unspecified the first line of the input_file will be used. If no input file is found, there will be used standard s1,..,sn.')
-    parser.add_argument('--wishart_noise', action='store_true', default=False)
+
 
     #empirical_covariance matrix. Base estimation
     parser.add_argument('--arcsin', action='store_true', default=False)
@@ -71,7 +76,7 @@ def main(args):
     parser.add_argument('--Jade_cutoff', type=float, default=1e-5, help='this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
     parser.add_argument('--variance_correction', default='unbiased', choices=['None', 'unbiased','mle'], help= 'The type of adjustment used on the empirical covariance.')
     parser.add_argument('--variance_correction_input_file', default='', type=str, help='if the variance correction is saved in a file (with numpy.savetxt format of a 2 dimensional numpy array) it can be loaded in with this command')
-    parser.add_argument('--add_variance_correction_to_graph', default=True, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix.')
+    parser.add_argument('--add_variance_correction_to_graph', default=True, action='store_true', help='If on, the variance correction will be added to the covariance matrix of the graph and not subtracted from the empirical covariance matrix. Default is True.')
     parser.add_argument('--indirect_correction', default=False, action='store_true', help='the bias in the covariance is (possibly again) corrected for by indirect estimation.')
     parser.add_argument('--indirect_its', type=int, default=100, help='For how many iterations should the indirect optimization procedure be run. Only applicable if indirect_correction is True')
     parser.add_argument('--indirect_simulation_factor', type=int, default=1, help='How much more data than provided should be simulated in the indirect correction procedure. Only applicable if indirect_correction is True')
@@ -94,16 +99,16 @@ def main(args):
     parser.add_argument('--filter_on_simulated', choices=['same', 'none', 'outgroup_other', 'outgroup', 'snp', 'all_pops'], default='same', help='In indirect inference, whole datasets are simulated under ')
 
     #degrees of freedom arguments
-    parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
-    parser.add_argument('--df_file', type=str, default='', help='file with the number of degrees of freedom in the wishart distribution OR the file of entrywise variances of the covariance matrix.')
-    parser.add_argument('--wishart_df', type=float, default=1000.0, help='degrees of freedom to run under if bootstrap-mle of this number is declined (and treemix_likelihood is not specified).')
+    #parser.add_argument('--estimate_bootstrap_df', action='store_true', default=False, help= 'if declared, the program will estimate the degrees of freedom in the wishart distribution with a bootstrap sample.')
+    parser.add_argument('--df_file', type=str, default='', help='By default, the degrees of freedom will be estimated with bootstrap. If this flag is used, it will use the degrees of freedom from this file in stead.')
+    parser.add_argument('--wishart_df', type=float, default=-1, help='By default, the degrees of freedom will be estimated with bootstrap. If this flag is used (and is positive), it will use the wishart_df value instead.')
     parser.add_argument('--save_df_file', type=str, default='DF.txt', help='the prefix is put before this string and the degrees of freedom is saved to this file.')
     parser.add_argument('--bootstrap_blocksize', type=int, default=1000, help='the size of the blocks to bootstrap in order to estimate the degrees of freedom in the wishart distribution')
     parser.add_argument('--no_bootstrap_samples', type=int, default=100, help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
     parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False, help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
     parser.add_argument('--save_bootstrap_covariances', type=str, default='', help='if provided the bootstrapped covariance matrices will be saved to numbered files starting with {prefix}+_+{save_covariances}+{num}+.txt')
     parser.add_argument('--bootstrap_type_of_estimation', choices=['mle_opt','var_opt'], default='var_opt', help='This is the way the bootstrap wishart estimate is estimated.')
-    parser.add_argument('--load_bootstrapped_covariances', type=str, default=[], nargs='+', help='if supplied, this will load covariance matrices from the specified files instead of simulating new ones.')
+    parser.add_argument('--load_bootstrapped_covariances', type=str, default=[], nargs='+', help='if supplied, this will load covariance matrices from the specified files instead of bootstrapping new ones.')
 
     #proposal frequency options
     parser.add_argument('--deladmix', type=float, default=1, help='this states the frequency of the proposal type')
@@ -132,11 +137,12 @@ def main(args):
     #tree simulation
     parser.add_argument('--p_sim', type=float, default=.5, help='the parameter of the geometric distribution in the distribution to simulate the true tree from.')
     parser.add_argument('--popsize', type=int, default=20, help='the number of genomes sampled from each population.')
-    parser.add_argument('--nreps', type=int, default=50, help='How many pieces of size 500 kb should be simualted')
+    parser.add_argument('--nreps', type=int, default=50, help='How many pieces of size 500 kb should be simulated')
     parser.add_argument('--scale_tree_factor', type=float, default=0.02, help='The scaling factor of the simulated trees to make them less vulnerable to the fixation effect.')
     parser.add_argument('--skewed_admixture_prior_sim', default=False, action='store_true', help='the prior tree is simulated with an uneven prior on the admixture proportions')
     parser.add_argument('--time_adjusted_tree', default=False, action='store_true', help='this will modify the simulated tree such that all drift lengths from root to leaf are the same')
     parser.add_argument('--sadmix_tree', default=False, action='store_true', help='this will simulate trees where all admixture events are important in the sense that they expand the space of possible covariance matrices.')
+    parser.add_argument('--wishart_noise', action='store_true', default=False, help='A wishart noise is added to the estimated covariance matrix.')
 
     #covariance simulation
     parser.add_argument('--favorable_init_brownian', default=False, action='store_true', help='This will start the brownian motion(only if 21 in workflow) between 0.4 and 0.6')
@@ -147,33 +153,38 @@ def main(args):
     parser.add_argument('--summary_majority_tree', action='store_true', default=False, help='this will calculate the majority (newick) tree based on the sampled tree')
     parser.add_argument('--summary_acceptance_rate', action='store_true', default=True, help='This will calculate and store summaries related to the acceptance rate')
     parser.add_argument('--summary_admixture_proportion_string', action='store_true', default=True, help='this will save a string in each step indicating names and values of all admixture proportions')
-    parser.add_argument('--save_warm_chains', action='store_true', default=False, help='this will only save the coldest chain in the output file.')
+    parser.add_argument('--save_warm_chains', action='store_true', default=False, help='By default only the coldest, "real" chain in the MCMCMC is saved. This will save all of them.')
+    parser.add_argument('--thinning_coef', type=int, default=40,
+                        help='the number of iterations between each data recording point.')
 
     #MCMCMC setup
-    parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of chains to run the MCMCMC with.')
+    parser.add_argument('--MCMC_chains', type=int, default=8, help='The number of chains to run the MCMCMC with. Optimally, the number of cores matches the number of chains.')
     parser.add_argument('--n', type=int, default=200, help='the number of MCMCMC flips throughout the chain.')
-    parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before the chain is ')
-    parser.add_argument('--max_temp', type=float, default=100, help='the maximum temperature used in the MCMCMC.')
-    parser.add_argument('--adaptive_temperatures', action='store_true', default=False, help='this will make the temperature scheme update itself based on the transition probabilities.')
-    parser.add_argument('--thinning_coef', type=int, default=40, help='the number of iterations between each data recording point.')
+    parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before between each MCMCMC flip')
+    parser.add_argument('--max_temp', type=float, default=1000, help='the maximum temperature used in the MCMCMC.')
+    parser.add_argument('--adaptive_temperatures', action='store_true', default=False, help='this will make the MCMCMC temperature scheme update itself based on the transition probabilities.')
     parser.add_argument('--store_permuts', action='store_true', default=False, help='If applied, the permutations from the MCMCMC flips are recorded in a file with a similar filename to the result_file')
-    parser.add_argument('--stop_criteria', action='store_true', default=True, help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at ')
-    parser.add_argument('--stop_criteria_frequency', type=int, default=200000, help='This tells the frequency of checking for when the stop criteria are checked (if the stop_criteria flag is turned on)')
-    parser.add_argument('--stop_criteria_topological', default=False, action='store_true', help='this will add a topological stop criteria that should also be fulfilled.')
+
+    #Stopping criteria
+    parser.add_argument('--stop_criteria', action='store_true', default=False, help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at ')
+    parser.add_argument('--stop_criteria_frequency', type=int, default=200000, help='This tells the frequency of checking for when the stop criteria are checked (if the stop_criteria flag is turned on). It is measured in total iterations(n*m).')
+    parser.add_argument('--stop_criteria_continuous_ess_threshold', default=200, type=float, help='The minimum ESS to obtain for continuous summaries of the MCMC chain')
+    parser.add_argument('--stop_criteria_topological_ess_threshold', default=200, type=float,
+                        help='The minimum ESS to obtain for topological summaries of the MCMC chain (if the stop_criteria). If negative, the topological stop criteria will not be used at all.')
 
     options=parser.parse_args(args)
 
+    assert not (any((i < 8 for i in options.covariance_pipeline)) and not options.outgroup), 'In the requested analysis, the outgroup needs to be specified by the --outgroup flag and it should match one of the populations'
 
 
+    mp = make_proposal(options)
 
-
-    mp=make_proposal(options)
-
-    before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.outgroup_name, options.reduce_node)
+    before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.create_outgroup, options.outgroup)
     if options.verbose_level !='silent':
         print 'before_nodes', before_added_outgroup
         print 'full_nodes', full_nodes
         print 'reduced_nodes', reduced_nodes
+
 
 
 
@@ -221,7 +232,7 @@ def main(args):
         assert options.initial_Sigma!='start', 'to make the filter start somewhere specific it should also be specified specifically'
 
     locus_filter=make_filter(options.filter_type,
-                             outgroup_name=options.reduce_node,
+                             outgroup_name=options.outgroup, #options.reduce_node,
                              covariance_pipeline=options.covariance_pipeline)
     if options.filter_on_simulated=='same':
         locus_filter_on_simulated=make_filter(options.filter_type)
@@ -231,7 +242,7 @@ def main(args):
         
 
 
-    estimator_arguments=dict(reducer=options.reduce_node,
+    estimator_arguments=dict(reducer=options.outgroup, #options.reduce_node,
                              variance_correction=options.variance_correction,
                              method_of_weighing_alleles=options.cov_estimation,
                              arcsin_transform=options.arcsin,
@@ -256,8 +267,8 @@ def main(args):
                               full_nodes=full_nodes, 
                               skewed_admixture_prior_sim=options.skewed_admixture_prior_sim, 
                               p=options.p_sim, 
-                              outgroup_name=options.outgroup_name,
-                              reduce_covariance_node=options.reduce_node,
+                              outgroup_name=options.create_outgroup,
+                              reduce_covariance_node=options.outgroup, #reduce_node,
                               sample_per_pop=options.popsize,
                               nreps=options.nreps,
                               treemix_file=treemix_file,
@@ -292,7 +303,7 @@ def main(args):
                            '-n', str(options.treemix_reps), 
                            '-i', treemix_in_file,
                            '-o', o_file,
-                           '-root', options.reduce_node,
+                           '-root', options.outgroup, #reduce_node,
                            '-m', str(k)] for k, o_file in zip(options.treemix_no_admixtures,outfiles)]
         from subprocess import call
         for c in calls_to_treemix:
@@ -304,7 +315,17 @@ def main(args):
 
 
 
-    if options.estimate_bootstrap_df:
+    if options.df_file:
+        if options.likelihood_treemix and not options.df_treemix_adjust_to_wishart:
+            df = file_to_emp_cov(options.df_file, nodes=reduced_nodes)
+        else:
+            with open(options.df_file, 'r') as f:
+                df = float(f.readline().rstrip())
+        boot_covs = []
+    elif options.wishart_df>0:
+        df = options.wishart_df
+        boot_covs = []
+    else:
         #assert 6 in options.covariance_pipeline, 'Can not estimate the degrees of freedom without SNP data.'
         #reduce_also= (8 in options.covariance_pipeline)
         estimator_arguments['save_variance_correction']=False
@@ -320,17 +341,9 @@ def main(args):
                                                save_covs=options.save_bootstrap_covariances,
                                                prefix=prefix,
                                                est=estimator_arguments, locus_filter=locus_filter,
-                                               load_bootstrapped_covariances=options.load_bootstrapped_covariances)
-    elif options.df_file:
-        if options.likelihood_treemix and not options.df_treemix_adjust_to_wishart:
-            df=file_to_emp_cov(options.df_file, nodes=reduced_nodes)
-        else:
-            with open(options.df_file, 'r') as f:
-                df=float(f.readline().rstrip())
-        boot_covs=[]
-    else:
-        df=options.wishart_df
-        boot_covs=[]
+                                               load_bootstrapped_covariances=options.load_bootstrapped_covariances,
+                                               verbose_level=options.verbose_level)
+
 
 
 
@@ -384,8 +397,9 @@ def main(args):
         emp_cov_to_file(df, prefix+options.save_df_file, nodes=reduced_nodes)
         
 
+    make_topological_summaries = options.stop_criteria and (options.stop_criteria_topological_ess_threshold>=0)
     summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=options.summary_majority_tree, 
-                                              light_newick_tree_summaries=options.stop_criteria_topological,
+                                              light_newick_tree_summaries=make_topological_summaries,
                                               full_tree=True, #can not think of a moment where you don't want this.
                                               proposals=mp[0], 
                                               acceptance_rate_information=options.summary_acceptance_rate,
@@ -413,9 +427,11 @@ def main(args):
 
     if options.stop_criteria:
         sc=stop_criteria(frequency=options.stop_criteria_frequency, 
-                                   outfile=prefix+'stop_criteria.txt', 
-                                   topological=options.stop_criteria_topological, 
-                                   verbose_level=options.verbose_level)
+                         outfile=prefix+'stop_criteria.txt',
+                         topological_threshold=options.stop_criteria_topological_ess_threshold,
+                         continuous_threshold=options.stop_criteria_continuous_ess_threshold,
+                         Rscript_path=options.Rscript_command,
+                         verbose_level=options.verbose_level)
     else:
         sc=None
         
@@ -462,7 +478,7 @@ def main(args):
                store_permuts=options.store_permuts, 
                stop_criteria=sc,
                make_outfile_stills=options.save_after_hours,
-               save_only_coldest_chain=options.save_warm_chains)
+               save_only_coldest_chain=not options.save_warm_chains)
         
     def single_chain_run():
         basic_chain(start_x= starting_trees[0],

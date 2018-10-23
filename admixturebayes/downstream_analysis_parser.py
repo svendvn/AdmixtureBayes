@@ -29,8 +29,8 @@ def run_posterior_main(args):
     parser = ArgumentParser(usage='pipeline for post analysis', version='1.0.0')
 
     parser.add_argument('--test_run', default=False, action='store_true', help='will overwrite everything and run a test function')
-    parser.add_argument('--input_file', default='result_mc3.csv', type=str, help='The input file that should contain a column named tree or the option no_header should be turned on in which case every line is assumed to hold just one tree')
-    parser.add_argument('--covariance_matrix_file', default='', type=str, help='file where the first line is the leaf nodes')
+    parser.add_argument('--input_file', required=True, type=str, help='The input file that should contain a column named tree or the option no_header should be turned on in which case every line is assumed to hold just one tree')
+    parser.add_argument('--covariance_matrix_file', required=True, type=str, help='file where the first line is the leaf nodes')
     parser.add_argument('--subnodes', default=[], type=str, nargs='+', help='The subnodes to do the analysis on. If not declared, the analysis will be done on the full nodes.')
     parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
     parser.add_argument('--burn_in_fraction', default=0.5, type=float, help='the proportion of the rows that are discarded as burn in period')
