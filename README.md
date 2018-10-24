@@ -20,9 +20,9 @@ $ conda install -c anaconda pygraphviz
 
 ### Other OS
 
-For other than linux 64-bit, the only option (for now) is to install a version without the C-accelerated likelihood
+For other than linux 64-bit, the only option (for now) is to install a version without the C-accelerated likelihood in a python 2.7 environment
 ```bash
-$ pip install dist/AdmixtureBayes-0.1-cp27-cp27mu-linux_x86_64.whl
+$ pip install dist/AdmixtureBayes-0.1-py2-none-any.whl
 ```
  
  
