@@ -28,24 +28,47 @@ def run_posterior_main(args):
 
     parser = ArgumentParser(usage='pipeline for post analysis', version='1.0.0')
 
-    parser.add_argument('--test_run', default=False, action='store_true', help='will overwrite everything and run a test function')
-    parser.add_argument('--input_file', required=True, type=str, help='The input file that should contain a column named tree or the option no_header should be turned on in which case every line is assumed to hold just one tree')
-    parser.add_argument('--covariance_matrix_file', required=True, type=str, help='file where the first line is the leaf nodes')
-    parser.add_argument('--subnodes', default=[], type=str, nargs='+', help='The subnodes to do the analysis on. If not declared, the analysis will be done on the full nodes.')
+
+    parser.add_argument('--input_file', required=True, type=str, help='The output file from an AdmixtureBayes run.')
+    parser.add_argument('--covariance_matrix_file', required=True, type=str, help='file containing the covariance matrix with a header with all the population names.')
+    parser.add_argument('--subnodes', default=[], type=str, nargs='+', help='The subset of populations to perform the analysis on. If not declared, the analysis will be done on the full dataset.')
+    parser.add_argument('--result_file', default='posterior_distributions.csv', type=str, help='The resulting file. It will be comma-separated and contain one column per summary plus a header.')
+    parser.add_argument('--prefix', default='', type=str, help='place to put the temporary files')
+    parser.add_argument('--total', default=886, type=int,
+                        help='an upper limit on the number of rows to reduce computational pressure')
+    parser.add_argument('--burn_in_fraction', default=0.5, type=float,
+                        help='the proportion of the rows that are discarded as burn in period')
+    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops'], choices=possible_summaries.keys(),
+                        nargs='*', type=str, help='The summaries to calculate')
+    parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops'], nargs='*', type=str,
+                        help='The list of summaries to save')
+    parser.add_argument('--summarize_posterior_distributions', default=False,
+                        help='If set to true, the posterior distibutions will be summarized even further.')
+    parser.add_argument('--min_w', default=0.0, type=float,
+                        help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
+    parser.add_argument('--constrain_number_of_admixes', default='', type=str,
+                        choices=['', 'true_val'] + map(str, range(21)),
+                        help='The number of admixture events that there are constrained on in the data set. If negative there are no constraints')
+    parser.add_argument('--constrain_number_of_effective_admixes', default='',
+                        choices=['', 'true_val'] + map(str, range(21)), type=str,
+                        help='The number of effective(visible)_admixture events that there are constrained on in the data set. If negative there are no constraints.')
+    parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true',
+                        help='this will remove the graphs which has invisible admixtures. This will produce worse, but more easily interpretable results.')
     parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
-    parser.add_argument('--burn_in_fraction', default=0.5, type=float, help='the proportion of the rows that are discarded as burn in period')
-    parser.add_argument('--total', default=886, type=int, help='an upper limit on the number of rows to reduce computational pressure')
-    parser.add_argument('--prefix', default='', type=str,help='place to put the temporary files')
-    parser.add_argument('--result_file', default='posterior_distributions.csv', type=str,help='the result file')
+    parser.add_argument('--use_cols', default=['tree', 'add', 'layer', 'no_admixes'], type=str, nargs='+',
+                        help='The columns to load from the input file')
     parser.add_argument('--outgroup_name', default='out', type=str, help='name of the outgroup')
-    parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
-    parser.add_argument('--use_cols', default=['tree','add','layer','no_admixes'], type=str, nargs='+', help='The columns to load from the input file')
-    parser.add_argument('--constrain_number_of_admixes', default='', type=str, choices=['','true_val']+map(str, range(21)), help='The number of admixture events that there are constrained on in the data set. If negative there are no constraints')
-    parser.add_argument('--constrain_number_of_effective_admixes', default='',choices=['','true_val']+map(str, range(21)), type=str, help='The number of effective(visible)_admixture events that there are constrained on in the data set. If negative there are no constraints.')
+    parser.add_argument('--emp_m_scale', type=str, default='')
+    parser.add_argument('--emp_variance_correction', type=str, default='')
+    parser.add_argument('--emp_df', type=str, default='')
+    parser.add_argument('--emp_covariance_and_multiplier', default='', type=str)
+    parser.add_argument('--emp_covariance_reduced', default='', type=str)
+
+
     parser.add_argument('--choice_if_no_thinned_graphs', default='error', choices=['error', 'nearest_admixture_events'], help='If the thinning leaves no graphs left, this is what will be done in stead. error will throw an error and nearest_admixture_events will expand the band of allowed number of admixture events(if the chain has been thinned on number of admixture events).')
-    parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true', help='this will remove the graphs which has invisible admixtures')
-    parser.add_argument('--summaries', default=['Rtree','topology','pops'], choices=possible_summaries.keys(),nargs='*', type=str, help='The summaries to calculate')
-    parser.add_argument('--save_summaries', default=['no_admixes','topology','pops'], nargs='*', type=str, help='The list of summaries to save')
+    parser.add_argument('--test_run', default=False, action='store_true',
+                    help='will overwrite everything and run a test function')
+
     parser.add_argument('--summary_summaries', default=['mean'], nargs='*', type=str, help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
     parser.add_argument('--number_of_top_pops', default=10, type=int, help='if top_pops is added to summary_summaries this is the number of set topologies saved. negative values means all topologies are saved.')
     parser.add_argument('--true_scaled_tree',  type=str, default='')
@@ -54,18 +77,13 @@ def run_posterior_main(args):
     parser.add_argument('--true_covariance_reduced',  type=str, default='')
     parser.add_argument('--true_covariance_and_multiplier',  type=str, default='')
     parser.add_argument('--true_no_admix',  type=str, default='')
-    parser.add_argument('--emp_m_scale',  type=str, default='')
-    parser.add_argument('--emp_variance_correction',  type=str, default='')
-    parser.add_argument('--emp_df',  type=str, default='')
-    parser.add_argument('--emp_covariance_and_multiplier', default='', type=str)
-    parser.add_argument('--emp_covariance_reduced', default='', type=str)
     parser.add_argument('--treemix_post_analysis', action='store_true', default=False, help='this will convert the treemix input fil ../../../../Dropbox/Bioinformatik/AdmixtureBayes/test_final_grid/ai_2_5true/_true_tree.txtes into a suitable csv file for ')
     parser.add_argument('--treemix_tree', default='', type=str, help='')
     parser.add_argument('--treemix_add', default='', type=str, help='')
     parser.add_argument('--treemix_full_tree', default='')
     parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str, help='')
     parser.add_argument('--subgraph_file', default='', type=str, help='file where each line has a space separated list of leaf labels to calculate subtrees from. If a double underscore(__) occurs, it means that the following two arguments are max number of sub topologies and total posterior probability.')
-    parser.add_argument('--summarize_posterior_distributions', default=False, help='If set to true, the posterior distibutions will be summarized even further.')
+
 
     options= parser.parse_args(args)
 
@@ -148,10 +166,10 @@ def run_posterior_main(args):
 
     #print 'subnodes_wo_outgroup', subnodes_wo_outgroup
 
-    if 'Rtree' in options.summaries:
+    if 'Rtree' in options.calculate_summaries:
         row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
         name_to_rowsum_index('Rtree')
-    if 'full_tree' in options.summaries:
+    if 'full_tree' in options.calculate_summaries:
         row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier,
                                                         outgroup_name=options.outgroup_name,
                                                         remove_sadtrees=options.constrain_sadmix_trees,
@@ -160,7 +178,7 @@ def run_posterior_main(args):
     if options.subnodes:
         nodes=subnodes_wo_outgroup
         full_nodes=sorted(list(set(nodes[:]+[options.outgroup_name])))
-    if 'subgraph' in options.summaries:
+    if 'subgraph' in options.calculate_summaries:
         subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['full'])
         for dic in subgraph_dicts:
             skeys=dic['subgraph_keys']
@@ -172,22 +190,22 @@ def run_posterior_main(args):
             options.save_summaries.append(code)
             options.summary_summaries.append(code)
             possible_summary_summaries[code]=sum_func.summarise
-    if 'Rcov' in options.summaries:
+    if 'Rcov' in options.calculate_summaries:
         row_sums.append(possible_summaries['Rcov'](deepcopy(nodes), add_multiplier=1.0/multiplier))
         name_to_rowsum_index('Rcov')
-    if 'cov_dist' in options.summaries:
+    if 'cov_dist' in options.calculate_summaries:
         row_sums.append(possible_summaries['cov_dist'](true_covariance_reduced))
         name_to_rowsum_index('cov_dist')
-    if 'topology' in options.summaries:
+    if 'topology' in options.calculate_summaries:
         row_sums.append(possible_summaries['topology'](nodes=nodes))
         name_to_rowsum_index('topology')
-    if 'top_identity' in options.summaries:
+    if 'top_identity' in options.calculate_summaries:
         row_sums.append(possible_summaries['top_identity'](true_tree, nodes=nodes))
         name_to_rowsum_index('top_identity')
-    if 'pops' in options.summaries:
+    if 'pops' in options.calculate_summaries:
         row_sums.append(possible_summaries['pops'](min_w=options.min_w, keys_to_include=nodes))
         name_to_rowsum_index('pops')
-    if 'subsets' in options.summaries:
+    if 'subsets' in options.calculate_summaries:
         subgraph_dicts=read_subgraphing_dict(options.subgraph_file, types=['topological'])
         for dic in subgraph_dicts:
             skeys=dic['subgraph_keys']
@@ -199,16 +217,18 @@ def run_posterior_main(args):
             options.save_summaries.append(code)
             options.summary_summaries.append(code)
             possible_summary_summaries[code]=sum_func.summarise
-    if 'set_differences' in options.summaries:
+    if 'set_differences' in options.calculate_summaries:
         row_sums.append(possible_summaries['set_differences'](true_tree, min_w=options.min_w, keys_to_include=nodes))
         name_to_rowsum_index('set_differences')
-    if 'no_sadmixes' in options.summaries:
+    if 'no_sadmixes' in options.calculate_summaries:
         if options.constrain_number_of_effective_admixes:
             no_effective_admixes=int(options.constrain_number_of_effective_admixes)
         else:
             no_effective_admixes=None
         row_sums.append(possible_summaries['no_sadmixes'](no_effective_admixes))
         name_to_rowsum_index('no_sadmixes')
+
+
 
     def save_thin_columns(d_dic):
         return {summ:d_dic[summ] for summ in options.save_summaries}

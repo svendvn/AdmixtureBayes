@@ -1,0 +1,5 @@
+popualtion1 population2 population3 population4
+6,5 4,5 2,3 5,9
+3,10 0,5 3,10 2,7
+3,13 4,5 6,10 1,7
+6,1 4,0 6,2 5,6

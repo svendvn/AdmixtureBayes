@@ -12,40 +12,58 @@ from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directe
 import sys
 
 def main(args):
-    parser = ArgumentParser(usage='pipeline for node plotting', version='1.0.0')
+    parser = ArgumentParser(usage='pipeline for plotting posterior distribution summaries.', version='1.0.0')
 
-    parser.add_argument('--test_run', default=False, action='store_true', help='will overwrite everything and run a test function')
-    parser.add_argument('--posterior_distribution_file', required=True, type=str, help='The file containing posterior distributions from an upstream analysis.')
-    parser.add_argument('--nodes', default='', type=str, help='file where the first line is the leaf nodes')
-    parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
-    parser.add_argument('--no_header', default=False, action='store_true',help='will assume that there is no header in the file')
-    parser.add_argument('--burn_in_rows', default=0, type=int, help='the number of rows that will be skipped in the input file as burn-in period')
-    parser.add_argument('--burn_in_fraction', default=0.0, type=float, help='the proportion of the rows that are discarded as burn in period')
-    parser.add_argument('--tree_column_name', default='tree', type=str, help='the name in the header of the column with all the trees.')
-    parser.add_argument('--sep', default=',', type=str, help='the separator used in the input file')
-    parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help='Which method should be used to calculate the consensus tree?')
-    parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
-
-    parser.add_argument('--plot', choices=['consensus_trees', 'top_node_trees','top_trees'], required=True, help='should the ')
-
-    parser.add_argument('--consensus_threshold', default=[0.25,0.5,0.75,0.9,0.95,0.99], type=float, nargs='+', help='The posterior threshold at which to include ')
-    parser.add_argument('--top_node_trees_to_plot',  type=int, default=3, help='The number of node trees (or minimal topologies) to plot')
-    parser.add_argument('--top_trees_to_plot',  type=int, default=3,
+    parser.add_argument('--posterior_distribution_file', required=True, type=str, help='The file containing posterior distributions from the "AdmixtureBayes posterior" command. It needs the two columns "pops" and topology.')
+    parser.add_argument('--plot', choices=['consensus_trees', 'top_node_trees', 'top_trees'], required=True,
+                        help='The type of plot to make. Choose between: 1) consensus_trees. '
+                             'It plots an admixture graph based on all nodes that have a higher (marginal) posterior probability of X. '
+                             'Different X\'s can be supplied with the command --consensus_threshold \n'
+                             '2) top_node_trees. It plots the X highest posterior combinations of node types '
+                             'and creates the corresponding minimal topologies.  X can be supplied through the command --top_node_trees_to_plot'
+                             '3) top_trees. It plots the X highest posterior topologies. X can be supplied by the command --top_trees_to_plot')
+    parser.add_argument('--consensus_threshold', default=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99], type=float, nargs='+',
+                        help='The posterior thresholds for which to draw different consensus trees.')
+    parser.add_argument('--top_node_trees_to_plot', type=int, default=3,
+                        help='The number of node trees (or minimal topologies) to plot')
+    parser.add_argument('--top_trees_to_plot', type=int, default=3,
                         help='The number of trees (or topologies) to plot ')
-    parser.add_argument('--rankings_to_write_to_file', type=int, default=1000, help='the number of rankings(nodes, min topology or topology depending on --plot) to write to the ranking file.')
-    parser.add_argument('--write_ranking_to_file', type=str, default='', help='if a file is supplied here, the plotted')
-
-    parser.add_argument('--dont_annotate_node_posterior', default=False, action='store_true', help='This will not color the nodes according to their posterior probability.')
-
-
-    parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
-
-    parser.add_argument('--get_effective_number_of_admixtures', action='store_true', default=False, help='this will cancel all the other analysis and only print the effective number of admixes(tadmixes/sadmixes or admixes) to a a file.')
-    parser.add_argument('--effective_number_of_admixtures_file', type=str, default='no_tadmixes.txt', help='this is the file in which to write the effective number of admixes in the file')
-    parser.add_argument('--type_of_effective_admixtures', type=str, choices=['sadmix','tadmix','admix'], help='this is the type of admixes to write to the file.')
+    parser.add_argument('--write_ranking_to_file', type=str, default='', help='if a file is supplied here, the natural rankings for each of the plots is written here.')
+    parser.add_argument('--rankings_to_write_to_file', type=int, default=1000,
+                        help='the number of rankings(nodes, min topology or topology depending on --plot) to write to the ranking file.')
+    parser.add_argument('--dont_annotate_node_posterior', default=False, action='store_true',
+                        help='This will not color the nodes according to their posterior probability.')
+    parser.add_argument('--nodes', default='', type=str, help='file where the first line is the leaf nodes')
     parser.add_argument('--suppress_plot', default=False, action='store_true')
-    parser.add_argument('--node_count_file', default='', type=str, help='if plot_tops option is supplied')
-    parser.add_argument('--node_count_probs', default='', type=str, help='if supplied this will make a new ')
+    parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
+    parser.add_argument('--sep', default=',', type=str, help='the separator used in the input file')
+
+    #parser.add_argument('--no_header', default=False, action='store_true',help='will assume that there is no header in the file')
+    #parser.add_argument('--burn_in_rows', default=0, type=int, help='the number of rows that will be skipped in the input file as burn-in period')
+    #parser.add_argument('--burn_in_fraction', default=0.0, type=float, help='the proportion of the rows that are discarded as burn in period')
+    #parser.add_argument('--tree_column_name', default='tree', type=str, help='the name in the header of the column with all the trees.')
+    parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help='Which method should be used to calculate the consensus tree?')
+    #parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
+
+
+
+
+
+
+
+
+
+    #parser.add_argument('--plot_tops_file', action='store_true', default=False, help='this will assume that the file is a tops file from downstream_analysis_parser and plot each line numbered.')
+
+    #parser.add_argument('--get_effective_number_of_admixtures', action='store_true', default=False, help='this will cancel all the other analysis and only print the effective number of admixes(tadmixes/sadmixes or admixes) to a a file.')
+    #parser.add_argument('--effective_number_of_admixtures_file', type=str, default='no_tadmixes.txt', help='this is the file in which to write the effective number of admixes in the file')
+    #parser.add_argument('--type_of_effective_admixtures', type=str, choices=['sadmix','tadmix','admix'], help='this is the type of admixes to write to the file.')
+
+    #parser.add_argument('--node_count_file', default='', type=str, help='if plot_tops option is supplied')
+    #parser.add_argument('--node_count_probs', default='', type=str, help='if supplied this will make a new ')
+    #parser.add_argument('--test_run', default=False, action='store_true',
+    #                    help='will overwrite everything and run a test function')
+
     options= parser.parse_args(args)
 
 

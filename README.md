@@ -63,24 +63,25 @@ $ AdmixtureBayes plot --plot top_node_trees --posterior_distribution_file poster
 $ AdmixtureBayes plot --plot top_trees --posterior_distribution_file posterior_distributions.csv
 ```
 
+## Increasing number of populations
 
+As more populations are added to the input file, the more steps it will take for the MCMC to converge. By default, the number of MCMC steps is 10,000 (= m\*n=50\*200) which is only suitable for datasets with 4 or fewer populations. To increase the number of steps to 1,000,000 which is often enough to analyze 10 populations, use the command  
 
-(which can be changed with the argument --result_file RESULT_FILE) that contains the result of an MCMCMC chain run for only 200 MCMCMC steps (equal to 200*50=10,000 MCMC steps). To increase the number of steps increase the argument --n. 
+```bash
+$ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup population10 --n 20000
+```
 
-
-
-
-
-### Optional features
-
-#### Stopping criteria
-To use the on-the-fly MCMC stopping criteria, the program needs the [rwty package](https://cran.r-project.org/web/packages/rwty/index.html) in R.
+It is also possible to stop the chain using a stopping criteria. The stopping criteria calculates the Effective Sample Size of different summaries and stops if all of them are above a certain threshold (default is 200). To use the on-the-fly MCMC stopping criteria, the program needs the [rwty package](https://cran.r-project.org/web/packages/rwty/index.html) in R.
 ```bash
 $ R
 ...
 > install.packages("rwty")
 ```
-When running 
+And run AdmixtureBayes with the command.
+
+```bash
+$ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup population10 --n 500000 --stop_criteria
+```
 
 
 ## If AdmixtureBayes could not be installed
