@@ -33,6 +33,8 @@ def main(args):
     #input/output options
     parser.add_argument('--input_file', type=str, required=True, help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
     parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file in which to save results. The prefix will not be prepended the result_file.')
+    parser.add_argument('--outgroup', type=str, default='',
+                        help='The name of the population that should be outgroup for the covariance matrix. If the covariance matrix is supplied at stage 8, this argument is not needed.')
 
     #Important arguments
     parser.add_argument('--MCMC_chains', type=int, default=8,
@@ -81,10 +83,10 @@ def main(args):
                              '7=raw covariance with outgroup, '
                              '8=raw covariance without outgroup (or with respect to the outgroup).'
                              '9=scaled covariance without outgroup and the scaling factor.')
-    parser.add_argument('--outgroup', type=str, default='',
-                        help='The name of the population that should be outgroup for the covariance matrix. If the covariance matrix is supplied at stage 8, this argument is not needed.')
     parser.add_argument('--variance_correction', default='unbiased', choices=['None', 'unbiased', 'mle'],
                         help='The type of adjustment used on the empirical covariance.')
+    parser.add_argument('--unadmixed_populations', default=[], nargs='*',
+                        help='This sets the prior to 0 for all graphs where the lineage of any of the supplied populations experience an admixture. WARNING: this will change the prior on the number of admixture events.')
     parser.add_argument('--cov_estimation',
                         choices=['None', 'Jade', 'outgroup_sum', 'outgroup_product', 'average_sum', 'average_product',
                                  'Jade-o', 'EM'], default='average_sum',
@@ -244,7 +246,8 @@ def main(args):
         print 'reduced_nodes', reduced_nodes
 
 
-
+    if options.unadmixed_populations:
+        warnings.warn('Some populations are restricted to being non-admixed - therefore there is no longer a geometrical prior on the number of admixture events.')
 
 
     if options.prefix and options.prefix[-1]!='_':
@@ -509,7 +512,8 @@ def main(args):
                                                                                      options.add_variance_correction_to_graph),
                            prefix=prefix,
                            variance_correction_file=options.variance_correction_input_file,
-                           prior_run=options.prior_run)
+                           prior_run=options.prior_run,
+                           unadmixed_populations=options.unadmixed_populations)
 
     if options.adaptive_temperatures:
         temperature_scheme=temperature_adapting(options.max_temp, options.MCMC_chains)

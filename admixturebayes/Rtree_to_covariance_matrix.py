@@ -116,6 +116,15 @@ def leave_node(key, node, population, covmat):
         return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, dependent='none'), #changed dependent='none' to go to most loose restriction that still makes sense. To go back,put dependent=node[1
                 follow_branch(parent_key=node[1],branch_length=node[4], population=new_pop, covmat=covmat, dependent='none')]
 
+def leave_node_and_check_admixtures(key, node, population, covmat):
+    if node_is_non_admixture(node):
+        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat)],[]
+    else:
+        members=population.members[:]
+        new_pop=population.remove_partition(1.0-node[2])
+        return [follow_branch(parent_key=node[0],branch_length=node[3], population=population, covmat=covmat, dependent='none'), #changed dependent='none' to go to most loose restriction that still makes sense. To go back,put dependent=node[1
+                follow_branch(parent_key=node[1],branch_length=node[4], population=new_pop, covmat=covmat, dependent='none')], members
+
 def follow_branch(parent_key, branch_length, population, covmat, dependent="none"):
     covmat.update(branch_length, population)
     return parent_key, population, dependent
@@ -239,6 +248,32 @@ def get_populations(tree, min_w=0.0, keys_to_include=None):
         pop_strings.remove('')
     return sorted(list(set(pop_strings)))
 
+
+def get_admixtured_populations(tree):
+    node_keys = sorted(get_leaf_keys(tree))
+    pops = [Population([1.0], [node]) for node in node_keys]
+    ready_nodes = zip(node_keys, pops)
+    waiting_nodes = {}
+    taken_nodes = []
+    covmat = dummy_covmat()
+    admixed_populations=[]
+    while True:
+        for key, pop in ready_nodes:
+            upds, admixed = leave_node_and_check_admixtures(key, tree[key], pop, covmat)
+            admixed_populations.extend(admixed)
+            for upd in upds:
+                waiting_nodes = _add_to_waiting(waiting_nodes, upd, tree)
+            taken_nodes.append(key)
+        waiting_nodes, ready_nodes = _thin_out_dic(waiting_nodes, taken_nodes[:])
+        # print 'waiting_nodes', waiting_nodes
+        # print 'ready_nodes', ready_nodes
+        # print 'taken_nodes', taken_nodes
+        if len(ready_nodes) == 0:
+            return None
+        if len(ready_nodes) == 1 and ready_nodes[0][0] == "r":
+            break
+    return admixed_populations
+
 def get_populations_string(tree, min_w=0.0, keys_to_include=None):
     return '-'.join(get_populations(tree, min_w, keys_to_include))
             
@@ -248,6 +283,9 @@ def get_populations_string(tree, min_w=0.0, keys_to_include=None):
 
 
 if __name__=="__main__":
+
+
+
     from tree_plotting import pretty_print, plot_as_directed_graph
     from Rtree_operations import insert_children_in_tree
     
@@ -321,6 +359,20 @@ if __name__=="__main__":
         's3s2':['s3s2a',None,None,0.1,None],
         's3s2a':['r',None,None,0.01]
         })
+
+    pretty_print(tree_clean)
+    print get_admixtured_populations(tree_clean)
+    pretty_print(tree_one_admixture)
+    print get_admixtured_populations(tree_one_admixture)
+    pretty_print(tree_two_admixture)
+    print get_admixtured_populations(tree_two_admixture)
+    pretty_print(tree_two_admixture_cross)
+    print get_admixtured_populations(tree_two_admixture_cross)
+    pretty_print(tree_on_the_border2)
+    print get_admixtured_populations(tree_on_the_border2)
+    import sys
+
+    sys.exit()
     
     #print make_covariance(tree_clean,['s1','s2','s3'])
     #print make_covariance(tree_one_admixture,['s1','s2','s3'])

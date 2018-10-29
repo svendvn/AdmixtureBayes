@@ -15,12 +15,18 @@ $ pip install dist/AdmixtureBayes-0.1-cp27-cp27mu-linux_x86_64.whl
 ```
 It will install the necessary python dependencies. Installation of the pygraphviz package is likely to fail with pip. Install it in another way, e.g. by conda
 ```bash
-$ conda install -c anaconda pygraphviz 
+$ conda install -c conda-forge python-graphviz
 ```
 
 ### Other OS
 
-For other than linux 64-bit, the only option (for now) is to install a version without the C-accelerated likelihood in a python 2.7 environment
+For other than linux 64-bit, AdmixtureBayes can be install by running the command
+```bash
+$ python setup.py install
+```
+
+in a python 2.7 environment which will compile a C-file. Alternatively, AdmixtureBayes can be installed without the C-accelerated likelihood in a python 2.7 environment
+
 ```bash
 $ pip install dist/AdmixtureBayes-0.1-py2-none-any.whl
 ```
@@ -43,7 +49,7 @@ where the first line is the populations and the subsequent lines are the bi-alle
 
 ## Running AdmixtureBayes
 
-After installation, run AdmixtureBayes from an arbitrary folder by
+After installation, run AdmixtureBayes from any folder (containing the input file, here *allele_counts.txt* which is included in the folder *example/*).
 
 ```bash
 $ AdmixtureBayes run --input_file allele_counts.txt --outgroup population4
@@ -65,23 +71,25 @@ $ AdmixtureBayes plot --plot top_trees --posterior_distribution_file posterior_d
 
 ## Increasing number of populations
 
-As more populations are added to the input file, the more steps it will take for the MCMC to converge. By default, the number of MCMC steps is 10,000 (= m\*n=50\*200) which is only suitable for datasets with 4 or fewer populations. To increase the number of steps to 1,000,000 which is often enough to analyze 10 populations, use the command  
+As more populations are added to the input file, the more steps it will take for the MCMC to converge. By default there are 50 MCMC steps between each MCMCMC flip and the number of MCMCMC flips is 200. The total number of MCMC steps is therefore 200\*50=10,000 which is only suitable for datasets with 4 or fewer populations. To increase the number of steps to 1,000,000 which is often enough to analyze 10 populations, use the command  
 
 ```bash
 $ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup population10 --n 20000
 ```
 
-It is also possible to stop the chain using a stopping criteria. The stopping criteria calculates the Effective Sample Size of different summaries and stops if all of them are above a certain threshold (default is 200). To use the on-the-fly MCMC stopping criteria, the program needs the [rwty package](https://cran.r-project.org/web/packages/rwty/index.html) in R.
+It is also possible to stop the chain using a stopping criteria. The stopping criteria calculates the Effective Sample Size of different summaries and stops if all of them are above a certain threshold (default is 200). To do so, AdmixtureBayes calls the [rwty package](https://cran.r-project.org/web/packages/rwty/index.html) in R with the command Rscript. To use the stopping criteria it is therefore necessary to install rwty
 ```bash
 $ R
 ...
 > install.packages("rwty")
 ```
-And run AdmixtureBayes with the command.
+and run AdmixtureBayes with the command
 
 ```bash
-$ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup population10 --n 500000 --stop_criteria
+$ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup population10 --n 50000 --stop_criteria
 ```
+
+The parameter --n then defines an upper limit on the number of iterations. 
 
 
 ## If AdmixtureBayes could not be installed

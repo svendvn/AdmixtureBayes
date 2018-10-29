@@ -148,7 +148,9 @@ class posterior_class(object):
                  add_variance_correction_to_graph=False,
                  prefix='',
                  variance_correction_file='',
-                 prior_run=False):
+                 prior_run=False,
+                 unadmixed_populations=[]
+                 ):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
         or M can be a matrix - the same size of emp_cov where each entry is the variance of that entry. 
@@ -171,6 +173,7 @@ class posterior_class(object):
         self.multiplier=multiplier
         self.nodes=nodes
         self.use_uniform_prior=use_uniform_prior
+        self.unadmixed_populations=unadmixed_populations
         
         if add_variance_correction_to_graph:
             if variance_correction_file:
@@ -183,7 +186,7 @@ class posterior_class(object):
             self.b=None
         
     def __call__(self, x, pks={}, verbose=False):
-        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior)
+        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior, unadmixed_populations=self.unadmixed_populations)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         

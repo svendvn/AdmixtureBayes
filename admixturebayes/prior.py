@@ -5,6 +5,7 @@ from math import log, factorial,exp
 from scipy.special import binom 
 import linear_distribution
 from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
+from Rtree_to_covariance_matrix import get_admixtured_populations
 
 def calculate_branch_prior(branches, n):
     #if all((b<10 for b in branches)):
@@ -21,7 +22,13 @@ def calculate_branch_prior(branches, n):
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
-def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False):
+def illegal_admixtures(unadmixed_populations, tree):
+    admixed_populations= get_admixtured_populations(tree)
+    if set(admixed_populations).intersection(unadmixed_populations):
+        return True
+    return False
+
+def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[]):
     tree, add=x
     no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
@@ -40,6 +47,9 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False):
         top_prior=uniform_topological_prior_function(tree)
     else:
         top_prior=topological_prior(tree)
+    if unadmixed_populations:
+        if illegal_admixtures(unadmixed_populations, tree):
+            return -float('inf')
     logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior-add
     pks['branch_prior']= branch_prior
     pks['no_admix_prior']=no_admix_prior
