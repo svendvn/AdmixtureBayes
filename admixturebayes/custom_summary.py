@@ -1,12 +1,14 @@
 from Rtree_operations import node_is_admixture, get_parents, get_sibling_on_parent_side
 
 
+
 def first_admixture_proportion_custom_summary(Rtree, **kwargs):
     '''
-    This is an example of a custom function. It takes several types of input and outputs the
+    This is an example of a custom function. It returns the admixture proportion of the immediate ancestors of population s1 and s3.
+    The function is being read by downstream_analysis_parser because it ends with '_custom_summary'.
     :param Rtree: A tree
     :param kwargs: all the parameters passed to all summary functions that are not used by this function
-    :return: a float - the number of
+    :return: a float. the admixture proportion.
     '''
     #print 'entering first admixture proportion'
     for key, node in Rtree.items():
