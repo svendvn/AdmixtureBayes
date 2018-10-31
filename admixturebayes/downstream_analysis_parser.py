@@ -46,7 +46,7 @@ def run_posterior_main(args):
                         help='an upper limit on the number of rows to reduce computational pressure')
     parser.add_argument('--burn_in_fraction', default=0.5, type=float,
                         help='the proportion of the rows that are discarded as burn in period')
-    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops','string_tree'], choices=possible_summaries.keys(),
+    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops','full_tree','string_tree'], choices=possible_summaries.keys(),
                         nargs='*', type=str, help='The summaries to calculate')
     parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops','string_tree'], nargs='*', type=str,
                         help='The list of summaries to save')
@@ -67,7 +67,7 @@ def run_posterior_main(args):
     parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
     parser.add_argument('--use_cols', default=['tree', 'add', 'layer', 'no_admixes'], type=str, nargs='+',
                         help='The columns to load from the input file')
-    parser.add_argument('--outgroup_name', default='out', type=str, help='name of the outgroup')
+    parser.add_argument('--outgroup_name', default='', type=str, help='name of the outgroup')
     parser.add_argument('--emp_m_scale', type=str, default='')
     parser.add_argument('--emp_variance_correction', type=str, default='')
     parser.add_argument('--emp_df', type=str, default='')
@@ -94,8 +94,11 @@ def run_posterior_main(args):
     parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str, help='')
     parser.add_argument('--subgraph_file', default='', type=str, help='file where each line has a space separated list of leaf labels to calculate subtrees from. If a double underscore(__) occurs, it means that the following two arguments are max number of sub topologies and total posterior probability.')
 
-
     options= parser.parse_args(args)
+
+    assert not ('string_tree' in options.calculate_summaries and not 'full_tree' in options.calculate_summaries), 'The full tree flag is needed for the string tree'
+    if 'full_tree' in options.calculate_summaries:
+        assert options.outgroup_name, 'The outgroup is specified to calculate the full tree'
 
     if options.subnodes:
         assert options.outgroup_name
@@ -180,14 +183,18 @@ def run_posterior_main(args):
         row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
         name_to_rowsum_index('Rtree')
     if 'full_tree' in options.calculate_summaries:
-        row_sums.append(possible_summaries['full_tree'](add_multiplier=1.0/multiplier,
+        if multiplier is None:
+            add_multiplier=1.0
+        else:
+            add_multiplier=1.0/multiplier
+        row_sums.append(possible_summaries['full_tree'](add_multiplier=add_multiplier,
                                                         outgroup_name=options.outgroup_name,
                                                         remove_sadtrees=options.constrain_sadmix_trees,
                                                         subnodes=subnodes_with_outgroup))
         name_to_rowsum_index('full_tree')
     if 'string_tree' in options.calculate_summaries:
-        row_sums.append(possible_summaries['string_tree'](deepcopy(nodes)))
-        name_to_rowsum_index('Rtree')
+        row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name))
+        name_to_rowsum_index('string_tree')
     if options.subnodes:
         nodes=subnodes_wo_outgroup
         full_nodes=sorted(list(set(nodes[:]+[options.outgroup_name])))

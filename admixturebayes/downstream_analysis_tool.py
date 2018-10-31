@@ -153,12 +153,13 @@ class make_full_tree(object):
 
 class make_string_tree(object):
 
-    def __init__(self, nodes):
-        self.nodes=sorted(nodes)
+    def __init__(self, nodes, outgroup_name):
+        self.outgroup_name = outgroup_name
+        self.nodes=sorted(nodes+[outgroup_name])
         self.node_string='='.join(self.nodes)+'='
 
-    def __call__(self, Rtree, **kwargs):
-        stree=unique_identifier_and_branch_lengths(Rtree, leaf_order=self.nodes)
+    def __call__(self, full_tree, **kwargs):
+        stree=unique_identifier_and_branch_lengths(full_tree, leaf_order=self.nodes)
         string_tree=self.node_string+stree
         return {'string_tree':string_tree},  False
 
