@@ -101,7 +101,7 @@ def run_posterior_main(args):
         assert options.outgroup_name, 'The outgroup is specified to calculate the full tree'
 
     if options.subnodes:
-        assert options.outgroup_name
+        assert options.outgroup_name,'when '
         if options.outgroup_name in options.subnodes:
             subnodes_with_outgroup=options.subnodes
             subnodes_wo_outgroup=deepcopy(options.subnodes)
@@ -193,7 +193,10 @@ def run_posterior_main(args):
                                                         subnodes=subnodes_with_outgroup))
         name_to_rowsum_index('full_tree')
     if 'string_tree' in options.calculate_summaries:
-        row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name))
+        if options.subnodes:
+            row_sums.append(possible_summaries['string_tree'](deepcopy(subnodes_wo_outgroup), options.outgroup_name))
+        else:
+            row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name))
         name_to_rowsum_index('string_tree')
     if options.subnodes:
         nodes=subnodes_wo_outgroup
