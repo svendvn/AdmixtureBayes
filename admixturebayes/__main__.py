@@ -4,6 +4,7 @@ import sys
 from call_AdmixtureBayes import main as run_main
 from downstream_analysis_parser import run_posterior_main
 from admixture_trees_to_consensus_tree import main as plot_main
+from posterior_to_qpgraphs import main as qp_main
 import argparse
 
 
@@ -30,6 +31,9 @@ def posterior_command(args):
 
 def plot_command(args):
     plot_main(args)
+
+def qp_command(args):
+    qp_main(args)
 
 
 # Main app
