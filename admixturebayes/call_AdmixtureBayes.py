@@ -251,8 +251,9 @@ def main(args):
 
 
     if options.prefix and options.prefix[-1]!='_':
-        if not os.path.exists(prefix):
-            os.makedirs(directory)
+        prefix_dirname=os.path.dirname(options.prefix)
+        if not os.path.exists(prefix_dirname):
+            os.makedirs(prefix_dirname)
 
     if options.alternative_treemix_infile:
         treemix_file=options.alternative_treemix_infile
