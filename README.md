@@ -13,10 +13,11 @@ For Linux 64-bit, install the program in a python 2.7 environment using the comm
 ```bash
 $ pip install dist/AdmixtureBayes-0.1-cp27-cp27mu-linux_x86_64.whl
 ```
-It will install the necessary python dependencies. Installation of the pygraphviz package is likely to fail with pip. Install it in another way, e.g. by conda
+It will install the necessary python dependencies. To se the plotting tools, the program dot (from grapvhiz) has to be accessible from the command line. Even if it is installed as one of the depencies it may not be visible to the command line. If so, install it manually
 ```bash
-$ conda install -c conda-forge python-graphviz
+$ apt-get install graphviz
 ```
+
 
 ### Other OS
 
@@ -30,6 +31,8 @@ in a python 2.7 environment which will compile a C-file. Alternatively, Admixtur
 ```bash
 $ pip install dist/AdmixtureBayes-0.1-py2-none-any.whl
 ```
+
+It may also be necessary to install graphviz separately.
  
  
 ## Input file
@@ -52,13 +55,13 @@ where the first line is the populations and the subsequent lines are the bi-alle
 After installation, run AdmixtureBayes from any folder (containing the input file, here *allele_counts.txt* which is included in the folder *example/*).
 
 ```bash
-$ AdmixtureBayes run --input_file allele_counts.txt --outgroup population4
+$ AdmixtureBayes run --input_file big_allele_counts.txt --outgroup out
 ```
 
 This will calculate the covariance matrix saved in a new file called *covariance_and_multiplier.txt* and put results in a file called *result_mc3.csv*. To obtain the posterior distributions of the minimal topologies, topologies and number of admixtures run
 
 ```bash
-$ AdmixtureBayes run --input_file result_mc3.csv --covariance_matrix_file covariance_and_multiplier.txt 
+$ AdmixtureBayes posterior --input_file result_mc3.csv --covariance_matrix_file covariance_and_multiplier.txt 
 ```
 
 The result is a file called *posterior_distributions.csv*. From this file a couple of different plots can be constructed

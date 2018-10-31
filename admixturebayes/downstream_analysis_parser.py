@@ -9,9 +9,13 @@ from copy import deepcopy
 from collections import Counter
 from Rtree_operations import get_leaf_keys
 import sys
+from custom_summary import all_custom_summaries
 
 
 def run_posterior_main(args):
+
+
+
     possible_summaries={'Rtree': make_Rtree,
                         'full_tree':make_full_tree,
                         'Rcov':make_Rcovariance,
@@ -24,6 +28,8 @@ def run_posterior_main(args):
                         'set_differences':compare_pops,
                         'no_sadmixes':extract_number_of_sadmixes
                         }
+    possible_summaries.update(all_custom_summaries())
+    print possible_summaries
 
 
     parser = ArgumentParser(usage='pipeline for post analysis', version='1.0.0')
@@ -42,6 +48,8 @@ def run_posterior_main(args):
                         nargs='*', type=str, help='The summaries to calculate')
     parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops'], nargs='*', type=str,
                         help='The list of summaries to save')
+    parser.add_argument('--custom_summaries', default=[], nargs='*', choices=possible_summaries.keys(),
+                        help='This will add summaries (to both calculate_summaries and save_summaries). They are defined in the class custom_summary.py.')
     parser.add_argument('--summarize_posterior_distributions', default=False,
                         help='If set to true, the posterior distibutions will be summarized even further.')
     parser.add_argument('--min_w', default=0.0, type=float,
@@ -165,7 +173,7 @@ def run_posterior_main(args):
     possible_summary_summaries={'mean':float_mean}
 
     #print 'subnodes_wo_outgroup', subnodes_wo_outgroup
-
+    special_summaries=['Rtree','full_tree','subgraph','Rcov','cov_dist','topology','top_identity','pops','subsets', 'set_differences','no_admixes']
     if 'Rtree' in options.calculate_summaries:
         row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
         name_to_rowsum_index('Rtree')
@@ -228,10 +236,16 @@ def run_posterior_main(args):
         row_sums.append(possible_summaries['no_sadmixes'](no_effective_admixes))
         name_to_rowsum_index('no_sadmixes')
 
+    for summary in possible_summaries:
+        if summary not in special_summaries:
+            if summary in options.calculate_summaries or summary in options.custom_summaries:
+                row_sums.append(possible_summaries[summary]())
+                name_to_rowsum_index(summary)
 
+    print row_sums
 
     def save_thin_columns(d_dic):
-        return {summ:d_dic[summ] for summ in options.save_summaries}
+        return {summ:d_dic[summ] for summ in list(set(options.save_summaries+options.custom_summaries))}
 
 
     if options.treemix_post_analysis:

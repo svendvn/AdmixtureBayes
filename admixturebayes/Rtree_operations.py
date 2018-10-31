@@ -599,7 +599,18 @@ def get_other_children(node, child_key):
         if n is not None and n!=child_key:
             res.append(n)
     return res
-    
+
+def get_sibling_on_parent_side(tree, parent_key, child_key):
+    if parent_key=='r':
+        (child_key1, _,_), (child_key2,_,_) = find_rooted_nodes(tree)
+        if child_key==child_key1:
+            return child_key2
+        elif child_key==child_key2:
+            return child_key1
+        else:
+            assert False, 'Claimed child of root was not a child of root'
+    else:
+        return get_other_children(tree[parent_key], child_key)
 
 def get_children(node):
     return node[5:7]

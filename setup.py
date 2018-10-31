@@ -46,6 +46,7 @@ setup(
             "matplotlib", 
             "pandas", 
             "pathos", 
+	    "graphviz",
             "pygraphviz"
         ],
         
