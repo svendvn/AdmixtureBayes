@@ -250,10 +250,14 @@ def main(args):
         warnings.warn('Some populations are restricted to being non-admixed - therefore there is no longer a geometrical prior on the number of admixture events.')
 
 
-    if options.prefix and options.prefix[-1]!='_':
+    if len(options.prefix)>0:
+        print options.prefix, len(options.prefix)
         prefix_dirname=os.path.dirname(options.prefix)
-        if not os.path.exists(prefix_dirname):
+        if prefix_dirname and not os.path.exists(prefix_dirname):
             os.makedirs(prefix_dirname)
+        prefix=options.prefix
+    else:
+        prefix=options.prefix
 
     if options.alternative_treemix_infile:
         treemix_file=options.alternative_treemix_infile

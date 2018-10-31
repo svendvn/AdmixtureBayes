@@ -54,6 +54,17 @@ if __name__ == '__main__':
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 ##Wrap functions
 def wrap_function(func, func_name):
     def class_initialization_wrap():
