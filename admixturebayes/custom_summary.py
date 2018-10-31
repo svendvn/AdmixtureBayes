@@ -37,16 +37,16 @@ if __name__ == '__main__':
                     # child_node_1_name,
                     # child_node_2_name]
     #If a node does not have 2 parents or 2 children the corresponding entries will be None.
-    Rtree={'s1':['n1',None, None, 1,None,None, None],
-            's2':['a1',None,None,0.5,None,None,None],
-            's3':['n2',None, None, 3, None, None, None],
-            's4':['n3',None,None,2,None,None,None],
-            'n1':['n4',None, None, 4,None,'s1','a2'],
-            'a1':['a2','n2',0.3, 0.2,0.3,'s2',None],
-            'n2':['n4',None,None, 2.5, None, 's3','a1'],
-            'n3':['r',None, None, 1.8, None, 's4','a2'],
-            'a2':['n3','n1',0.5,0.2,0.18,'a1',None],
-            'n4':['r',None, None, 0.05, None, 'n2','n1']}
+    Rtree={'s1':['n1',None, None, 1, None, None, None],
+            's2':['a1', None, None,0.5, None, None,None],
+            's3':['n2', None, None, 3, None, None, None],
+            's4':['n3', None, None, 2, None, None, None],
+            'n1':['n4', None, None, 4,None,'s1','a2'],
+            'a1':['a2', 'n2',0.3, 0.2,0.3,'s2',None],
+            'n2':['n4', None,None, 2.5, None, 's3','a1'],
+            'n3':['r', None, None, 1.8, None, 's4','a2'],
+            'a2':['n3', 'n1',0.5,0.2,0.18,'a1',None],
+            'n4':['r', None, None, 0.05, None, 'n2','n1']}
     add=0
     inputs={'Rtree':Rtree, 'add':add}
     print first_admixture_proportion_custom_summary(**inputs)

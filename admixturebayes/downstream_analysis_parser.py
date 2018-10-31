@@ -2,7 +2,8 @@ from argparse import ArgumentParser
 from downstream_analysis_tool import (thinning, iterate_over_output_file, always_true, make_Rtree, make_full_tree, read_true_values,
                                       make_Rcovariance, cov_truecov, topology_identity,get_pops,compare_pops,extract_number_of_sadmixes, 
                                       read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode,
-                                      create_treemix_sfull_tree_csv_output, subgraph, subsets, thinning_on_admixture_events)
+                                      create_treemix_sfull_tree_csv_output, subgraph, subsets, thinning_on_admixture_events,
+                                      make_string_tree)
 from subgraphing import read_subgraphing_dict, get_most_likely_subgraphs_list, save_top_subgraphs
 from numpy import mean
 from copy import deepcopy
@@ -18,6 +19,7 @@ def run_posterior_main(args):
 
     possible_summaries={'Rtree': make_Rtree,
                         'full_tree':make_full_tree,
+                        'string_tree':make_string_tree,
                         'Rcov':make_Rcovariance,
                         'cov_dist':cov_truecov,
                         'topology':topology,
@@ -44,9 +46,9 @@ def run_posterior_main(args):
                         help='an upper limit on the number of rows to reduce computational pressure')
     parser.add_argument('--burn_in_fraction', default=0.5, type=float,
                         help='the proportion of the rows that are discarded as burn in period')
-    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops'], choices=possible_summaries.keys(),
+    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops','string_tree'], choices=possible_summaries.keys(),
                         nargs='*', type=str, help='The summaries to calculate')
-    parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops'], nargs='*', type=str,
+    parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops','string_tree'], nargs='*', type=str,
                         help='The list of summaries to save')
     parser.add_argument('--custom_summaries', default=[], nargs='*', choices=possible_summaries.keys(),
                         help='This will add summaries (to both calculate_summaries and save_summaries). They are defined in the class custom_summary.py.')
@@ -173,7 +175,7 @@ def run_posterior_main(args):
     possible_summary_summaries={'mean':float_mean}
 
     #print 'subnodes_wo_outgroup', subnodes_wo_outgroup
-    special_summaries=['Rtree','full_tree','subgraph','Rcov','cov_dist','topology','top_identity','pops','subsets', 'set_differences','no_admixes']
+    special_summaries=['Rtree','full_tree','string_tree','subgraph','Rcov','cov_dist','topology','top_identity','pops','subsets', 'set_differences','no_admixes']
     if 'Rtree' in options.calculate_summaries:
         row_sums.append(possible_summaries['Rtree'](deepcopy(nodes),options.constrain_sadmix_trees, subnodes=subnodes_wo_outgroup))
         name_to_rowsum_index('Rtree')
@@ -183,6 +185,9 @@ def run_posterior_main(args):
                                                         remove_sadtrees=options.constrain_sadmix_trees,
                                                         subnodes=subnodes_with_outgroup))
         name_to_rowsum_index('full_tree')
+    if 'string_tree' in options.calculate_summaries:
+        row_sums.append(possible_summaries['string_tree'](deepcopy(nodes)))
+        name_to_rowsum_index('Rtree')
     if options.subnodes:
         nodes=subnodes_wo_outgroup
         full_nodes=sorted(list(set(nodes[:]+[options.outgroup_name])))

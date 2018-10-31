@@ -150,7 +150,18 @@ class make_full_tree(object):
         if self.subnodes:
             full_tree=get_subtree(full_tree, self.subnodes)
         return {'full_tree':full_tree}, False
-    
+
+class make_string_tree(object):
+
+    def __init__(self, nodes):
+        self.nodes=sorted(nodes)
+        self.node_string='='.join(self.nodes)+'='
+
+    def __call__(self, Rtree, **kwargs):
+        stree=unique_identifier_and_branch_lengths(Rtree, leaf_order=self.nodes)
+        string_tree=self.node_string+stree
+        return {'string_tree':string_tree},  False
+
 class make_Rcovariance(object):
     
     def __init__(self, nodes, add_multiplier=1):
@@ -243,7 +254,9 @@ class subgraph(object):
                                            self.total_probability,
                                            self.prefix)
         return 'check_accompanying_files'    
-    
+
+
+
 class subsets(object):
     
     def __init__(self, subgraph_keys, identifier='', prefix='', max_num=10, **not_needed):
