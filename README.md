@@ -9,8 +9,9 @@ AdmixtureBayes is also shipped with commands to summarize and plot the results
 
 ### Linux 64-bit
 
-For Linux 64-bit, install the program in a python 2.7 environment using the command
+For Linux 64-bit, install the program in a python 2.7 environment using the commands
 ```bash
+$ git clone https://github.com/svendvn/AdmixtureBayes
 $ pip install dist/AdmixtureBayes-0.1-cp27-cp27mu-linux_x86_64.whl
 ```
 It will install the necessary python dependencies. To se the plotting tools, the program dot (from grapvhiz) has to be accessible from the command line. Even if it is installed as one of the depencies it may not be visible to the command line. If so, install it manually
@@ -21,19 +22,24 @@ $ apt-get install graphviz
 
 ### Other OS
 
-For other than linux 64-bit, AdmixtureBayes can be install by running the command
+For other than linux 64-bit, AdmixtureBayes can be install by running the commands
 ```bash
+$ git clone https://github.com/svendvn/AdmixtureBayes
 $ python setup.py install
 ```
 
 in a python 2.7 environment which will compile a C-file. Alternatively, AdmixtureBayes can be installed without the C-accelerated likelihood in a python 2.7 environment
 
 ```bash
+$ git clone https://github.com/svendvn/AdmixtureBayes
 $ pip install dist/AdmixtureBayes-0.1-py2-none-any.whl
 ```
 
 It may also be necessary to install graphviz separately.
- 
+
+### Test installation
+
+A test script is found in the *example/* folder together with a test dataset.
  
 ## Input file
 
