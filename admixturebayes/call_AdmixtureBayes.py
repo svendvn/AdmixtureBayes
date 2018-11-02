@@ -230,7 +230,8 @@ def main(args):
                         help='if supplied, this will choose the name of the output files for treemix, disregarding the treemix output prefix')
     parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False,
                         help='This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
-
+    parser.add_argument('--rs', action='store_true', default=False, help='will change the prior on the number of admixture events in the tree.')
+    parser.add_argument('--r_scale', type=float, default=1.0, help='This will increase the mean of the number of admixture events in chain i with 1+i*r')
 
     options=parser.parse_args(args)
 
@@ -503,8 +504,29 @@ def main(args):
     if options.stop_evaluations:
         import sys
         sys.exit()
-        
-    posterior= posterior_class(emp_cov=covariance[0], 
+
+    posterior = posterior_class(emp_cov=covariance[0],
+                                M=df,
+                                p=options.p,
+                                use_skewed_distr=options.sap_analysis,
+                                multiplier=covariance[1],
+                                nodes=reduced_nodes,
+                                use_uniform_prior=not options.not_uniform_prior,
+                                treemix=options.likelihood_treemix,
+                                add_variance_correction_to_graph=(options.variance_correction != 'None' and
+                                                                  options.add_variance_correction_to_graph),
+                                prefix=prefix,
+                                variance_correction_file=options.variance_correction_input_file,
+                                prior_run=options.prior_run,
+                                unadmixed_populations=options.unadmixed_populations)
+
+    if options.rs:
+        assert options.MCMC_chains>1, 'More than one chain is needed to use several rs'
+        posterior_function_list=[posterior]
+        for i in range(1,options.MCMC_chains):
+
+
+            n_posterior= posterior_class(emp_cov=covariance[0],
                            M=df, 
                            p=options.p, 
                            use_skewed_distr=options.sap_analysis, 
@@ -517,7 +539,12 @@ def main(args):
                            prefix=prefix,
                            variance_correction_file=options.variance_correction_input_file,
                            prior_run=options.prior_run,
-                           unadmixed_populations=options.unadmixed_populations)
+                           unadmixed_populations=options.unadmixed_populations,
+                           r=1.0+options.r_scale*i)
+            posterior_function_list.append(n_posterior)
+    else:
+        posterior_function_list=[]
+
 
     if options.adaptive_temperatures:
         temperature_scheme=temperature_adapting(options.max_temp, options.MCMC_chains)
@@ -544,7 +571,8 @@ def main(args):
                store_permuts=options.store_permuts, 
                stop_criteria=sc,
                make_outfile_stills=options.save_after_hours,
-               save_only_coldest_chain=not options.save_warm_chains)
+               save_only_coldest_chain=not options.save_warm_chains,
+               posterior_function_list=posterior_function_list)
         
     def single_chain_run():
         basic_chain(start_x= starting_trees[0],

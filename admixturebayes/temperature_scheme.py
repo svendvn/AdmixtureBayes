@@ -16,11 +16,13 @@ class fixed_geometrical(object):
     
 class temperature_adapting(object):
     
-    def __init__(self, initial_maxT, no_chains):
+    def __init__(self, initial_maxT, no_chains, fixed_maxT=False):
         self.count=10
         self.alpha=0.5
         self.average=[0]*no_chains
         self.no_updates=0
+        self.maxT=initial_maxT
+        self.fixed_maxT=fixed_maxT
         if no_chains==1:
             self.temps=[1.0]
         else:
@@ -38,6 +40,10 @@ class temperature_adapting(object):
         self.temps=[1.0]
         for d, crossed in zip(diffs, being_crosseds):
             self.temps.append(max(self.temps[-1],self.temps[-1]*d*update_sizes[crossed]))
+        new_temps=[]
+        if self.fixed_maxT:
+            for t in self.temps:
+                new_temps.append(t/self.maxT)
         self.no_updates+=1
         self.average=[av+cr for av,cr in zip(self.average, being_crosseds)]
         print 'new temperatures:', [round(f,3) for f in self.temps]

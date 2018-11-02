@@ -59,11 +59,16 @@ class basic_chain_class(object):
         
 class basic_chain_pool(object):
     
-    def __init__(self, summaries, posterior_function, proposals, seeds=None):
+    def __init__(self, summaries, posterior_function, proposals, seeds=None, posterior_function_list=[]):
         if seeds is None:
             seeds=[None]*len(proposals)
-        self.group=[basic_chain_class_as_process(
-            basic_chain_class(summaries, posterior_function, proposal,seed)) for proposal,seed in zip(proposals,seeds)]
+        if posterior_function_list:
+            self.group = [basic_chain_class_as_process(
+                basic_chain_class(summaries, post_function, proposal, seed)) for proposal, seed, post_function in
+                zip(proposals, seeds, posterior_function_list)]
+        else:
+            self.group=[basic_chain_class_as_process(
+                basic_chain_class(summaries, posterior_function, proposal,seed)) for proposal,seed in zip(proposals,seeds)]
 
     
     def order_calculation(self, list_of_lists_of_arguments):

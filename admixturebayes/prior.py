@@ -1,4 +1,4 @@
-from scipy.stats import expon, geom, pareto
+from scipy.stats import expon, geom, pareto, nbinom
 from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proportions, get_number_of_admixes, get_number_of_leaves, 
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
 from math import log, factorial,exp
@@ -28,7 +28,8 @@ def illegal_admixtures(unadmixed_populations, tree):
         return True
     return False
 
-def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[]):
+
+def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0):
     tree, add=x
     no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
@@ -38,7 +39,7 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
     if not all(branch>=0 for branch in branches):
         return -float('inf')
     branch_prior=calculate_branch_prior(branches, no_leaves)
-    no_admix_prior=no_admixes(p, len(admixtures))
+    no_admix_prior=no_admixes(p, len(admixtures), r=r)
     if use_skewed_distr:
         admix_prop_prior=linear_admixture_proportions(admixtures)
     else:
@@ -60,12 +61,19 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
 def linear_admixture_proportions(admixtures):
     return sum((linear_distribution.logpdf(admixture) for admixture in admixtures))
 
-def no_admixes(p, admixes, hard_cutoff=20):
-    if hard_cutoff is None:
-        return geom.logpmf(admixes+1, 1.0-p)
+def no_admixes(p, admixes, hard_cutoff=20, r=0):
     if admixes>hard_cutoff:
         return -float('inf')
-    return geom.logpmf(admixes+1, 1.0-p)-geom.logcdf(hard_cutoff+1, 1.0-p)
+    if r>1:
+        if hard_cutoff is None:
+            return nbinom.logpmf(admixes,n=r, p=1.0-p)
+        else:
+            return nbinom.logpmf(admixes, n=r, p=1.0 - p) - nbinom.logcdf(hard_cutoff ,n=r, p= 1.0 - p)
+    else:
+        if hard_cutoff is None:
+            return geom.logpmf(admixes+1, 1.0-p)
+
+        return geom.logpmf(admixes+1, 1.0-p)-geom.logcdf(hard_cutoff+1, 1.0-p)
     
 def trees_without_admixture(no_leaves):
     '''

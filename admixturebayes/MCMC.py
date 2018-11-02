@@ -2,7 +2,7 @@ from Proposal_Function import prop_flat
 from scipy.stats import poisson, norm, multivariate_normal
 from likelihood import likelihood
 from numpy.random import random
-from math import exp, log
+from math import exp, log, fabs
 from tree_operations import get_number_of_admixes, illegal_branch_length
 from summary import *
 from multiprocessing import Queue, Process
@@ -14,6 +14,14 @@ from Rtree_operations import pretty_string, scale_tree_copy
 
             
 def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
+    check_old = False
+    if check_old:
+        # pass
+        post_old = posterior_function(x)
+
+        if fabs(post_old[1] - post[1]) > 0.00001 :
+            print 'The likelihood to the old tree is not correct: ' + str(fabs(post_old[1] - post[1]))
+            print posterior_function.base_r
     
     newx,g1,g2,Jh,j1,j2=proposal(x,pks)
     pks['proposed_tree']=newx[0]
@@ -25,7 +33,8 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     post_new=posterior_function(newx,pks)
     pks['proposed_posterior']=post_new
-    
+
+
     #print temperature
     likelihood_old, prior_old = post[:2]
     likelihood_new, prior_new = post_new[:2]

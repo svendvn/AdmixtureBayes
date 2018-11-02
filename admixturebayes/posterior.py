@@ -149,7 +149,8 @@ class posterior_class(object):
                  prefix='',
                  variance_correction_file='',
                  prior_run=False,
-                 unadmixed_populations=[]
+                 unadmixed_populations=[],
+                 r=0
                  ):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
@@ -158,6 +159,7 @@ class posterior_class(object):
         self.emp_cov=emp_cov
         self.M=M
         self.p=p
+        self.base_r=r
         if treemix:
             self.lik=likelihood_treemix
             self.likmat=likelihood_treemix_from_matrix
@@ -184,9 +186,17 @@ class posterior_class(object):
                 self.b*=multiplier
         else:
             self.b=None
+
+
         
-    def __call__(self, x, pks={}, verbose=False):
-        prior_value=prior(x,p=self.p, use_skewed_distr=self.use_skewed_distr,pks=pks, use_uniform_prior=self.use_uniform_prior, unadmixed_populations=self.unadmixed_populations)
+    def __call__(self, x, pks={}, verbose=False,r=None):
+        if r is None:
+            r=self.base_r
+        prior_value = prior(x,p=self.p,
+                                              use_skewed_distr=self.use_skewed_distr,pks=pks,
+                                              use_uniform_prior=self.use_uniform_prior,
+                                              unadmixed_populations=self.unadmixed_populations,
+                                              r=r)
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         

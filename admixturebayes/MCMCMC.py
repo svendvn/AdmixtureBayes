@@ -3,10 +3,12 @@ import os
 #os.environ["MKL_NUM_THREADS"] = "1"
 from MCMC import basic_chain
 from pathos.multiprocessing import Pool, freeze_support
+from Rtree_operations import get_number_of_admixes
+from prior import no_admixes
 import pandas as pd
 from multiprocessing_helpers import basic_chain_pool
 from numpy.random import choice, random
-from math import exp
+from math import exp, fabs
 from itertools import chain
 import time
 import subprocess
@@ -34,7 +36,8 @@ def MCMCMC(starting_trees,
            store_permuts=False,
            stop_criteria=None,
            make_outfile_stills=[],
-           save_only_coldest_chain=False):
+           save_only_coldest_chain=False,
+           posterior_function_list=[]):
     '''
     this function runs a MC3 using the basic_chain_unpacker. Let no_chains=number of chains. The inputs are
         starting_trees: a list of one or more trees that the chains should be started with
@@ -74,16 +77,26 @@ def MCMCMC(starting_trees,
     df_result=None
     total_permutation=range(no_chains)
     permuts=[]
-    
+    xs = starting_trees
+
+
     freeze_support()
     
     if numpy_seeds is None:
         numpy_seeds=[None]*no_chains
-    pool = basic_chain_pool(summaries, posterior_function, proposal_scheme, numpy_seeds)
-        
-    
-    xs = starting_trees
-    posteriors = [posterior_function(x) for x in xs]
+
+    if posterior_function_list:
+        pool = basic_chain_pool(summaries, None, proposal_scheme, numpy_seeds, posterior_function_list)
+        rs= [posterior_f.base_r for posterior_f in posterior_function_list]
+        ps=[posterior_f.p for posterior_f in posterior_function_list]
+        posteriors=[posterior_f(x) for x,posterior_f in zip(xs, posterior_function_list)]
+    else:
+        rs=[]
+        ps=[posterior_function.p]
+        pool = basic_chain_pool(summaries, posterior_function, proposal_scheme, numpy_seeds)
+        posteriors = [posterior_function(x) for x in xs]
+
+
     proposal_updates=[proposal.get_exportable_state() for proposal in proposal_scheme]
     
     cum_iterations=0
@@ -105,7 +118,12 @@ def MCMCMC(starting_trees,
                 add_to_data_frame(df_result, result_file, save_only_coldest_chain=save_only_coldest_chain)
                 df_result=df_result[0:0]
         #making the mc3 flips and updating:
-        xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates) #trees, posteriors, range(len(trees)),[None]*len(trees)#
+        if not posterior_function_list:
+            xs, posteriors, permut, proposal_updates = flipping(xs, posteriors, temperature_scheme, proposal_updates,
+                                                                rs, ps,
+                                                                [posterior_function])  # trees, posteriors, range(len(trees)),[None]*len(trees)#
+        else:
+            xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates, rs, ps, posterior_function_list) #trees, posteriors, range(len(trees)),[None]*len(trees)#
         if store_permuts:
             permuts.append(permut)
         temperature_scheme.update_temps(permut)
@@ -143,8 +161,20 @@ def add_to_data_frame(df_add, result_file, save_only_coldest_chain):
         df_add=df_add.loc[df_add.layer==0,:]
     with open(result_file, 'a') as f:
         df_add.to_csv(f, header=False)
+
+
+def r_correction(x1,x2, r1,r2,p1,p2):
+    (tree1,_),(tree2,_)=x1,x2
+    n1=get_number_of_admixes(tree1)
+    n2=get_number_of_admixes(tree2)
+    cadmix_prior11= no_admixes(p=p1, admixes=n1, r=r1)
+    cadmix_prior12 = no_admixes(p=p2, admixes=n1, r=r2)
+    cadmix_prior21= no_admixes(p=p1, admixes=n2, r=r1)
+    cadmix_prior22= no_admixes(p= p2, admixes=n2, r=r2)
+
+    return cadmix_prior12-cadmix_prior11, cadmix_prior21-cadmix_prior22
     
-def flipping(xs, posteriors, temperature_scheme, proposal_updates):
+def flipping(xs, posteriors, temperature_scheme, proposal_updates, rs=[],ps=[], posterior_function_list=[]):
     n=len(xs)
     step_permutation=range(n)
     count=0
@@ -153,6 +183,11 @@ def flipping(xs, posteriors, temperature_scheme, proposal_updates):
         post_i,post_j=posteriors[i],posteriors[j]
         temp_i,temp_j=temperature_scheme.get_temp(i), temperature_scheme.get_temp(j)
         logalpha=-(post_i[0]-post_j[0])*(1.0/temp_i-1.0/temp_j)
+        if rs:
+            i_correction, j_correction=r_correction(xs[i],xs[j], rs[i],rs[j],ps[i],ps[j])
+            logalpha+=i_correction+j_correction
+        else:
+            i_correction, j_correction=0,0
         #print alpha
         if logalpha>0 or random() < exp(logalpha):
             count+=1
@@ -160,11 +195,24 @@ def flipping(xs, posteriors, temperature_scheme, proposal_updates):
                 #print 'FLIP!', count
                 #print temp_i, post_i
                 #print temp_j, post_j
-            step_permutation[i],step_permutation[j]= step_permutation[j],step_permutation[i]
-            posteriors[j],posteriors[i]=post_i,post_j
-            xs[i],xs[j]=xs[j],xs[i]
-            proposal_updates[i],proposal_updates[j]=proposal_updates[j],proposal_updates[i]
+            step_permutation[i], step_permutation[j]= step_permutation[j], step_permutation[i]
+            posteriors[j],posteriors[i]=(post_i[0],post_i[1]+i_correction),(post_j[0], post_j[1]+j_correction)
+            xs[i], xs[j] = xs[j], xs[i]
+            # print posteriors[j], posteriors[i]
+            # if len( posterior_function_list)==1:
+            #     print posterior_function_list[0](xs[j]), posterior_function_list[0](xs[i])
+            # else:
+            #     print posterior_function_list[j](xs[j]), posterior_function_list[i](xs[i])
+
+            proposal_updates[i], proposal_updates[j]=proposal_updates[j], proposal_updates[i]
     #print step_permutation
+    # for j, (posterior_value, x) in enumerate(zip(posteriors, xs)):
+    #     if len(posterior_function_list)>1:
+    #         c_post=posterior_function_list[j](x)
+    #         #print posterior_value, c_post
+    #         print fabs(posterior_value[0]-c_post[0]), fabs(posterior_value[1]-c_post[1])
+    #     else:
+    #         print posterior_value, posterior_function_list[0](x)
     return xs, posteriors, step_permutation, proposal_updates
 
 def _update_results(df_result, df_add):
