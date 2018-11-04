@@ -162,7 +162,8 @@ class make_string_tree(object):
     def __call__(self, full_tree, **kwargs):
         stree=unique_identifier_and_branch_lengths(full_tree, leaf_order=self.nodes)
         if self.tree_unifier is not None:
-            stree=tree_unifier(stree)
+            stree=self.tree_unifier(stree)
+            
         string_tree=self.node_string+stree
         return {'string_tree':string_tree},  False
 

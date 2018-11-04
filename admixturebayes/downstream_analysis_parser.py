@@ -197,7 +197,7 @@ def run_posterior_main(args):
         if options.subnodes:
             row_sums.append(possible_summaries['string_tree'](deepcopy(subnodes_wo_outgroup), options.outgroup_name, tree_unifier()))
         else:
-            row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name))
+            row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name, tree_unifier()))
         name_to_rowsum_index('string_tree')
     if options.subnodes:
         nodes=subnodes_wo_outgroup

@@ -21,9 +21,13 @@ class tree_unifier(object):
             target_topology, branch_permutation, admixture_permutation= self.seen_trees[topology]
         else:
             update_dic= analyze_tree(topology, branches, admixtures)
-            self.seen_trees.update(update_dic)
-            print self.seen_trees
+            if len(update_dic)>100: #computational reasons
+                self.seen_trees[topology]=update_dic[topology]
+            else:
+                self.seen_trees.update(update_dic)
+            #print self.seen_trees
             target_topology, branch_permutation, admixture_permutation=self.seen_trees[topology]
+        #print len(self.seen_trees)
         new_branch_string=make_branch_string(branches, branch_permutation)
         new_admixtures_string=make_admixture_string(admixtures, admixture_permutation)
         return ';'.join([target_topology, new_branch_string, new_admixtures_string])
@@ -106,7 +110,7 @@ def analyze_tree(topology, branches, admixtures):
         branches_permutation= map(int, rf)
         admixtures_permutation=get_admixtures_permutation(admixtures_sperm)
         res[lookup_topology]=(top_topology, branches_permutation, admixtures_permutation)
-    
+    #print res
     return res
     
 def get_admixtures_permutation(admixtures):
