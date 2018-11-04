@@ -22,6 +22,7 @@ class tree_unifier(object):
         else:
             update_dic= analyze_tree(topology, branches, admixtures)
             self.seen_trees.update(update_dic)
+            print self.seen_trees
             target_topology, branch_permutation, admixture_permutation=self.seen_trees[topology]
         new_branch_string=make_branch_string(branches, branch_permutation)
         new_admixtures_string=make_admixture_string(admixtures, admixture_permutation)
@@ -40,6 +41,8 @@ def make_admixture_string(admixes, admixture_permutations):
         target_admixture=admixture_permutations[i]
         if target_admixture<-0.5:
             res.append(1.0-float(admixture_pieces[abs(target_admixture)-1]))
+        else:
+            res.append(float(admixture_pieces[abs(target_admixture)-1]))
     return '-'.join(map(str,res))
         
 
@@ -143,6 +146,12 @@ def change_admixture_permutation(node):
 
 if __name__=='__main__':
     tu=tree_unifier()
+    
+    print tu('a.w.w-c.0.c.2-c.0;1-1-1-1-1-1-1;0.3')
+    print tu('a.w.w-c.c.0.1-c.0;1-1-1-1-1-1-1;0.3')
+    
+    import sys
+    sys.exit()
     strees=[]
     with open('example_strees.txt', 'r') as f:
         for l in f.readlines():
