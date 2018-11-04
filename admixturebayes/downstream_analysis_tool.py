@@ -153,13 +153,16 @@ class make_full_tree(object):
 
 class make_string_tree(object):
 
-    def __init__(self, nodes, outgroup_name):
+    def __init__(self, nodes, outgroup_name, tree_unifier=None):
         self.outgroup_name = outgroup_name
         self.nodes=sorted(nodes+[outgroup_name])
+        self.tree_unifier=tree_unifier
         self.node_string='='.join(self.nodes)+'='
 
     def __call__(self, full_tree, **kwargs):
         stree=unique_identifier_and_branch_lengths(full_tree, leaf_order=self.nodes)
+        if self.tree_unifier is not None:
+            stree=tree_unifier(stree)
         string_tree=self.node_string+stree
         return {'string_tree':string_tree},  False
 
@@ -214,6 +217,9 @@ class topology(object):
         self.nodes=nodes
         
     def __call__(self, Rtree=None, **kwargs):
+        if 'string_tree' in kwargs:
+            topology=kwargs['string_tree'].split('=')[-1].split(';')[0]
+            return {'topology':topology},False
         if Rtree is None:
             full_tree=kwargs['full_tree']
             outgroup=list(set(get_leaf_keys(full_tree))-set(self.nodes))[0]

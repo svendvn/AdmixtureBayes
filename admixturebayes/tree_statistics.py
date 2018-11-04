@@ -483,7 +483,7 @@ def identifier_to_tree(identifier, leaves=None, inner_nodes=None, branch_lengths
     
     #initiate leaves
     if leaves is None:
-        leaf_values=get_trivial_nodes(n_leaves)
+        leaf_values=sorted(get_trivial_nodes(n_leaves))
     else:
         leaf_values=[leaves() for _ in range(n_leaves)]
     tree={leaf:[None]*5 for leaf in leaf_values}

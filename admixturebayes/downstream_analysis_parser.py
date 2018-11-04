@@ -5,6 +5,7 @@ from downstream_analysis_tool import (thinning, iterate_over_output_file, always
                                       create_treemix_sfull_tree_csv_output, subgraph, subsets, thinning_on_admixture_events,
                                       make_string_tree)
 from subgraphing import read_subgraphing_dict, get_most_likely_subgraphs_list, save_top_subgraphs
+from find_true_trees import tree_unifier
 from numpy import mean
 from copy import deepcopy
 from collections import Counter
@@ -46,7 +47,7 @@ def run_posterior_main(args):
                         help='an upper limit on the number of rows to reduce computational pressure')
     parser.add_argument('--burn_in_fraction', default=0.5, type=float,
                         help='the proportion of the rows that are discarded as burn in period')
-    parser.add_argument('--calculate_summaries', default=['Rtree', 'topology', 'pops','full_tree','string_tree'], choices=possible_summaries.keys(),
+    parser.add_argument('--calculate_summaries', default=['Rtree', 'pops','full_tree','string_tree','topology'], choices=possible_summaries.keys(),
                         nargs='*', type=str, help='The summaries to calculate')
     parser.add_argument('--save_summaries', default=['no_admixes', 'topology', 'pops','string_tree'], nargs='*', type=str,
                         help='The list of summaries to save')
@@ -194,7 +195,7 @@ def run_posterior_main(args):
         name_to_rowsum_index('full_tree')
     if 'string_tree' in options.calculate_summaries:
         if options.subnodes:
-            row_sums.append(possible_summaries['string_tree'](deepcopy(subnodes_wo_outgroup), options.outgroup_name))
+            row_sums.append(possible_summaries['string_tree'](deepcopy(subnodes_wo_outgroup), options.outgroup_name, tree_unifier()))
         else:
             row_sums.append(possible_summaries['string_tree'](deepcopy(nodes), options.outgroup_name))
         name_to_rowsum_index('string_tree')
