@@ -39,7 +39,7 @@ def run_posterior_main(args):
 
 
     parser.add_argument('--input_file', required=True, type=str, help='The output file from an AdmixtureBayes run.')
-    parser.add_argument('--covariance_matrix_file', required=True, type=str, help='file containing the covariance matrix with a header with all the population names.')
+    parser.add_argument('--covariance_matrix_file', required=True, type=str, help='file containing the covariance matrix with a header with all the population names and a line with the multiplier. It has the ending covariance_and_multiplier.txt.')
     parser.add_argument('--subnodes', default=[], type=str, nargs='+', help='The subset of populations to perform the analysis on. If not declared, the analysis will be done on the full dataset.')
     parser.add_argument('--result_file', default='posterior_distributions.csv', type=str, help='The resulting file. It will be comma-separated and contain one column per summary plus a header.')
     parser.add_argument('--prefix', default='', type=str, help='place to put the temporary files')
@@ -125,7 +125,7 @@ def run_posterior_main(args):
                           subnodes_wo_outgroup=subnodes_wo_outgroup)
     true_scaled_tree, true_tree, true_add, true_covariance_reduced, (true_covariance_scaled,true_multiplier), true_no_admix, _, _, _=outp
     outp=read_true_values(true_covariance_reduced=options.emp_covariance_reduced,
-                          true_covariance_and_multiplier=options.emp_covariance_and_multiplier,
+                          true_covariance_and_multiplier=options.covariance_matrix_file,
                           true_m_scale=options.emp_m_scale,
                           subnodes_with_outgroup=subnodes_with_outgroup,
                           subnodes_wo_outgroup=subnodes_wo_outgroup)
@@ -134,9 +134,9 @@ def run_posterior_main(args):
     if options.treemix_post_analysis:
         if not options.treemix_full_tree:
             outp=read_true_values(true_tree=options.treemix_tree,
-                              true_add=options.treemix_add,
-                          subnodes_with_outgroup=subnodes_with_outgroup,
-                          subnodes_wo_outgroup=subnodes_wo_outgroup)
+                                  true_add=options.treemix_add,
+                                  subnodes_with_outgroup=subnodes_with_outgroup,
+                                  subnodes_wo_outgroup=subnodes_wo_outgroup)
             _, treemix_tree, treemix_add, _, _, _, _, _, _=outp
             create_treemix_csv_output(treemix_tree,treemix_add*multiplier, emp_m_scale, options.treemix_csv_output)
         elif options.treemix_full_tree:

@@ -22,6 +22,7 @@ def main(args):
                              '2) top_node_trees. It plots the X highest posterior combinations of node types '
                              'and creates the corresponding minimal topologies.  X can be supplied through the command --top_node_trees_to_plot'
                              '3) top_trees. It plots the X highest posterior topologies. X can be supplied by the command --top_trees_to_plot')
+    parser.add_argument('--outgroup', default='outgroup', help='name of the outgroup to plot')
     parser.add_argument('--consensus_threshold', default=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99], type=float, nargs='+',
                         help='The posterior thresholds for which to draw different consensus trees.')
     parser.add_argument('--top_node_trees_to_plot', type=int, default=3,
@@ -174,6 +175,7 @@ def main(args):
     elif options.plot=='top_trees':
         df = pd.read_csv(options.posterior_distribution_file, sep=options.sep, usecols=['pops','topology'])
         trees_list = df['topology'].tolist()
+        no_leaves=len(trees_list[0].split('-')[0].split('.'))
         N=len(trees_list)
         c = Counter(trees_list)
         to_plots = c.most_common(options.top_trees_to_plot)
@@ -182,6 +184,13 @@ def main(args):
         if not options.nodes:
             nodes=df['pops'].tolist()[0].split('-')
             leaves=list(set([leaf for node in nodes for leaf in node.split('.')]))
+            if len(leaves)==no_leaves:
+                pass #everything is good
+            elif len(leaves)==no_leaves-1:
+                #adding outgroup
+                leaves.append(options.outgroup)
+            else:
+                assert False, 'The number of leaves could not be obtained'
             assert not options.no_sort, 'When nodes are not specified, they will always be sorted'
             leaves=sorted(leaves)
         else:
