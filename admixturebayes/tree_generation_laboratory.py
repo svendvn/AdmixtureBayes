@@ -26,6 +26,8 @@ def simulate_tree(no_leaves, no_admixes=None):
     tree=generate_phylogeny(no_leaves, no_admixes)
     return unique_identifier_and_branch_lengths(tree)
 
+
+
 def save_tree(tree, filename):
     with open(filename, 'w') as f:
         f.write(tree)
@@ -86,15 +88,19 @@ if __name__=='__main__':
     #save_tree(s, 'tree.txt')
     #print_tree(s)
     
-    #designed_tree={
-#                    's1':['n1',None, None, 0.1,None,None, None],
-#                    's2':['n2',None,None,1,None,None,None],
-#                    's3':['n1',None, None, 0.05, None, None, None],
-#                    'out':['r',None, None, 1, None, None, None],
-#                    'n1':['n2',None, None, 4, None, 's1', 's3'],
-#                    'n2':['r',None, None, 1,None,'s2','n1' ]}
-#     s=unique_identifier_and_branch_lengths(designed_tree)
-#     save_tree(s, 'tree_d.txt')
+    designed_tree={
+                    's1':['n1',None, None, 1,None,None, None],
+                    's2':['a1',None,None,0.5,None,None,None],
+                    's3':['n2',None, None, 3, None, None, None],
+                    's4':['n3',None,None,2,None,None,None],
+                    'n1':['n4',None, None, 4,None,'s1','a2'],
+                    'a1':['a2','n2',0.3, 0.2,0.3,'s2',None],
+                    'n2':['n4',None,None, 2.5, None, 's3','a1'],
+                    'n3':['r',None, None, 1.8, None, 's4','a2'],
+                    'a2':['n3','n1',0.5,0.2,0.18,'a1',None],
+                    'n4':['r',None, None, 0.05, None, 'n2','n1']}
+    s=unique_identifier_and_branch_lengths(designed_tree)
+    save_tree_and_nodes(s, 'tree_d.txt',['s1','s2','s3','s4'])
     #print(s)
     
     #s=load_tree('tree.txt')
@@ -103,11 +109,11 @@ if __name__=='__main__':
     #plot_big_tree(s)
     #save_tree(s, 'tree2.txt')
     
-    s=load_tree('tree2.txt')
-    s=add_random_admix(s)
-    plot_big_tree(s)
-    plot_minimal_topology(s)
-    save_tree(s, 'tree3.txt')
+    #s=load_tree('tree2.txt')
+    #s=add_random_admix(s)
+    #plot_big_tree(s)
+    #plot_minimal_topology(s)
+    #save_tree(s, 'tree3.txt')
     
     #s=load_tree('tree3.txt')
     #see_covariance_matrix(s)

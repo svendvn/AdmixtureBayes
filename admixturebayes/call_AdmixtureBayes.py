@@ -28,13 +28,19 @@ def main(args):
     #famous tree:
     #w.w.w.w.w.w.a.a.w-c.w.c.c.w.c.5.0.w.3.2-c.w.w.0.c.4.w-c.w.0.c.3-w.c.1-c.0;0.07-0.974-1.016-0.089-0.81-0.086-1.499-0.052-1.199-2.86-0.403-0.468-0.469-1.348-1.302-1.832-0.288-0.18-0.45-0.922-2.925-3.403;0.388-0.485
 
-    parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.0')
+    parser = ArgumentParser(usage='pipeline for Admixturebayes', version='1.0.1')
 
     #input/output options
     parser.add_argument('--input_file', type=str, required=True, help='the input file of the pipeline. Its type should match the first argument of covariance_pipeline. 6= treemix file, 7-9=covariance file')
     parser.add_argument('--result_file', type=str, default='result_mc3.csv', help='file in which to save results. The prefix will not be prepended the result_file.')
+    parser.add_argument('--outgroup_type', choices=['non_admixed','Free','None','hypothetical'], default='non_admixed',
+                        help='The type of outgroup in the model. If non_admixed, there will be no admixture events'
+                             'into the outgroup. If Free there may be admixtures into the outgroup. '
+                             'The outgroup still need to be specified to place the root. '
+                             'If None, there will be no outgroup and the covariance matrix is expected to be invertible'
+                             '(which it will not be if calculated by this program).')
     parser.add_argument('--outgroup', type=str, default='',
-                        help='The name of the population that should be outgroup for the covariance matrix. If the covariance matrix is supplied at stage 8, this argument is not needed.')
+                        help='The name of the population that should be outgroup for the covariance matrix. If the covariance matrix is supplied at stage 8 , this argument is not needed.')
 
     #Important arguments
     parser.add_argument('--MCMC_chains', type=int, default=8,
@@ -101,7 +107,7 @@ def main(args):
                         help='skewed admixture proportion prior in the analysis')
     parser.add_argument('--not_uniform_prior', action='store_true', default=False,
                         help='If applied the uniform prior will not be used on the topology conditioned on the number of admixture events. Instead the ')
-    parser.add_argument('--no_add', action='store_true', default=False, help='this will remove the add contribution')
+    #parser.add_argument('--no_add', action='store_true', default=False, help='this will remove the add contribution')
     parser.add_argument('--no_bootstrap_samples', type=int, default=100,
                         help='the number of bootstrap samples to make to estimate the degrees of freedom in the wishart distribution.')
     parser.add_argument('--save_bootstrap_covariances', type=str, default='', help='if provided the bootstrapped covariance matrices will be saved to numbered files starting with {prefix}+_+{save_covariances}+{num}+.txt')
@@ -140,7 +146,10 @@ def main(args):
     parser.add_argument('--starting_tree_use_scale_tree_factor', default=False, action='store_true',
                         help='this will scale the tree with the specified scale_tree_factor.')
     parser.add_argument('--mscale_file', default='', type=str,
-                        help='This is the file where the normalization factor used by admixtureBayes are. This is normally calculated by the program but if settings have been changed, it may not and then this option can be used such that unnormalized treemix output trees can be scaled correctly')
+                        help='This is the file where the normalization factor used by admixtureBayes are. '
+                             'This is normally calculated by the program but if settings have been changed, '
+                             'it may not and then this option can be used such that unnormalized '
+                             'treemix output trees can be scaled correctly')
 
 
 
@@ -238,7 +247,23 @@ def main(args):
     assert not (any((i < 8 for i in options.covariance_pipeline)) and not options.outgroup), 'In the requested analysis, the outgroup needs to be specified by the --outgroup flag and it should match one of the populations'
 
 
-    mp = make_proposal(options)
+    no_add=options.outgroup_type=='None' or options.outgroup_type=='Free'
+
+
+    mp = make_proposal(deladmix=options.deladmix,
+                  addadmix=options.addadmix,
+                  rescale=options.rescale,
+                  regraft=options.regraft,
+                  rescale_add=options.rescale_add,
+                  rescale_admix=options.rescale_admix,
+                  rescale_admix_correction=options.rescale_admix_correction,
+                  rescale_constrained=options.rescale_constrained,
+                  rescale_marginally=options.rescale_marginally,
+                  sliding_regraft=options.sliding_regraft,
+                  sliding_rescale=options.sliding_rescale,
+                  MCMC_chains=options.MCMC_chains,
+                  cancel_preserve_root_distance=options.cancel_preserve_root_distance,
+                  no_add=no_add)
 
     before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.create_outgroup, options.outgroup)
     if options.verbose_level !='silent':
@@ -428,10 +453,16 @@ def main(args):
         mscale_file=None
     else:
         mscale_file=options.mscale_file
+
+    if options.outgroup_type=='Free':
+        tree_nodes=full_nodes
+    else:
+        tree_nodes=reduced_nodes
+    print 'tree_nodes',tree_nodes
     starting_trees=get_starting_trees(options.starting_trees, 
                                       options.MCMC_chains, 
                                       adds=options.starting_adds,
-                                      nodes=reduced_nodes, 
+                                      nodes=tree_nodes,
                                       pipeline=options.covariance_pipeline,
                                       multiplier=multiplier,
                                       scale_tree_factor=options.scale_tree_factor,
@@ -440,8 +471,11 @@ def main(args):
                                       starting_tree_scaling=options.starting_tree_scaling,
                                       starting_tree_use_scale_tree_factor=options.starting_tree_use_scale_tree_factor,
                                       scale_goal=options.scale_goal,
-                                      mscale_file=mscale_file)
-
+                                      mscale_file=mscale_file,
+                                      no_add=no_add)
+    from Rtree_operations import pretty_print
+    print 'first tree'
+    pretty_print(starting_trees[0][0])
     if options.verbose_level!='silent':
         print 'starting trees:'
         for j in starting_trees:
@@ -505,12 +539,19 @@ def main(args):
         import sys
         sys.exit()
 
+
+    if options.outgroup_type=='Free':
+        collapse_row=options.outgroup
+        likelihood_nodes=full_nodes
+    else:
+        collapse_row=''
+        likelihood_nodes=reduced_nodes
     posterior = posterior_class(emp_cov=covariance[0],
                                 M=df,
                                 p=options.p,
                                 use_skewed_distr=options.sap_analysis,
                                 multiplier=covariance[1],
-                                nodes=reduced_nodes,
+                                nodes=likelihood_nodes,
                                 use_uniform_prior=not options.not_uniform_prior,
                                 treemix=options.likelihood_treemix,
                                 add_variance_correction_to_graph=(options.variance_correction != 'None' and
@@ -518,7 +559,8 @@ def main(args):
                                 prefix=prefix,
                                 variance_correction_file=options.variance_correction_input_file,
                                 prior_run=options.prior_run,
-                                unadmixed_populations=options.unadmixed_populations)
+                                unadmixed_populations=options.unadmixed_populations,
+                                collapse_row=collapse_row)
 
     if options.rs:
         assert options.MCMC_chains>1, 'More than one chain is needed to use several rs'
@@ -531,7 +573,7 @@ def main(args):
                            p=options.p, 
                            use_skewed_distr=options.sap_analysis, 
                            multiplier=covariance[1], 
-                           nodes=reduced_nodes, 
+                           nodes=likelihood_nodes,
                            use_uniform_prior=not options.not_uniform_prior,
                            treemix=options.likelihood_treemix,
                            add_variance_correction_to_graph=(options.variance_correction!='None' and
@@ -540,6 +582,7 @@ def main(args):
                            variance_correction_file=options.variance_correction_input_file,
                            prior_run=options.prior_run,
                            unadmixed_populations=options.unadmixed_populations,
+                           collapse_row=collapse_row,
                            r=1.0+options.r_scale*i)
             posterior_function_list.append(n_posterior)
     else:

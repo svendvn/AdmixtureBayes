@@ -23,12 +23,13 @@ def create_trivial_tree(size, total_height=1.0):
 
 def rename_leaves(tree, new_leaf_names):
     old_keys=get_leaf_keys(tree)
-    #print 'old_keys', old_keys
-    #print 'new_keys', new_leaf_names
-    assert len(new_leaf_names)== len(old_keys), 'number of renamed nodes did not match the actual number of nodes'
-    for old_key, new_key in zip(old_keys, new_leaf_names): 
-        if not old_key in new_leaf_names:
-            tree=rename_key(tree, old_key, new_key)
+    assert len(new_leaf_names) == len(old_keys), 'number of renamed nodes did not match the actual number of nodes'
+    unique_identifier= max(old_keys, key=len)+max(new_leaf_names, key=len)+'_'
+    temporary_keys=[ok+unique_identifier for ok in old_keys]
+    for old_key, new_key in zip(old_keys, temporary_keys):
+        tree=rename_key(tree, old_key, new_key )
+    for old_key, new_key in zip(temporary_keys, new_leaf_names):
+        tree = rename_key(tree, old_key, new_key)
     return tree
 
 def max_distance_to_leaf(tree,key, parent_key=None):
@@ -116,6 +117,19 @@ def get_first_admixture_meeting(tree, key):
     parent_key=tree[key][0]
     return get_first_admixture_meeting(tree, parent_key)
 
+def get_all_admixture_meetings(tree, key):
+    if key=='r':
+        return []
+    parent_key = tree[key][0]
+    parent2_key=tree[key][1]
+    if node_is_admixture(tree[key]):
+        left_admixtures=get_all_admixture_meetings(tree, parent_key)
+        right_admixtures=get_all_admixture_meetings(tree, parent2_key)
+        uniq=list(set(left_admixtures+right_admixtures))
+        return uniq+[key]
+    return get_all_admixture_meetings(tree, parent_key)
+
+
 def get_branches_to_reverse(tree, key, so_far=None):
     if so_far is None:
         so_far=[]
@@ -157,7 +171,7 @@ def rearrange_root_foolproof(tree, new_outgroup):
         print 'tryna remove', admixture_to_remove
         if admixture_to_remove is None:
             break
-        print tree
+        pretty_print(tree)
         tree=remove_admix(tree, admixture_to_remove, 1)[0]
     return rearrange_root(tree, new_outgroup)
 
@@ -167,9 +181,9 @@ def rearrange_root(tree, new_outgroup):
         return tree
     assert non_admixture_path(tree, new_outgroup), 'There were admixtures on the path from the requested outgroup to the old root.'
     reversers=get_branches_to_reverse(tree, new_outgroup)
-    print reversers[:-2]
+    #print reversers[:-2]
     for child_key,length,parent_key in reversers[:-2]:
-        print 'child,length,parent',(child_key,length,parent_key)
+        #print 'child,length,parent',(child_key,length,parent_key)
         tree[parent_key][0]=child_key
         tree[parent_key][3]=length
     (before_root, length1, _),(after_root,length2,_)=reversers[-2:]

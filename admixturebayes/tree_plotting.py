@@ -30,9 +30,9 @@ def plot_as_admixture_tree(tree, file_prefix='', drawing_name='tmp.png', popup=T
         img=Image.open(drawing_name)
         img.show()
         
-def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawing_name='tmp_.png', popup=True, node_dic=None):
+def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawing_name='tmp_.png', popup=True, node_dic=None, verbose=True):
     pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges, inner_node_colors= node_structure_to_networkx(node_structure, node_dic)
-    print pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges, inner_node_colors
+    #print pure_leaves, admix_leaves, pure_coalescence, admix_coalescence, root, edges, inner_node_colors
     filename, image_format= drawing_name.split('.')
     G=Digraph('G', filename=filename)
     
@@ -63,9 +63,11 @@ def plot_node_structure_as_directed_graph(node_structure, file_prefix='', drawin
     G.node('r', shape='egg', color='black', style='filled', fontcolor='white')
     G.edges(edges)
     G.format = image_format
-    G.render(view=popup)    
+    G.render(view=popup)
+    if verbose:
+        print 'written plot to file ', drawing_name
         
-def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True, plot_edge_lengths=False):
+def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=True, plot_edge_lengths=False, verbose=True):
 
     leaves, admixture_nodes, coalescence_nodes, root, edges, edge_lengths= to_networkx_format(tree)
     filename, image_format= drawing_name.split('.')
@@ -97,7 +99,8 @@ def plot_as_directed_graph(tree, file_prefix='', drawing_name='tmp.png', popup=T
         G.edges(edges)
     G.format = image_format
     G.render(view=popup)
-    
+    if verbose:
+        print 'written plot to file', drawing_name
     
     
 def write_aarhus_tree_to_files(aarhus_tree, file_names):

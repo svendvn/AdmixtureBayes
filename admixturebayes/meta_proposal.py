@@ -260,6 +260,10 @@ def get_args2(names, adap_object):
 class simple_adaptive_proposal(object):
     
     def __init__(self, proposals, proportions, extras={}):
+        '''
+        extras is of the form {proposal_name: {parameter1:argument1, parameter2:argument2, ...,},...} and is used
+        to set any extra parameters in the proposals.
+        '''
         self.props=initialize_proposals(proposals, extras)
         self.proportions=proportions
         self.adaps=[simple_adaption() if prop.adaption else None for prop in self.props]

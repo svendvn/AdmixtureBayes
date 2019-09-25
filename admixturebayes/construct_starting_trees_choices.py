@@ -20,7 +20,8 @@ def get_starting_trees(inputs,
                        starting_tree_scaling='trivial',
                        starting_tree_use_scale_tree_factor=False,
                        scale_goal='min', 
-                       mscale_file=None):
+                       mscale_file=None,
+                       no_add=False):
     add_vals=[]
     if adds:
         for add in adds:
@@ -29,11 +30,11 @@ def get_starting_trees(inputs,
     trees=[]
     for input in inputs:
         trees.append(input_to_tree(input, nodes))
-        
+    print trees
         
     if not trees:
+        no_pops=len(nodes)#error if nodes is not specified
         if start=='trivial':
-            no_pops=len(nodes) #error if nodes is not specified
             trees=[]
             for _ in range(no_chains):
                 tree=create_trivial_tree(no_pops,1.0)
@@ -49,11 +50,15 @@ def get_starting_trees(inputs,
             trees=[deepcopy(tree) for _ in range(no_chains)]
         else:
             assert False, 'wrong input to start'
+    print 'tree0'
+    from Rtree_operations import pretty_print
+    pretty_print(trees[0])
+    print 'nodes', nodes
     
     if not add_vals:
         if add_start is None:
-            add_start==start
-        if start=='trivial':
+            add_start=start
+        elif start=='trivial' or no_add:
             add_vals=[0]
         elif start=='random':
             no_pops=len(nodes) #error if nodes is not specified

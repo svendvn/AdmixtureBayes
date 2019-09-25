@@ -4,31 +4,44 @@ from construct_nodes_choices import read_one_line
 from collections import Counter
 import pandas as pd
 from argparse import ArgumentParser
-from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean
+from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean, identifier_to_tree
 from copy import deepcopy
 from generate_sadmix_trees import effective_number_of_admixes
-from Rtree_operations import get_number_of_admixes
+from Rtree_operations import get_number_of_admixes, node_is_admixture, rename_key, get_admixture_proportion_from_key
 from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph #NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
+from posterior_quantiles import branch_and_proportion_quantiles
 
 def main(args):
-    parser = ArgumentParser(usage='pipeline for plotting posterior distribution summaries.', version='1.0.0')
+    parser = ArgumentParser(usage='pipeline for plotting posterior distribution summaries.', version='1.0.1')
 
     parser.add_argument('--posterior_distribution_file', required=True, type=str, help='The file containing posterior distributions from the "AdmixtureBayes posterior" command. It needs the two columns "pops" and topology.')
-    parser.add_argument('--plot', choices=['consensus_trees', 'top_node_trees', 'top_trees'], required=True,
+    parser.add_argument('--plot', choices=['consensus_trees', 'top_node_trees', 'top_trees','estimates'], required=True,
                         help='The type of plot to make. Choose between: 1) consensus_trees. '
                              'It plots an admixture graph based on all nodes that have a higher (marginal) posterior probability of X. '
                              'Different X\'s can be supplied with the command --consensus_threshold \n'
                              '2) top_node_trees. It plots the X highest posterior combinations of node types '
                              'and creates the corresponding minimal topologies.  X can be supplied through the command --top_node_trees_to_plot'
-                             '3) top_trees. It plots the X highest posterior topologies. X can be supplied by the command --top_trees_to_plot')
+                             '3) top_trees. It plots the X highest posterior topologies. X can be supplied by the command --top_trees_to_plot.'
+                             '4) estimates. It creates a table  with continuous parameters estimated from the posterior sample'
+                             'It also plots the concerned topologies with labels. It does this for either the X highest posterior topologies '
+                             'or the topologies specified by --estimate_topologies.'
+                             'If no --estimate_topologies is set, X can be set by top_trees_to_estimate (default=3). ')
     parser.add_argument('--outgroup', default='outgroup', help='name of the outgroup to plot')
+    parser.add_argument('--prefix', default='', type=str, help='string to prepend before each file created by this routine. '
+                                                               'That means that any rankings written to a file by setting --write_ranking_to_file or --write_estimates_to_file will have this prefix prepended.')
     parser.add_argument('--consensus_threshold', default=[0.25, 0.5, 0.75, 0.9, 0.95, 0.99], type=float, nargs='+',
                         help='The posterior thresholds for which to draw different consensus trees.')
     parser.add_argument('--top_node_trees_to_plot', type=int, default=3,
                         help='The number of node trees (or minimal topologies) to plot')
     parser.add_argument('--top_trees_to_plot', type=int, default=3,
                         help='The number of trees (or topologies) to plot ')
+    parser.add_argument('--top_trees_to_estimate', type=int, default=3,
+                        help='The number of trees (or topologies) to plot ')
+    parser.add_argument('--estimate_topologies', default=[], type=str, nargs='+',
+                        help='The topologies whose conitnuous parameters should be estimated with "--plot estimates"')
+    parser.add_argument('--write_estimates_to_file', default=[], type=str, nargs='+',
+                        help='The file in which to put the tables when plotting estimates. ')
     parser.add_argument('--write_ranking_to_file', type=str, default='', help='if a file is supplied here, the natural rankings for each of the plots is written here.')
     parser.add_argument('--rankings_to_write_to_file', type=int, default=1000,
                         help='the number of rankings(nodes, min topology or topology depending on --plot) to write to the ranking file.')
@@ -36,6 +49,7 @@ def main(args):
                         help='This will not color the nodes according to their posterior probability.')
     parser.add_argument('--nodes', default='', type=str, help='file where the first line is the leaf nodes')
     parser.add_argument('--suppress_plot', default=False, action='store_true')
+    parser.add_argument('--popup', default=False, action='store_true')
     parser.add_argument('--no_sort', default=False, action='store_true', help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
     parser.add_argument('--sep', default=',', type=str, help='the separator used in the input file')
 
@@ -147,9 +161,9 @@ def main(args):
                 final_node_structure = node_combinations_to_node_structure(final_node_combinations)
                 if not options.suppress_plot:
                     from tree_plotting import plot_node_structure_as_directed_graph
-                    plot_node_structure_as_directed_graph(final_node_structure, drawing_name='consensus_'+str(int(100*options.consensus_threshold[i]))+'.png', node_dic=node_count_dic)
+                    plot_node_structure_as_directed_graph(final_node_structure, drawing_name=options.prefix+'consensus_'+str(int(100*options.consensus_threshold[i]))+'.png', node_dic=node_count_dic,  popup=options.popup)
             if options.write_ranking_to_file:
-                with open(options.write_ranking_to_file, 'w') as f:
+                with open(options.prefix+options.write_ranking_to_file, 'w') as f:
                     c = Counter(seen_combinations)
                     to_write = c.most_common(options.rankings_to_write_to_file)
                     for node, frequency in to_write:
@@ -158,7 +172,7 @@ def main(args):
             c=Counter(nodes_list)
             to_plots=c.most_common(options.top_node_trees_to_plot)
             if options.write_ranking_to_file:
-                with open(options.write_ranking_to_file, 'w') as f:
+                with open(options.prefix+options.write_ranking_to_file, 'w') as f:
                     for tree, frequency in c.most_common(options.rankings_to_write_to_file):
                         f.write(tree + ',' + str(float(frequency) / N) + '\n')
             if not options.dont_annotate_node_posterior:
@@ -170,8 +184,8 @@ def main(args):
                 from tree_plotting import plot_node_structure_as_directed_graph
                 for i, (to_plot,count) in enumerate(to_plots):
                     node_structure = node_combinations_to_node_structure(to_plot.split('-'))
-                    plot_node_structure_as_directed_graph(node_structure, drawing_name='minimal_topology_' +str(i+1)+'.png',
-                                                          node_dic=node_count_dic)
+                    plot_node_structure_as_directed_graph(node_structure, drawing_name=options.prefix+'minimal_topology_' +str(i+1)+'.png',
+                                                          node_dic=node_count_dic,  popup=options.popup)
     elif options.plot=='top_trees':
         df = pd.read_csv(options.posterior_distribution_file, sep=options.sep, usecols=['pops','topology'])
         trees_list = df['topology'].tolist()
@@ -199,7 +213,7 @@ def main(args):
                 leaves=sorted(leaves)
 
         if options.write_ranking_to_file:
-            with open(options.write_ranking_to_file, 'w') as f:
+            with open(options.prefix+options.write_ranking_to_file, 'w') as f:
                 for tree, frequency in c.most_common(options.rankings_to_write_to_file):
                     f.write(tree + ',' + str(float(frequency) / N) + '\n')
 
@@ -207,7 +221,82 @@ def main(args):
             from tree_plotting import plot_as_directed_graph
             for i, (to_plot, count) in enumerate(to_plots):
                 tree=topological_identifier_to_tree_clean(to_plot, leaves=generate_predefined_list_string(deepcopy(leaves)))
-                plot_as_directed_graph(tree,drawing_name='topology_' + str(i + 1) + '.png')
+                plot_as_directed_graph(tree,drawing_name=options.prefix+'topology_' + str(i + 1) + '.png', popup=options.popup)
+    elif options.plot=='estimates':
+        try:
+            df = pd.read_csv(options.posterior_distribution_file, sep=options.sep, usecols=['string_tree', 'topology', 'pops'])
+        except ValueError as e:
+            raise Exception('Unexpected columns in the posterior_distribution file. Did you turn on the --faster flag in AdmixtureBayes posterior?')
+
+        topologies_list = df['topology'].tolist()
+        string_tree_list=df['string_tree'].tolist()
+        if options.estimate_topologies:
+            cleaned_topology_list=[s.split('=')[-1].split(';')[0] for s in options.estimate_topologies]
+        else:
+            c = Counter(topologies_list)
+            to_plots = c.most_common(options.top_trees_to_estimate)
+            cleaned_topology_list=[d[0] for d in to_plots]
+        no_leaves = len(topologies_list[0].split('-')[0].split('.'))
+
+        # obtaining nodes:
+        if not options.nodes:
+            nodes=df['pops'].tolist()[0].split('-')
+            leaves=list(set([leaf for node in nodes for leaf in node.split('.')]))
+            if len(leaves)==no_leaves:
+                pass #everything is good
+            elif len(leaves)==no_leaves-1:
+                #adding outgroup
+                leaves.append(options.outgroup)
+            else:
+                assert False, 'The number of leaves could not be obtained'
+            assert not options.no_sort, 'When nodes are not specified, they will always be sorted'
+            leaves=sorted(leaves)
+        else:
+            leaves=read_one_line(options.nodes)
+            if not options.no_sort:
+                leaves=sorted(leaves)
+
+
+        if not options.suppress_plot:
+            from tree_plotting import plot_as_directed_graph
+        for i, to_plot in enumerate(cleaned_topology_list):
+            relevant_string_trees=[]
+            for string_tree, topology in zip(string_tree_list, topologies_list):
+                if topology==to_plot:
+                    relevant_string_trees.append(string_tree)
+            branches_intervals, admixture_proportion_intervals=branch_and_proportion_quantiles(relevant_string_trees)
+            branch_names=[branches_interval[0] for branches_interval in branches_intervals]
+            admixture_names=[ad[0] for ad in admixture_proportion_intervals]
+            if not options.suppress_plot:
+                tree = identifier_to_tree(to_plot,
+                                         leaves=generate_predefined_list_string(deepcopy(leaves)),
+                                         branch_lengths= generate_predefined_list_string(deepcopy(branch_names)),
+                                         admixture_proportions=generate_predefined_list_string(deepcopy(admixture_names)))
+                org_keys=tree.keys()
+                for key in org_keys:
+                    node=tree[key]
+                    if node_is_admixture(node):
+                        new_name=get_admixture_proportion_from_key(tree, key)
+                        tree=rename_key(tree, key, new_name)
+
+                plot_as_directed_graph(tree, drawing_name=options.prefix+'topology_labels_' + str(i + 1) + '.png', plot_edge_lengths=True,  popup=options.popup)
+            if options.write_estimates_to_file:
+                branch_file=options.write_estimates_to_file[i*2+0]
+                admixtures_file=options.write_estimates_to_file[i*2+1]
+            else:
+                branch_file=options.prefix+'topology_estimates_branches_'+str(i+1)+'.txt'
+                admixtures_file=options.prefix+'topology_estimates_admixtures_'+str(i+1)+'.txt'
+            with open(branch_file, 'w') as f:
+                f.write(','.join(['branch label','lower 95%','mean','upper 95%']))
+                for v in branches_intervals:
+                    f.write(','.join(map(str,v))+'\n')
+            with open(admixtures_file, 'w') as f:
+                f.write(','.join(['branch label', 'lower 95%', 'mean', 'upper 95%']))
+                for v in admixture_proportion_intervals:
+                    f.write(','.join(map(str,v))+'\n')
+
+
+
     sys.exit()
 
 

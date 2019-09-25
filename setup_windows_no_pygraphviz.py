@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
         name='AdmixtureBayes',
-        version='0.1',
+        version='0.2',
         license='Creative Commons Attribution-Noncommercial-Share Alike license',
         long_description=open('README.md').read(),
         zip_safe=False, 

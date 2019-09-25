@@ -3,7 +3,8 @@ from Rtree_operations import get_trivial_nodes
 from tree_to_data import unzip
 
 def get_nodes(arguments, input_file, outgroup_name, reduce_node, backup_number=8):
-    
+    ''' The outgroup_name is only used for simulation purposes and reduce_node is the important one
+    that is used when analysing the admixture graphs.  '''
     if not arguments[0]:#this means that we should use the input file for nodes
         if ';' in input_file:
             nodes=get_trivial_nodes(len(input_file.split('-')[0].split('.')))

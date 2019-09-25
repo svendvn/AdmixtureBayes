@@ -38,6 +38,7 @@ def ab2qpg(G, fname):
 
     with open(fname, 'w') as f:
         f.write("\n".join(s))
+    print 'written qp graph to file ', fname
 
 def main(args):
 

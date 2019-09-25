@@ -663,11 +663,13 @@ if __name__=='__main__':
     
     from sys import exit
     
-    exit()
+
     from generate_prior_trees import generate_phylogeny
     from Rcatalogue_of_trees import *
     from Rtree_operations import create_trivial_tree, scale_tree
     tree2=scale_tree(generate_phylogeny(5,1),0.05)
+    print(tree_to_ms_command(tree2,nreps=500))
+    exit()
     print pretty_string(tree2)
     print pretty_string(identifier_to_tree_clean(unique_identifier_and_branch_lengths(tree2)))
     print supplementary_text_ms_string()

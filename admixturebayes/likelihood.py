@@ -1,5 +1,6 @@
 from Rtree_to_covariance_matrix import make_covariance
-
+from reduce_covariance import reduce_covariance
+from Rtree_operations import pretty_print
 from scipy.stats import wishart, norm
 from numpy.linalg import eig, LinAlgError
 from numpy import sum, sqrt
@@ -51,12 +52,18 @@ def likelihood_treemix_from_matrix(matrix, emp_cov, variances,  pks={}):
         return -float("inf")
     return d
 
-def likelihood(x, emp_cov, b, M=12,nodes=None,  pks={}):
+def likelihood(x, emp_cov, b, M=12,nodes=None, collapse_row='', pks={}):
     tree, add= x
     r=emp_cov.shape[0]
     if nodes is None:
         nodes=["s"+str(i) for i in range(1,r+1)]
     par_cov=make_covariance(tree, nodes)
+    if par_cov is None:
+        print 'illegal tree'
+        return -float('inf')
+    if collapse_row:
+        n=len(nodes)-1   #n_outgroup=next((n for n, e in enumerate(nodes_with_outgroup) if e==outgroup))
+        par_cov=reduce_covariance(par_cov, n)
     if b is not None:
         par_cov+=b
     #print (par_cov, emp_cov, add)

@@ -9,6 +9,7 @@ from reduce_covariance import reduce_covariance
 from Rtree_to_covariance_matrix import make_covariance
 from numpy import median, amin, amax, loadtxt
 from numpy.linalg import norm
+from copy import deepcopy
 
 
 def initialize_posterior2(emp_cov=None, 
@@ -150,7 +151,9 @@ class posterior_class(object):
                  variance_correction_file='',
                  prior_run=False,
                  unadmixed_populations=[],
-                 r=0
+                 r=0,
+                 collapse_row='',
+                 collapse_row_rearrange=False
                  ):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
@@ -174,6 +177,8 @@ class posterior_class(object):
         self.use_skewed_distr=use_skewed_distr
         self.multiplier=multiplier
         self.nodes=nodes
+        self.collapse_row=collapse_row
+        print 'posterior_nodes', self.nodes
         self.use_uniform_prior=use_uniform_prior
         self.unadmixed_populations=unadmixed_populations
         
@@ -200,7 +205,7 @@ class posterior_class(object):
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
         
-        likelihood_value=self.lik(x, self.emp_cov,self.b, self.M, nodes=self.nodes, pks=pks)
+        likelihood_value=self.lik(x, self.emp_cov,self.b, self.M, nodes=self.nodes, collapse_row=self.collapse_row, pks=pks)
         if verbose:
             print 'empirical_matrix=', self.emp_cov
             print 'input_matrix=', pks['covariance']+x[1]

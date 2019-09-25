@@ -16,9 +16,9 @@ def first_admixture_proportion_custom_summary(Rtree, **kwargs):
             p1,p2=get_parents(node)
             p1_other_children=get_sibling_on_parent_side(Rtree, p1, key)
             p2_other_children=get_sibling_on_parent_side(Rtree, p2, key)
-            if 's1' in p1_other_children and 's3' in p2_other_children:
+            if 'MA1' in p1_other_children and 'LBK' in p2_other_children:
                 return node[2]
-            if 's3' in p1_other_children and 's1' in p2_other_children:
+            if 'LBK' in p1_other_children and 'MA1' in p2_other_children:
                 return 1.0-node[2]
     else:
         return '.'
