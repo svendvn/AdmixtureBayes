@@ -108,3 +108,7 @@ In case AdmixtureBayes would not install, it can still be run as
 $ python admixturebayes/__main__.py run --input_file my_data.txt
 ```
 However, it will not use the accelerated c-implementation of the covariance matrix.
+
+## More resources
+
+A manual is being written at the moment. The preliminary unfinished document can be found in `example/manual.html`.
