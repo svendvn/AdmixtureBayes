@@ -12,7 +12,7 @@ AdmixtureBayes is also shipped with commands to summarize and plot the results
 For Linux 64-bit, install the program in a python 2.7 environment using the commands
 ```bash
 $ git clone https://github.com/svendvn/AdmixtureBayes
-$ pip install dist/AdmixtureBayes-0.1-cp27-cp27mu-linux_x86_64.whl
+$ pip install dist/AdmixtureBayes-0.2-cp27-cp27mu-linux_x86_64.whl
 ```
 It will install the necessary python dependencies. To se the plotting tools, the program dot (from grapvhiz) has to be accessible from the command line. Even if it is installed as one of the depencies it may not be visible to the command line. If so, install it manually
 ```bash
@@ -32,7 +32,7 @@ in a python 2.7 environment which will compile a C-file. Alternatively, Admixtur
 
 ```bash
 $ git clone https://github.com/svendvn/AdmixtureBayes
-$ pip install dist/AdmixtureBayes-0.1-py2-none-any.whl
+$ pip install dist/AdmixtureBayes-0.2-py2-none-any.whl
 ```
 
 It may also be necessary to install graphviz separately.
@@ -76,6 +76,7 @@ The result is a file called *posterior_distributions.csv*. From this file a coup
 $ AdmixtureBayes plot --plot consensus_trees --posterior_distribution_file posterior_distributions.csv
 $ AdmixtureBayes plot --plot top_node_trees --posterior_distribution_file posterior_distributions.csv
 $ AdmixtureBayes plot --plot top_trees --posterior_distribution_file posterior_distributions.csv
+$ AdmixtureBayes plot --plot estimates --posterior_distribution_file posterior_distributions.csv
 ```
 
 ## Increasing number of populations
