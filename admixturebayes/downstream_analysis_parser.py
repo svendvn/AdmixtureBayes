@@ -1,4 +1,4 @@
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from downstream_analysis_tool import (thinning, iterate_over_output_file, always_true, make_Rtree, make_full_tree, read_true_values,
                                       make_Rcovariance, cov_truecov, topology_identity,get_pops,compare_pops,extract_number_of_sadmixes, 
                                       read_one_line,summarize_all_results, create_treemix_csv_output, topology, float_mean, mode,
@@ -36,7 +36,7 @@ def run_posterior_main(args):
     #print possible_summaries
 
 
-    parser = ArgumentParser(usage='pipeline for post analysis', version='1.0.1')
+    parser = ArgumentParser(usage='pipeline for post analysis', version='0.3')
 
 
     parser.add_argument('--input_file', required=True, type=str, help='The output file from an AdmixtureBayes run.')
@@ -80,40 +80,40 @@ def run_posterior_main(args):
                         choices=['', 'true_val'] + map(str, range(21)), type=str,
                         help='The number of effective(visible)_admixture events that there are constrained on in the data set. If negative there are no constraints.')
     parser.add_argument('--constrain_sadmix_trees', default=False, action='store_true',
-                        help='this will remove the graphs which has invisible admixtures. This will produce worse, but more easily interpretable results.')
+                        help='this will remove the graphs which has invisible admixtures. This will produce worse, but perhaps more easily interpretable results.')
     parser.add_argument('--no_sort', default=False, action='store_true',
                         help='often the tree is sorted according to the leaf names. no_sort willl assumed that they are not sorted according to this but sorted according to ')
     parser.add_argument('--use_cols', default=['tree', 'add', 'layer', 'no_admixes'], type=str, nargs='+',
                         help='The columns to load from the input file')
     parser.add_argument('--outgroup_name', default='', type=str, help='Name of the outgroup. By default this is argument is empty meaning that the outgroup will not be included in any summary.')
-    parser.add_argument('--emp_m_scale', type=str, default='')
-    parser.add_argument('--emp_variance_correction', type=str, default='')
-    parser.add_argument('--emp_df', type=str, default='')
-    parser.add_argument('--emp_covariance_and_multiplier', default='', type=str)
-    parser.add_argument('--emp_covariance_reduced', default='', type=str)
+    parser.add_argument('--emp_m_scale', type=str, default='', help=SUPPRESS)
+    parser.add_argument('--emp_variance_correction', type=str, default='', help=SUPPRESS)
+    parser.add_argument('--emp_df', type=str, default='', help=SUPPRESS)
+    parser.add_argument('--emp_covariance_and_multiplier', default='', type=str, help=SUPPRESS)
+    parser.add_argument('--emp_covariance_reduced', default='', type=str, help=SUPPRESS)
 
 
     parser.add_argument('--choice_if_no_thinned_graphs', default='error', choices=['error', 'nearest_admixture_events'],
                         help='If the thinning leaves no graphs left, this is what will be done in stead. error will throw an error and nearest_admixture_events will expand the band of allowed number of admixture events(if the chain has been thinned on number of admixture events).')
     parser.add_argument('--test_run', default=False, action='store_true',
-                    help='will overwrite everything and run a test function')
+                    help=SUPPRESS)#'will overwrite everything and run a test function')
 
     parser.add_argument('--summary_summaries', default=['mean'], nargs='*', type=str,
-                        help='How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
+                        help=SUPPRESS)#'How each list is summarized as a single, numerical value. If it doesnt have the same length as save summaries the arguments will be repeated until it does')
     parser.add_argument('--number_of_top_pops', default=10, type=int,
                         help='if top_pops is added to summary_summaries this is the number of set topologies saved. negative values means all topologies are saved.')
-    parser.add_argument('--true_scaled_tree',  type=str, default='')
-    parser.add_argument('--true_tree',  type=str, default='')
-    parser.add_argument('--true_add',  type=str, default='')
-    parser.add_argument('--true_covariance_reduced',  type=str, default='')
-    parser.add_argument('--true_covariance_and_multiplier',  type=str, default='')
-    parser.add_argument('--true_no_admix',  type=str, default='')
+    parser.add_argument('--true_scaled_tree',  type=str, default='',help=SUPPRESS)
+    parser.add_argument('--true_tree',  type=str, default='',help=SUPPRESS)
+    parser.add_argument('--true_add',  type=str, default='',help=SUPPRESS)
+    parser.add_argument('--true_covariance_reduced',  type=str, default='',help=SUPPRESS)
+    parser.add_argument('--true_covariance_and_multiplier',  type=str, default='',help=SUPPRESS)
+    parser.add_argument('--true_no_admix',  type=str, default='',help=SUPPRESS)
     parser.add_argument('--treemix_post_analysis', action='store_true', default=False,
-                        help='this will convert the treemix input fil ../../../../Dropbox/Bioinformatik/AdmixtureBayes/test_final_grid/ai_2_5true/_true_tree.txtes into a suitable csv file for ')
-    parser.add_argument('--treemix_tree', default='', type=str, help='')
-    parser.add_argument('--treemix_add', default='', type=str, help='')
-    parser.add_argument('--treemix_full_tree', default='')
-    parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str, help='')
+                        help=SUPPRESS)#'this will convert the treemix input fil ../../../../Dropbox/Bioinformatik/AdmixtureBayes/test_final_grid/ai_2_5true/_true_tree.txtes into a suitable csv file for ',help=SUPPRESS)
+    parser.add_argument('--treemix_tree', default='', type=str,help=SUPPRESS)
+    parser.add_argument('--treemix_add', default='', type=str, help=SUPPRESS)
+    parser.add_argument('--treemix_full_tree', default='',help=SUPPRESS)
+    parser.add_argument('--treemix_csv_output', default='treemix.csv', type=str,help=SUPPRESS)
     parser.add_argument('--subgraph_file', default='', type=str,
                         help='file where each line has a space separated list of leaf labels to calculate subtrees from. If a double underscore(__) occurs, it means that the following two arguments are max number of sub topologies and total posterior probability.')
 

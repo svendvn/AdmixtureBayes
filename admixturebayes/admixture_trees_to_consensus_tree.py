@@ -3,17 +3,17 @@ from Treemix_to_AdmixtureBayes import Node
 from construct_nodes_choices import read_one_line
 from collections import Counter
 import pandas as pd
-from argparse import ArgumentParser
+from argparse import ArgumentParser, SUPPRESS
 from tree_statistics import identifier_to_tree_clean,generate_predefined_list_string,topological_identifier_to_tree_clean, identifier_to_tree
 from copy import deepcopy
 from generate_sadmix_trees import effective_number_of_admixes
-from Rtree_operations import get_number_of_admixes, node_is_admixture, rename_key, get_admixture_proportion_from_key
+from Rtree_operations import get_number_of_admixes, node_is_admixture, rename_key, get_admixture_proportion_from_key, get_all_admixture_origins
 from tree_plotting import plot_node_structure_as_directed_graph, plot_as_directed_graph #NOTICE THAT THIS IS CALLED ELSEWHERE!! IN THE SCRIPT
 import sys
 from posterior_quantiles import branch_and_proportion_quantiles
 
 def main(args):
-    parser = ArgumentParser(usage='pipeline for plotting posterior distribution summaries.', version='1.0.1')
+    parser = ArgumentParser(usage='pipeline for plotting posterior distribution summaries.', version='0.3')
 
     parser.add_argument('--posterior_distribution_file', required=True, type=str, help='The file containing posterior distributions from the "AdmixtureBayes posterior" command. It needs the two columns "pops" and topology.')
     parser.add_argument('--plot', choices=['consensus_trees', 'top_node_trees', 'top_trees','estimates'], required=True,
@@ -57,7 +57,7 @@ def main(args):
     #parser.add_argument('--burn_in_rows', default=0, type=int, help='the number of rows that will be skipped in the input file as burn-in period')
     #parser.add_argument('--burn_in_fraction', default=0.0, type=float, help='the proportion of the rows that are discarded as burn in period')
     #parser.add_argument('--tree_column_name', default='tree', type=str, help='the name in the header of the column with all the trees.')
-    parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help='Which method should be used to calculate the consensus tree?')
+    parser.add_argument('--consensus_method', choices=['descendant_frequencies'], default='descendant_frequencies', help=SUPPRESS)#'Which method should be used to calculate the consensus tree?')
     #parser.add_argument('--min_w', default=0.0, type=float, help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
 
 
@@ -266,19 +266,24 @@ def main(args):
                     relevant_string_trees.append(string_tree)
             branches_intervals, admixture_proportion_intervals=branch_and_proportion_quantiles(relevant_string_trees)
             branch_names=[branches_interval[0] for branches_interval in branches_intervals]
-            admixture_names=[ad[0] for ad in admixture_proportion_intervals]
-            if not options.suppress_plot:
-                tree = identifier_to_tree(to_plot,
-                                         leaves=generate_predefined_list_string(deepcopy(leaves)),
-                                         branch_lengths= generate_predefined_list_string(deepcopy(branch_names)),
-                                         admixture_proportions=generate_predefined_list_string(deepcopy(admixture_names)))
-                org_keys=tree.keys()
-                for key in org_keys:
-                    node=tree[key]
-                    if node_is_admixture(node):
-                        new_name=get_admixture_proportion_from_key(tree, key)
-                        tree=rename_key(tree, key, new_name)
 
+            admixture_names=[ad[0] for ad in admixture_proportion_intervals]
+            tree = identifier_to_tree(to_plot,
+                                      leaves=generate_predefined_list_string(deepcopy(leaves)),
+                                      branch_lengths=generate_predefined_list_string(deepcopy(branch_names)),
+                                      admixture_proportions=generate_predefined_list_string(deepcopy(admixture_names)))
+
+            org_keys = tree.keys()
+            for key in org_keys:
+                node = tree[key]
+                if node_is_admixture(node):
+                    new_name = get_admixture_proportion_from_key(tree, key)
+                    tree = rename_key(tree, key, new_name)
+            adms=get_all_admixture_origins(tree)
+            adm_interpretation={}
+            for key, (branch_name, node_destination) in adms.items():
+                adm_interpretation[key]='For the lineages that passes through {}, this is the proportion that follows branch {} to node {}'.format(key, branch_name,node_destination)
+            if not options.suppress_plot:
                 plot_as_directed_graph(tree, drawing_name=options.prefix+'topology_labels_' + str(i + 1) + '.png', plot_edge_lengths=True,  popup=options.popup)
             if options.write_estimates_to_file:
                 branch_file=options.write_estimates_to_file[i*2+0]
@@ -287,13 +292,14 @@ def main(args):
                 branch_file=options.prefix+'topology_estimates_branches_'+str(i+1)+'.txt'
                 admixtures_file=options.prefix+'topology_estimates_admixtures_'+str(i+1)+'.txt'
             with open(branch_file, 'w') as f:
-                f.write(','.join(['branch label','lower 95%','mean','upper 95%']))
+                f.write(','.join(['branch label','lower 95%','mean','upper 95%'])+'\n')
                 for v in branches_intervals:
                     f.write(','.join(map(str,v))+'\n')
             with open(admixtures_file, 'w') as f:
-                f.write(','.join(['branch label', 'lower 95%', 'mean', 'upper 95%']))
+                f.write(','.join(['branch label','lower 95%', 'mean', 'upper 95%','interpretation'])+'\n')
                 for v in admixture_proportion_intervals:
-                    f.write(','.join(map(str,v))+'\n')
+
+                    f.write(','.join(map(str,list(v)+[adm_interpretation[v[0]]]))+'\n')
 
 
 

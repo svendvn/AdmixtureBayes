@@ -1295,6 +1295,13 @@ def get_admixture_branches(tree):
         if node_is_admixture(node):
             res.append((key,0))
             res.append((key,1))
+
+def get_all_admixture_origins(tree):
+    res={}
+    for key,node in tree.items():
+        if node_is_admixture(node):
+            res[key]=(node[3], get_parents(node)[0])
+    return res
         
 
 def is_root(*keys):
