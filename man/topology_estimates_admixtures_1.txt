@@ -1,0 +1,2 @@
+branch label,lower 95%,mean,upper 95%,interpretation
+ax1,0.4612,0.590593023256,0.673725,For the lineages that passes through ax1, this is the proportion that follows branch c3 to node n1
