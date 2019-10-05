@@ -40,10 +40,20 @@ class temperature_adapting(object):
         self.temps=[1.0]
         for d, crossed in zip(diffs, being_crosseds):
             self.temps.append(max(self.temps[-1],self.temps[-1]*d*update_sizes[crossed]))
-        new_temps=[]
+
         if self.fixed_maxT:
-            for t in self.temps:
-                new_temps.append(t/self.maxT)
+            m=max(self.temps)
+            new_temps = []
+            if self.maxT<m:
+                frac=1
+            else:
+                frac=self.maxT/m
+            for i,t in enumerate(self.temps):
+                mult=frac**(float(i)/(len(self.temps)-1))
+                if mult<1:
+                    print i,t,mult,frac, (float(i)/(len(self.temps)-1)), len(self.temps)-1
+                new_temps.append(t*mult)
+            self.temps=new_temps
         self.no_updates+=1
         self.average=[av+cr for av,cr in zip(self.average, being_crosseds)]
         print 'new temperatures:', [round(f,3) for f in self.temps]

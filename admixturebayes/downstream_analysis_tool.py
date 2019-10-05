@@ -51,6 +51,7 @@ def iterate_over_output_file(outfile,
     
     df= pd.read_csv(outfile, usecols=cols, dtype={'no_admixes':object})
     df = df[cols]
+    df = df.loc[df['layer'] == 0]
     df= pre_thin_data_set_function(df)
     full_summs=[full_summarize_function(df) for full_summarize_function in full_summarize_functions]
     

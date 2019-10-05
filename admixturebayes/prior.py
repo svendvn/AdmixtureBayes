@@ -28,8 +28,12 @@ def illegal_admixtures(unadmixed_populations, tree):
         return True
     return False
 
+def calculate_add_prior(add, rate=1):
+    '''The rate is the mean.'''
+    return -add/float(rate)
 
-def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0):
+
+def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0, add_prior_rate=1):
     tree, add=x
     no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
@@ -51,7 +55,8 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
     if unadmixed_populations:
         if illegal_admixtures(unadmixed_populations, tree):
             return -float('inf')
-    logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior-add
+    add_prior=calculate_add_prior(add, add_prior_rate)
+    logsum=branch_prior+no_admix_prior+admix_prop_prior+top_prior+add_prior
     pks['branch_prior']= branch_prior
     pks['no_admix_prior']=no_admix_prior
     pks['admix_prop_prior']=admix_prop_prior

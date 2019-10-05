@@ -52,8 +52,12 @@ def main(args):
     #medium important convergence arguments
     parser.add_argument('--m', type=int, default=50, help='the number of MCMC steps before between each MCMCMC flip')
     parser.add_argument('--max_temp', type=float, default=1000, help='the maximum temperature used in the MCMCMC.')
-    parser.add_argument('--adaptive_temperatures', action='store_true', default=False,
-                        help='this will make the MCMCMC temperature scheme update itself based on the transition probabilities.')
+    parser.add_argument('--temperature_scheme', choices=['geometrical','adaptive_fluid_max', 'adaptive_fixed_max'], default='geometrical',
+                        help='The way to set the temperatures in the MCMCMC. If "geometrical"  the temperatures are '
+                             'distributed evenly on the geometrical axis. If adaptive_fluid_max, the temperatures are '
+                             'adated to have acceptance probability 0.234, and if adaptive_fixed_max, the adaption is done'
+                             'conditioned on the highest temperature being more than or equal to max_temp.')
+
     parser.add_argument('--stop_criteria', action='store_true', default=False,
                         help='If applied the MCMCMC will stop when the coldest chain has an effective sample size at a certain threshold for a number of different summaries.')
     parser.add_argument('--stop_criteria_frequency', type=int, default=200000,
@@ -98,8 +102,10 @@ def main(args):
                         help=SUPPRESS)#'this is the way of estimating the empirical covariance matrix.')
     parser.add_argument('--Jade_cutoff', type=float, default=1e-5,
                         help=SUPPRESS)#'this will remove SNPs of low diversity in either the Jade or the Jade-o scheme.')
-    parser.add_argument('--scale_goal', choices=['min', 'max'], default='max',
+    parser.add_argument('--scale_goal', choices=['min', 'max'], default='min',
                         help='If 9 is included in the pipeline, this is the rescaling of the covariance matrix.')
+    parser.add_argument('--outgroup_branch_prior_rate', default=1.0, type=float,
+                        help='This prior parameter says have many times bigger, the outgroup branch (also called "add") is compared to the average branch in the graph.')
     parser.add_argument('--p', type=float, default=0.5,
                         help='the geometrical parameter in the prior. The formula is p**x(1-p)')
     parser.add_argument('--sap_analysis', action='store_true', default=False,
@@ -151,6 +157,7 @@ def main(args):
                              #'treemix output trees can be scaled correctly')
     parser.add_argument('--rs', action='store_true', default=False, help='will change the prior on the number of admixture events in the tree.')
     parser.add_argument('--r_scale', type=float, default=1.0, help='This will set the the mean of the number of admixture events in chain i to 1+i*r')
+    parser.add_argument('--r_value_max', type=float, default=-1.0, help='This will set an upper bound on the expected number of admixture events 1+i*r, to min(1+i*r,this.value')
 
 
     #more obscure convenience arguments
@@ -389,6 +396,7 @@ def main(args):
                               unbounded_brownian=options.unbounded_brownian,
                               filter_on_outgroup=options.filter_on_outgroup,
                               locus_filter=locus_filter,
+                              outgroup_branch_prior_rate=options.outgroup_branch_prior_rate,
                               estimator_arguments=estimator_arguments, 
                               verbose_level=options.verbose_level
                               )
@@ -575,14 +583,17 @@ def main(args):
                                 variance_correction_file=options.variance_correction_input_file,
                                 prior_run=options.prior_run,
                                 unadmixed_populations=options.unadmixed_populations,
-                                collapse_row=collapse_row)
+                                collapse_row=collapse_row,
+                                add_prior_rate=options.outgroup_branch_prior_rate)
 
     if options.rs:
         assert options.MCMC_chains>1, 'More than one chain is needed to use several rs'
         posterior_function_list=[posterior]
         for i in range(1,options.MCMC_chains):
 
-
+            r_val=1.0+options.r_scale*i
+            if options.r_value_max:
+                r_val=min(options.r_value_max, r_val)
             n_posterior= posterior_class(emp_cov=covariance[0],
                            M=df, 
                            p=options.p, 
@@ -598,14 +609,17 @@ def main(args):
                            prior_run=options.prior_run,
                            unadmixed_populations=options.unadmixed_populations,
                            collapse_row=collapse_row,
+                            add_prior_rate=options.outgroup_branch_prior_rate,
                            r=1.0+options.r_scale*i)
             posterior_function_list.append(n_posterior)
     else:
         posterior_function_list=[]
 
 
-    if options.adaptive_temperatures:
+    if options.temperature_scheme=='adaptive_fluid_max':
         temperature_scheme=temperature_adapting(options.max_temp, options.MCMC_chains)
+    elif options.temperature_scheme=='adaptive_fixed_max':
+        temperature_scheme = temperature_adapting(options.max_temp, options.MCMC_chains, fixed_maxT= True)
     else:
         temperature_scheme=fixed_geometrical(options.max_temp,options.MCMC_chains)
 
@@ -614,7 +628,7 @@ def main(args):
         
 
     def multi_chain_run():
-        res=MCMCMC(starting_trees=starting_trees, 
+        return MCMCMC(starting_trees=starting_trees,
                posterior_function= posterior,
                summaries=summaries, 
                temperature_scheme=temperature_scheme, 
@@ -633,7 +647,7 @@ def main(args):
                posterior_function_list=posterior_function_list)
         
     def single_chain_run():
-        basic_chain(start_x= starting_trees[0],
+        return basic_chain(start_x= starting_trees[0],
                     summaries=summaries,
                     posterior_function=posterior,
                     proposal=mp[0],

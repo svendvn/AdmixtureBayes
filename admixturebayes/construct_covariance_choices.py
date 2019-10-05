@@ -207,7 +207,8 @@ def scale_tree_wrapper(tree, **kwargs):
     return scale_tree(tree, kwargs['scale_tree_factor'])
 
 def normaliser_wrapper(covariance, **kwargs):
-    return rescale_empirical_covariance(covariance, normalizer=kwargs['scale_goal'])
+    return rescale_empirical_covariance(covariance, normalizer=kwargs['scale_goal'],
+                                        outgroup_rate=kwargs['outgroup_branch_prior_rate'])
 
 
 
@@ -318,6 +319,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
                    unbounded_brownian=False,
                    filter_on_outgroup=False,
                    locus_filter=None,
+                   outgroup_branch_prior_rate=1,
                    estimator_arguments={}, 
                    verbose_level='normal'):
     
@@ -366,6 +368,7 @@ def get_covariance(stages_to_go_through, input, full_nodes=None,
     kwargs['favorable_init_brownian']=favorable_init_brownian
     kwargs['unbounded_brownian']=unbounded_brownian
     kwargs['filter_on_outgroup']=filter_on_outgroup
+    kwargs['outgroup_branch_prior_rate']=outgroup_branch_prior_rate
     kwargs['est']=estimator_arguments
     kwargs['locus_filter']=locus_filter
     
