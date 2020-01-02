@@ -1,4 +1,4 @@
-from scipy.stats import expon, geom, pareto, nbinom
+from scipy.stats import expon, geom, pareto, nbinom, gamma
 from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proportions, get_number_of_admixes, get_number_of_leaves, 
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
 from math import log, factorial,exp
@@ -6,6 +6,7 @@ from scipy.special import binom
 import linear_distribution
 from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
 from Rtree_to_covariance_matrix import get_admixtured_populations
+from random import random
 
 def calculate_branch_prior(branches, n):
     #if all((b<10 for b in branches)):
@@ -22,6 +23,13 @@ def calculate_branch_prior(branches, n):
     return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
+def calculate_branch_prior_gamma(branches, n, dispersion):
+    desired_mean = float(2 * n - 2) / len(branches)
+    shape=desired_mean*dispersion
+    scale=1.0/dispersion
+    v=sum((gamma.logpdf(b, scale=scale, a=shape) for b in branches))
+    return v
+
 def illegal_admixtures(unadmixed_populations, tree):
     admixed_populations= get_admixtured_populations(tree)
     if set(admixed_populations).intersection(unadmixed_populations):
@@ -33,7 +41,8 @@ def calculate_add_prior(add, rate=1):
     return -add/float(rate)
 
 
-def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0, add_prior_rate=1):
+def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0, add_prior_rate=1,
+          branch_prior_dispersion=1.0):
     tree, add=x
     no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
@@ -42,7 +51,10 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
     branches=get_all_branch_lengths(tree)
     if not all(branch>=0 for branch in branches):
         return -float('inf')
-    branch_prior=calculate_branch_prior(branches, no_leaves)
+    if branch_prior_dispersion<0.9999 or branch_prior_dispersion>1.0001:
+        branch_prior=calculate_branch_prior_gamma(branches,no_leaves,branch_prior_dispersion)
+    else:
+        branch_prior=calculate_branch_prior(branches, no_leaves)
     no_admix_prior=no_admixes(p, len(admixtures), r=r)
     if use_skewed_distr:
         admix_prop_prior=linear_admixture_proportions(admixtures)
@@ -61,6 +73,7 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
     pks['no_admix_prior']=no_admix_prior
     pks['admix_prop_prior']=admix_prop_prior
     pks['top_prior']= top_prior
+    pks['add_prior']=add_prior
     return logsum
 
 def linear_admixture_proportions(admixtures):

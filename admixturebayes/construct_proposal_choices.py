@@ -35,11 +35,21 @@ def make_proposal(deladmix,
                   sliding_rescale,
                   MCMC_chains,
                   cancel_preserve_root_distance=False,
+                  branch_rate_dispersion=None,
                   no_add=False,
                   ):
     extras={}
     if cancel_preserve_root_distance:
         extras.update({'deladmix':{'preserve_root_distance':False}, 'addadmix':{'preserve_root_distance':False}})
+    if branch_rate_dispersion is not None:
+        if 'deladmix' in extras:
+            extras['deladmix'].update({'gamma_branch_rate':branch_rate_dispersion})
+        else:
+            extras['deladmix']={'gamma_branch_rate':branch_rate_dispersion}
+        if 'addadmix' in extras:
+            extras['addadmix'].update({'gamma_branch_rate': branch_rate_dispersion})
+        else:
+            extras['addadmix']={'gamma_branch_rate':branch_rate_dispersion}
     if no_add:
         extras['rescale_constrained']={'update_add':False}
         if rescale_add>0:

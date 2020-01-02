@@ -9,7 +9,7 @@ from Rtree_operations import (get_number_of_admixes, node_is_admixture, insert_a
                               pretty_string, readjust_length,get_keys_and_branches_from_children,
                               update_branch_length)
 from random import getrandbits
-from scipy.stats import expon
+from scipy.stats import expon, gamma
 
 import warnings
 #from tree_plotting import 
@@ -77,7 +77,7 @@ class deladmix_class(object):
 def float_equal(x,y):
     return float((x-y)**2)<1e-5
 
-def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True):
+def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -113,11 +113,13 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch
     #print 'source', (source_key,source_branch)
     #print 'new_tree',new_tree
     if fixed_sink_source is not None:
-        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, new_branch_length=new_branch_length, new_to_root_length=new_to_root_length, preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, new_branch_length=new_branch_length, new_to_root_length=new_to_root_length, preserve_root_distance=preserve_root_distance,
+                                                                          gamma_branch_rate=gamma_branch_rate)
     elif new_node_names is None:
-        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density, backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, preserve_root_distance=preserve_root_distance, gamma_branch_rate=gamma_branch_rate)
     else:
-        new_tree, forward_density ,backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, source_name=new_node_names[0], sink_name=new_node_names[1], preserve_root_distance=preserve_root_distance)
+        new_tree, forward_density ,backward_density, multip= insert_admix(new_tree, source_key, source_branch, sink_key, sink_branch, pks=pks, source_name=new_node_names[0], sink_name=new_node_names[1], preserve_root_distance=preserve_root_distance,
+                                                                          gamma_branch_rate=gamma_branch_rate)
     
     
     
@@ -131,7 +133,7 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch
     
     if check_opposite:
         pks2={}
-        t,f,b=deladmix(new_tree,pks=pks2, fixed_remove=(pks['sink_new_name'], pks['sink_new_branch']), check_opposite=False, preserve_root_distance=preserve_root_distance)
+        t,f,b=deladmix(new_tree,pks=pks2, fixed_remove=(pks['sink_new_name'], pks['sink_new_branch']), check_opposite=False, preserve_root_distance=preserve_root_distance, gamma_branch_rate=gamma_branch_rate)
         if (float_equal(forward_density,pks2['backward_density']) and 
             choices_forward==pks2['backward_choices'] and
             float_equal(backward_density, pks2['forward_density']) and
@@ -156,15 +158,24 @@ def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch
     return new_tree,forward_density/choices_forward, backward_density/choices_backward*multip 
 
     
-def get_admixture_branch_length(x=None):
+def generate_branch_length(x=None):
     if x is None:
         x=expon.rvs()
         return x, expon.pdf(x)
     else:
         return expon.pdf(x)
-    
-def get_root_branch_length(x=None):
-    return get_admixture_branch_length(x)
+
+
+def gamma_branches(dispersion):
+
+    def get_gamma_admixture_branch_length(x=None):
+        if x is None:
+            x=gamma.rvs(a=dispersion, scale=1.0/dispersion)
+            return x, gamma.pdf(x, a=dispersion, scale=1.0/dispersion)
+        else:
+            return gamma.pdf(x, a=dispersion, scale=1.0/dispersion)
+    return get_gamma_admixture_branch_length
+
     
 def get_admixture_proportion(x=None):
     if x is None:
@@ -185,20 +196,25 @@ def get_insertion_spot(x=None, length=1.0):
         return 1.0/length
     
 
-def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=False):
+def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=False, gamma_branch_rate=None):
     #print "new branch", new_branch_length
+    if gamma_branch_rate is not None:
+        branch_length_distribution=gamma_branches(gamma_branch_rate)
+    else:
+        branch_length_distribution=generate_branch_length
+
+
     if source_key=='r':
-        u1,q1=get_root_branch_length()
+        u1,q1=branch_length_distribution()
         if new_to_root_length is not None:
-            u1,q1 = new_to_root_length, get_root_branch_length(new_to_root_length)
+            u1,q1 = new_to_root_length, branch_length_distribution(new_to_root_length)
     else:
         u1,q1=get_insertion_spot(length=get_branch_length(tree,source_key,source_branch))
-    t1=get_branch_length(tree,sink_key,sink_branch)
     u2,q2=get_insertion_spot(length=get_branch_length(tree,sink_key,sink_branch))
     if new_branch_length is not None:
-        t4,q4= new_branch_length, get_admixture_branch_length(new_branch_length)
+        t4,q4= new_branch_length, branch_length_distribution(new_branch_length)
     else:
-        t4,q4=get_admixture_branch_length()
+        t4,q4=branch_length_distribution()
     u3,q3=get_admixture_proportion()
     if sink_name is None:
         sink_name=str(getrandbits(128)).strip()
@@ -227,7 +243,7 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     return tree,q1*q2*q3*q4,1, multip
 
 
-def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True):
+def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''
@@ -268,7 +284,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
         update_branch_length(new_tree, child_key, child_branch, old_length)
     else:
         multip=1.0
-    backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha)
+    backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=gamma_branch_rate)
     forward_density= 1.0
     
     forward_choices=float(len(candidates))
@@ -291,7 +307,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
                                                              pks['sorphanota_key'],
                                                              pks['sorphanota_branch']), 
                        new_branch_length=t5, new_to_root_length=new_to_root_length, check_opposite=False,
-                       preserve_root_distance=preserve_root_distance)
+                       preserve_root_distance=preserve_root_distance, gamma_branch_rate=gamma_branch_rate)
         if (float_equal(forward_density,pks2['backward_density']) and 
             forward_choices==pks2['backward_choices'] and
             float_equal(backward_density,pks2['forward_density']) and
@@ -318,7 +334,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
 
 
 
-def get_backward_remove_density(t1,t2,t3,t4,t5, alpha):
+def get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=None):
     '''
     remembering this ugly sketch:
     
@@ -335,13 +351,18 @@ def get_backward_remove_density(t1,t2,t3,t4,t5, alpha):
     parent_key-orphanota_key branch (=u2) the insertion spot on the sorphanota_key-sparent_key branch (=u1) (which could be exponentially distributed. We also want the density of t5
     and the admixture proportion, alpha
     '''
+    if gamma_branch_rate is not None:
+        branch_length_distribution=gamma_branches(gamma_branch_rate)
+    else:
+        branch_length_distribution=generate_branch_length
+
     if t4 is None:
         u1=t3
-        q1=get_root_branch_length(u1)
+        q1=branch_length_distribution(u1)
     else:
         q1=get_insertion_spot(t3, t3+t4)
     q2=get_insertion_spot(t2, t1+t2)
-    q3=get_admixture_branch_length(t5)
+    q3=branch_length_distribution(t5)
     q4=get_admixture_proportion(alpha)
     
     return q1*q2*q3*q4
@@ -433,23 +454,28 @@ if __name__=="__main__":
     #t=Tester(Rtree_operations.tree_on_the_border2_with_children)
     #t.many_admixes(10)
     from Rcatalogue_of_trees import tree_good, tree_one_admixture
-    pks={}
-
     from Rtree_to_covariance_matrix import make_covariance
     print make_covariance(tree_good)
-    newt,forw,backw=addadmix(tree_good,pks=pks, check_opposite=True, new_node_names=['g','h'], preserve_root_distance=True)
-    print 'forw',forw
-    print 'back',backw
-    print 'pks',pks
-    pretty_print(newt)
-    print make_covariance(newt)
-    
-    pks={}
-    newt,forw,backw=deladmix(newt,pks=pks, check_opposite=True, preserve_root_distance=True)
-    print 'forw',forw
-    print 'back',backw
-    print 'pks',pks
-    pretty_print(newt)
-    print make_covariance(newt)
+    for _ in range(100):
+        pks = {}
+        newt,forw,backw=addadmix(tree_good,
+                                 pks=pks,
+                                 check_opposite=True,
+                                 new_node_names=['g','h'],
+                                 preserve_root_distance=False,
+                                 gamma_branch_rate=0.25)
+        print 'forw',forw
+        print 'back',backw
+        print 'pks',pks
+        pretty_print(newt)
+        print make_covariance(newt)
+
+        pks={}
+        newt,forw,backw=deladmix(newt,pks=pks, check_opposite=True, preserve_root_distance=False, gamma_branch_rate=0.25)
+        print 'forw',forw
+        print 'back',backw
+        print 'pks',pks
+        pretty_print(newt)
+        print make_covariance(newt)
     
     

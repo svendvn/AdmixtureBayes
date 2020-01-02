@@ -25,6 +25,7 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
     
     newx,g1,g2,Jh,j1,j2=proposal(x,pks)
     pks['proposed_tree']=newx[0]
+    pks['proposed_add']=newx[1]
     pks['g1']=g1
     pks['g2']=g2
     pks['Jh']=Jh
@@ -64,11 +65,62 @@ def one_jump(x, post, temperature, posterior_function, proposal, pks={}):
         return newx,post_new
     return x,post
 
+    # pks['branch_prior']= branch_prior
+    # pks['no_admix_prior']=no_admix_prior
+    # pks['admix_prop_prior']=admix_prop_prior
+    # pks['top_prior']= top_prior
+    # pks['add_prior']=add_prior
+
+def explain_rejection(pks,x, post, posterior_function):
+    if pks['U']>pks['mhr']:
+        print '%-40s %15s'  % ('The proposed new state was rejected with MH-ratio', format(pks['mhr'], '.4f'))
+        if pks['mhr']>0 and pks['mhr']<float('Inf'):
+            print '%55s' % ('log10= '+ format(log(pks['mhr'])/log(10), '.5f'))
+        proposed_likelihood, proposed_prior= pks['proposed_posterior']
+        old_likelihood, old_prior= post
+        pks_old = {}
+        posterior_old = posterior_function(x, pks_old)
+        print '\t','%-40s %15s' % ('proposed_likelihood - old_likelihood', format(proposed_likelihood - old_likelihood, '.2f'))
+        print '\t','%-40s %15s' % ('proposed_prior - old_prior', format(proposed_prior - old_prior, '.2f'))
+        print '\t','%-40s %15s' % ('old_prior,recalculated_old_prior', format(old_prior, '.2f')+','+format(posterior_old[1], '.2f'))
+
+        print '\t\t', '%-20s %15s %15s' % ('Prior component', 'Old', 'Proposed')
+        print '\t\t', '%-20s %15s %15s' % ('Branch prior', format(pks_old['branch_prior'], '.3f'), format(pks['branch_prior'], '.3f'))
+        print '\t\t', '%-20s %15s %15s' % ('Number of admixtures', format(pks_old['no_admix_prior'], '.3f'), format(pks['no_admix_prior'], '.3f'))
+        print '\t\t', '%-20s %15s %15s' % ('Admixture proportion', format(pks_old['admix_prop_prior'], '.3f'), format(pks['admix_prop_prior'], '.3f'))
+        print '\t\t', '%-20s %15s %15s' % ('Topology', format(pks_old['top_prior'], '.3f'), format(pks['top_prior'], '.3f'))
+        print '\t\t', '%-20s %15s %15s' % ('Distance to outgroup', format(pks_old['add_prior'], '.3f'), format(pks['add_prior'], '.3f'))
+
+        print ' ----- Proposal -----'
+        print 'Proposal type=', pks['proposal_type']
+        print 'Legal proposed_tree=', pks['g2']*pks['j2']>0
+        print '\t', '%-30s %15s' % ('forward density', format(pks['g1'], '.7f'))
+        if pks['g1']>0 and pks['g1']<float('Inf'):
+            print '%55s' % ('log10= '+ format(log(pks['g1'])/log(10), '.5f'))
+        print '\t', '%-30s %15s' % ('backward density', format(pks['g2'], '.7f'))
+        if pks['g2']>0 and pks['g2']<float('Inf'):
+            print '%55s' % ('log10= '+ format(log(pks['g2'])/log(10), '.5f'))
+        print '\t', '%-30s %15s' % ('forward choices', format(pks['j1'], '.7f'))
+        if pks['j1']>0 and pks['j1']<float('Inf'):
+            print '%55s' % ('log10= '+ format(log(pks['j1'])/log(10), '.5f'))
+        print '\t', '%-30s %15s' % ('backward choices', format(pks['j2'], '.7f'))
+        if pks['j2']>0 and pks['j2']<float('Inf'):
+            print '%55s' % ('log10= '+ format(log(pks['j2'])/log(10), '.5f'))
+        print '\t', '%-30s %15s' % ('Jacobian (backward)', format(pks['Jh'], '.7f'))
+
+
+
+
+
+
+
+
+
 
 def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=10000, 
                 sample_verbose_scheme=None, overall_thinning=1, i_start_from=0, 
                 temperature=1.0, proposal_update=None, multiplier=None, check_trees=False, 
-                appending_result_file=None, appending_result_frequency=10):
+                appending_result_file=None, appending_result_frequency=10, explain_rejection_frequency=True):
     if proposal_update is not None:
         proposal.wear_exportable_state(proposal_update)
     
@@ -109,6 +161,8 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
                                                                old_post=post,
                                                                old_tree=scale_tree_copy(x[0],1.0/multiplier),
                                                                iteration_number=i,**proposal_knowledge_scraper))
+            if temperature<1.00001 and explain_rejection_frequency!=0 and i%explain_rejection_frequency==0:
+                explain_rejection(proposal_knowledge_scraper, new_x, new_post, posterior_function)
             if appending_result_file is not None:
                 count+=1
                 if count % appending_result_frequency==0:

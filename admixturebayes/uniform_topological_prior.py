@@ -103,10 +103,19 @@ def uniform_topological_prior_function(tree):
 if __name__ == '__main__':
     from Rcatalogue_of_trees import tree_good
     from math import exp
-    up=uniform_prior(13)
-    up2=uniform_prior2(13)
-    print up.get_specific_count((2,2,2,0))
-    print up2.get_specific_count((2,2,2,0))
 
-    print 1.0/exp(up.probability(admixtures=3))
-    print 1.0/exp(up2.probability(admixtures=3))
+    for i in range(3,8):
+        for k in range(0,5):
+            u=uniform_prior(i)
+            print i,k, 1.0/exp(u.probability(admixtures=k))/2**k
+
+    u10=uniform_prior(10)
+    print 1.0/exp(u10.probability(admixtures=7))
+
+    #up=uniform_prior(13)
+    #up2=uniform_prior2(13)
+    #print up.get_specific_count((2,2,2,0))
+    #print up2.get_specific_count((2,2,2,0))
+
+    #print 1.0/exp(up.probability(admixtures=3))
+    #print 1.0/exp(up2.probability(admixtures=3))

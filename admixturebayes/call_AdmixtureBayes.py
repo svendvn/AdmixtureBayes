@@ -108,6 +108,8 @@ def main(args):
                         help='This prior parameter says have many times bigger, the outgroup branch (also called "add") is compared to the average branch in the graph.')
     parser.add_argument('--p', type=float, default=0.5,
                         help='the geometrical parameter in the prior. The formula is p**x(1-p)')
+    parser.add_argument('--branch_prior_dispersion', default=1.0, type=float,
+                        help='By default, the branch prior is exponential with mean 1, that is gamma distributed with rate=1 and scale=1. By setting this flag equal to X one sets rate=X, scale=X. The smaller X, the more small branch lengths are tolerated.')
     parser.add_argument('--sap_analysis', action='store_true', default=False,
                         help='skewed admixture proportion prior in the analysis')
     parser.add_argument('--not_uniform_prior', action='store_true', default=False,
@@ -285,6 +287,7 @@ def main(args):
                   sliding_rescale=options.sliding_rescale,
                   MCMC_chains=options.MCMC_chains,
                   cancel_preserve_root_distance=options.cancel_preserve_root_distance,
+                  branch_rate_dispersion=options.branch_prior_dispersion,
                   no_add=no_add)
 
     before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.create_outgroup, options.outgroup)
@@ -579,6 +582,7 @@ def main(args):
                                 treemix=options.likelihood_treemix,
                                 add_variance_correction_to_graph=(options.variance_correction != 'None' and
                                                                   options.add_variance_correction_to_graph),
+                                branch_prior_dispersion=options.branch_prior_dispersion,
                                 prefix=prefix,
                                 variance_correction_file=options.variance_correction_input_file,
                                 prior_run=options.prior_run,
@@ -603,7 +607,8 @@ def main(args):
                            use_uniform_prior=not options.not_uniform_prior,
                            treemix=options.likelihood_treemix,
                            add_variance_correction_to_graph=(options.variance_correction!='None' and
-                                                                                     options.add_variance_correction_to_graph),
+                                                             options.add_variance_correction_to_graph),
+                                         branch_prior_dispersion=options.branch_prior_dispersion,
                            prefix=prefix,
                            variance_correction_file=options.variance_correction_input_file,
                            prior_run=options.prior_run,

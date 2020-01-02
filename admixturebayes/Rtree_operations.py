@@ -433,7 +433,7 @@ def remove_parent_attachment(tree, orphanota_key, orphanota_branch):
     tree[orphanota_key][orphanota_branch]=None
     return tree,"u",u*extended_branch_length,extended_branch_length
 
-def remove_root_attachment(tree, orphanota_key, orphanota_branch):
+def remove_root_attachment(tree, orphanota_key, orphanota_branch, sss=''):
     '''
     The situation is different when the root is removed because of the special naming strategy.
     
@@ -454,10 +454,15 @@ def remove_root_attachment(tree, orphanota_key, orphanota_branch):
             else:
                 tree[key],r=get_branch_length_and_reset(tree[key], 'r', 'closed_branch')
                 #print 'closed_branch!'
+            assert orphanota_key in tree, 'orphanota_key='+orphanota_key+' not in tree: \n'+pretty_string(tree)+'\n'+'Call= remove_root_attachment(htree, orphanota_key, '+str(orphanota_branch)+').\n Have just looked at branch ('+str(key)+','+str(branch)+'). \n The original remove_admix2 call was: \n'+sss
             tree[orphanota_key][orphanota_branch]=None
-    return tree,'r', r,None
+    return tree,'r', r, None
     
 def get_branch_length_and_reset(node, parent_key, new_length,add=False):
+    '''
+    the node is changed such that new_length is the new length of the branch from 'node' to [the node of parent_key]==[]
+    :return:
+    '''
     if node[0]==parent_key:
         old_length=node[3]
         if add:
@@ -1057,6 +1062,8 @@ def remove_admix2(tree, rkey, rbranch, pks={}):
 
     Note that t_4 could be None if source key is root. The source_key node is not an admixture node by assumption.
     '''
+    origin_tree=pretty_string(tree)
+    origin_call="remove_admix2(tree,"+str(rkey)+","+str(rbranch)+'), where tree=\n'+origin_tree
     rnode= tree[rkey]
     orphanota_key= get_children(rnode)[0]
     parent_key= rnode[other_branch(rbranch)]
@@ -1077,7 +1084,12 @@ def remove_admix2(tree, rkey, rbranch, pks={}):
     if parent_key!='r':
         tree[parent_key]=_update_child(tree[parent_key], old_child=rkey, new_child=orphanota_key)
     if source_key=='r':
-        tree,_,t3,_=remove_root_attachment(tree, rkey, 0) #now sorphanota_key is new root
+        if parent_key=='r': # a special situation where there is a loop in the top. Here we simply remove the loop
+            #t3=t2
+            del tree[rkey]
+            rename_root(tree, orphanota_key)
+            return tree, (t1, t2, None, None, t5), alpha
+        tree,_,t3,_=remove_root_attachment(tree, rkey, rbranch, sss=origin_call) #now sorphanota_key is new root
         del tree[rkey]
         pks['sorphanota_key']='r'
         pks['sorphanota_branch']=0

@@ -20,6 +20,10 @@ def _basic_chain_unpacker(args):
     return basic_chain(*args)
 
 
+def isclose(a, b, rel_tol=1e-09, abs_tol=0.0):
+    return abs(a-b) <= max(rel_tol * max(abs(a), abs(b)), abs_tol)
+
+
 def MCMCMC(starting_trees, 
            posterior_function,
            summaries,
@@ -124,6 +128,17 @@ def MCMCMC(starting_trees,
                                                                 [posterior_function])  # trees, posteriors, range(len(trees)),[None]*len(trees)#
         else:
             xs, posteriors, permut, proposal_updates=flipping(xs, posteriors, temperature_scheme, proposal_updates, rs, ps, posterior_function_list) #trees, posteriors, range(len(trees)),[None]*len(trees)#
+            # if double_check_posteriors:
+            #     for x, posterior_f, (lik_val, prior_val) in zip(xs,posterior_function_list,posteriors):
+            #         new_likelihood_val, new_prior_val=posterior_f(x)
+            #         if not isclose(prior_val, new_prior_val):
+            #             print 'The saved prior value does not match the actual prior value'
+            #             print 'saved prior=', prior_val
+            #             print 'new prior=', new_prior_val
+            #             print 'all prior vals', [p for _,p in posteriors]
+            #             assert False
+            #         assert isclose(lik_val, new_likelihood_val), 'The saved likelihood value does not match the actual likelihood value'
+
         if store_permuts:
             permuts.append(permut)
         temperature_scheme.update_temps(permut)
@@ -171,8 +186,7 @@ def r_correction(x1,x2, r1,r2,p1,p2):
     cadmix_prior12 = no_admixes(p=p2, admixes=n1, r=r2)
     cadmix_prior21= no_admixes(p=p1, admixes=n2, r=r1)
     cadmix_prior22= no_admixes(p= p2, admixes=n2, r=r2)
-
-    return cadmix_prior12-cadmix_prior11, cadmix_prior21-cadmix_prior22
+    return cadmix_prior11, cadmix_prior12, cadmix_prior21, cadmix_prior22, n1,n2
     
 def flipping(xs, posteriors, temperature_scheme, proposal_updates, rs=[],ps=[], posterior_function_list=[]):
     n=len(xs)
@@ -184,7 +198,8 @@ def flipping(xs, posteriors, temperature_scheme, proposal_updates, rs=[],ps=[], 
         temp_i,temp_j=temperature_scheme.get_temp(i), temperature_scheme.get_temp(j)
         logalpha=-(post_i[0]-post_j[0])*(1.0/temp_i-1.0/temp_j)
         if rs:
-            i_correction, j_correction=r_correction(xs[i],xs[j], rs[i],rs[j],ps[i],ps[j])
+            p11, p12,p21,p22,ni,nj=r_correction(xs[i],xs[j], rs[i],rs[j],ps[i],ps[j])
+            i_correction, j_correction= p12-p11, p21-p22
             logalpha+=i_correction+j_correction
         else:
             i_correction, j_correction=0,0
@@ -196,6 +211,68 @@ def flipping(xs, posteriors, temperature_scheme, proposal_updates, rs=[],ps=[], 
                 #print temp_i, post_i
                 #print temp_j, post_j
             step_permutation[i], step_permutation[j]= step_permutation[j], step_permutation[i]
+            # if count==1:
+            #
+            #     pks_ij={}
+            #     pks_ji={}
+            #     pks_ii={}
+            #     pks_jj={}
+            #     true_new_likelihood_ij, true_new_prior_ij = posterior_function_list[i](xs[j], pks_ij)
+            #     true_new_likelihood_ji, true_new_prior_ji = posterior_function_list[j](xs[i], pks_ji)
+            #     true_new_likelihood_ii, true_new_prior_ii = posterior_function_list[i](xs[i], pks_ii)
+            #     true_new_likelihood_jj, true_new_prior_jj = posterior_function_list[j](xs[j], pks_jj)
+            #     if not (isclose(true_new_prior_ij, post_j[1]+j_correction) and  isclose(true_new_prior_ji, post_i[1]+i_correction)):
+            #         print 'i,j=', i, j
+            #         print 'ni,nj=', ni,nj
+            #         print 'true_new_likelihood_ij', true_new_likelihood_ij
+            #         print 'old_likelihood_i', post_i[0]
+            #         print 'true_new_likelihood_ji', true_new_likelihood_ji
+            #         print 'old_likelihood_j', post_j[0]
+            #         print ''
+            #         print 'priors for the i tree'
+            #         print '\t\t', '%-20s %15s %15s' % ('Prior component', 'i-prior', 'j-prior')
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Branch prior', format(pks_ii['branch_prior'], '.3f'), format(pks_ji['branch_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Number of admixtures', format(pks_ii['no_admix_prior'], '.3f'), format(pks_ji['no_admix_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % ('Admixture proportion', format(pks_ii['admix_prop_prior'], '.3f'),
+            #                                            format(pks_ji['admix_prop_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Topology', format(pks_ii['top_prior'], '.3f'), format(pks_ji['top_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Distance to outgroup', format(pks_ii['add_prior'], '.3f'), format(pks_ji['add_prior'], '.3f'))
+            #         print ''
+            #         print 'priors for the j tree'
+            #         print '\t\t', '%-20s %15s %15s' % ('Prior component', 'i-prior', 'j-prior')
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Branch prior', format(pks_ij['branch_prior'], '.3f'), format(pks_jj['branch_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Number of admixtures', format(pks_ij['no_admix_prior'], '.3f'), format(pks_jj['no_admix_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % ('Admixture proportion', format(pks_ij['admix_prop_prior'], '.3f'),
+            #                                            format(pks_jj['admix_prop_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Topology', format(pks_ij['top_prior'], '.3f'), format(pks_jj['top_prior'], '.3f'))
+            #         print '\t\t', '%-20s %15s %15s' % (
+            #         'Distance to outgroup', format(pks_ij['add_prior'], '.3f'), format(pks_jj['add_prior'], '.3f'))
+            #         print ''
+            #         print 'true_new_prior_i', true_new_prior_ij
+            #         print 'true_new_prior_j', true_new_prior_ji
+            #         print 'old_prior_j', post_j[1]
+            #         print 'old_prior_i', post_i[1]
+            #
+            #         print 'no_admixes(p=p1, admixes=n1, r=r1)', p11
+            #         print 'no_admixes(p=p2, admixes=n1, r=r2)', p12
+            #         print 'no_admixes(p=p1, admixes=n2, r=r1)', p21
+            #         print 'no_admixes(p= p2, admixes=n2, r=r2)', p22
+            #
+            #
+            #
+            #         print 'i_correction', i_correction
+            #         print 'j_correction', j_correction
+            #
+            #         print 'old_prior_j+j_correction', post_j[1]+j_correction
+            #         print 'old_prior_i+i_correction', post_i[1]+i_correction
+
             posteriors[j],posteriors[i]=(post_i[0],post_i[1]+i_correction),(post_j[0], post_j[1]+j_correction)
             xs[i], xs[j] = xs[j], xs[i]
             # print posteriors[j], posteriors[i]
@@ -213,6 +290,7 @@ def flipping(xs, posteriors, temperature_scheme, proposal_updates, rs=[],ps=[], 
     #         print fabs(posterior_value[0]-c_post[0]), fabs(posterior_value[1]-c_post[1])
     #     else:
     #         print posterior_value, posterior_function_list[0](x)
+
     return xs, posteriors, step_permutation, proposal_updates
 
 def _update_results(df_result, df_add):
@@ -260,20 +338,61 @@ def _handle_flipping_of_proposals(proposal_scheme, permut):
 
 def run_test():
     from Rtree_operations import get_trivial_nodes, create_trivial_tree,get_number_of_ghost_populations,get_max_distance_to_root,get_min_distance_to_root,get_average_distance_to_root
-    from posterior import initialize_prior_as_posterior, initialize_posterior
+    from posterior import initialize_prior_as_posterior, initialize_posterior, posterior_class
     from meta_proposal import basic_meta_proposal
     from copy import deepcopy
     from Rtree_to_covariance_matrix import make_covariance
-    
-    
-    
-    N=3
+    from construct_starting_trees_choices import get_starting_trees
+    from construct_summary_choices import get_summary_scheme
+    from construct_proposal_choices import make_proposal
+    from construct_proposal_choices import get_proposals
+    import numpy as np
+
+    string='AFR1 AFR2 ASN1 ASN2 GLM LON MER'
+    nodes=string.split(' ')
+    N=len(nodes)
+    n=10
+    vals='''42.68150112394057 41.01648277189175 40.14593271781182 40.364277519420256 40.34571646810368 39.00037384449283 38.61134943288702
+41.01648277189175 42.94213460554404 39.91249654146619 39.964696514784784 40.02918104356943 38.6236570900935 38.2999550424997
+40.14593271781182 39.91249654146619 42.20921300590292 40.75195941344528 40.0197550260177 38.92069295515304 38.45062575434206
+40.364277519420256 39.964696514784784 40.75195941344528 43.25031601313326 40.242013727660805 39.384473296107586 38.71404189744955
+40.34571646810368 40.02918104356943 40.0197550260177 40.242013727660805 42.356809685019655 39.04873772353587 38.676140377459724
+39.00037384449283 38.6236570900935 38.92069295515304 39.384473296107586 39.04873772353587 43.07641098866654 38.59465716462323
+38.61134943288702 38.2999550424997 38.45062575434206 38.71404189744955 38.676140377459724 38.59465716462323 43.13509903219624'''
+    cov=[float(v) for vline in vals.split('\n') for v in vline.split(' ')]
+    cov2=[]
+    for i in range(N):
+        row=[]
+        for j in range(N):
+            row.append(cov[i*N+j])
+        cov2.append(row)
+    cov2=np.array(cov2)
+    print cov2
+
+    multiplier=11.098203127940858
+
     true_tree=create_trivial_tree(N)
-    proposal_function= basic_meta_proposal()
-    post_fun=initialize_posterior(make_covariance(true_tree))
+
+    print nodes
+    post_functions=[
+        posterior_class(emp_cov=cov2,
+                        M=10000,
+                        p=0.5,
+                        use_skewed_distr=False,
+                        multiplier=multiplier,
+                        nodes=nodes,
+                        use_uniform_prior=True,
+                        treemix=False,
+                        add_variance_correction_to_graph=False,
+                        prefix='_',
+                        variance_correction_file=None,
+                        prior_run=False,
+                        unadmixed_populations=[],
+                        add_prior_rate=40.0,
+                        r=1.0+0.5*i) for i in range(n)]
     tree= create_trivial_tree(N)
-    
-    n=6
+    multiplier=1.0
+
     import summary
     summaries=[summary.s_posterior(), 
                summary.s_variable('mhr'), 
@@ -286,26 +405,71 @@ def run_test():
                summary.s_basic_tree_statistics(get_min_distance_to_root, 'min_root'),
                summary.s_basic_tree_statistics(get_average_distance_to_root, 'average_root'),
                summary.s_variable('proposal_type', output='string')]
+
+    branch_dispersion=1.0
+
+    starting_trees=get_starting_trees([],
+                                      n,
+                                      adds=[],
+                                      nodes=nodes,
+                                      pipeline=[6,8,9],
+                                      multiplier=multiplier,
+                                      scale_tree_factor=1.0,
+                                      start='random',
+                                      prefix='_',
+                                      starting_tree_scaling='None',
+                                      starting_tree_use_scale_tree_factor=False,
+                                      scale_goal='min',
+                                      mscale_file='',
+                                      no_add=False)
+
+
+    mp = make_proposal(deladmix=1,
+                  addadmix=1,
+                  rescale=1,
+                  regraft=0,
+                  rescale_add=1,
+                  rescale_admix=1,
+                  rescale_admix_correction=0,
+                  rescale_constrained=1,
+                  rescale_marginally=0,
+                  sliding_regraft=1,
+                  sliding_rescale=0,
+                  MCMC_chains=n,
+                  cancel_preserve_root_distance=False,
+                  branch_rate_dispersion=branch_dispersion,
+                  no_add=False)
+
+    summary_verbose_scheme, summaries=get_summary_scheme(majority_tree=False,
+                                              light_newick_tree_summaries=True,
+                                              full_tree=True, #can not think of a moment where you don't want this.
+                                              proposals=mp[0],
+                                              acceptance_rate_information=True,
+                                              admixture_proportion_string=True,
+                                              no_chains=n,
+                                              verbose_level='normal',
+                                              only_coldest_chain=True)
+
     
-    from temperature_scheme import fixed_geometrical
-    sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
-    sample_verbose_scheme['posterior']=(1,100)
-    #sample_verbose_scheme['min_root']=(1,100)
-    
-    ad=MCMCMC(starting_trees=[deepcopy(tree) for _ in range(n)], 
-               posterior_function= post_fun,
-               summaries=summaries, 
-               temperature_scheme=fixed_geometrical(10.0,n), 
-               printing_schemes=[sample_verbose_scheme for _ in range(n)], 
-               iteration_scheme=[40]*200, 
-               overall_thinnings=5, 
-               proposal_scheme= [proposal_function for _ in range(n)], 
-               cores=n, 
-               no_chains=n)
-    
-    ad[0].to_csv(path_or_buf='findme.csv')
-    print set(map(tuple,ad[1]))
-    return ad
+    from temperature_scheme import fixed_geometrical, temperature_adapting
+    temp_scheme=fixed_geometrical(50,n)
+    temp_scheme=temperature_adapting(1000,n,1000)
+
+    MCMCMC(starting_trees=starting_trees,
+           posterior_function=post_functions[0],
+           summaries=summaries,
+           temperature_scheme=temp_scheme,
+           printing_schemes=summary_verbose_scheme,
+           iteration_scheme=[40]*200,
+           overall_thinnings=int(10),
+           proposal_scheme=mp,
+           cores=n,
+           no_chains=n,
+           multiplier=multiplier,
+           result_file='tmp.txt',
+           store_permuts=False,
+           stop_criteria=None,
+           posterior_function_list=post_functions)
 
 if __name__=='__main__':
         

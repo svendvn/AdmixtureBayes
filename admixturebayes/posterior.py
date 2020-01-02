@@ -154,7 +154,8 @@ class posterior_class(object):
                  r=0,
                  collapse_row='',
                  collapse_row_rearrange=False,
-                 add_prior_rate=1
+                 add_prior_rate=1,
+                 branch_prior_dispersion=1.0
                  ):
         '''
         M can either be a float - the degrees of freedom in the wishart distribution or the constant variance in the treemix normal approximation of the covariance matrix.
@@ -183,6 +184,7 @@ class posterior_class(object):
         print 'posterior_nodes', self.nodes
         self.use_uniform_prior=use_uniform_prior
         self.unadmixed_populations=unadmixed_populations
+        self.branch_prior_dispersion=branch_prior_dispersion
         
         if add_variance_correction_to_graph:
             if variance_correction_file:
@@ -204,7 +206,8 @@ class posterior_class(object):
                             use_uniform_prior=self.use_uniform_prior,
                             unadmixed_populations=self.unadmixed_populations,
                             r=r,
-                            add_prior_rate=self.add_prior_rate
+                            add_prior_rate=self.add_prior_rate,
+                            branch_prior_dispersion=self.branch_prior_dispersion
                             )
         if prior_value==-float('inf'):
             return -float('inf'), prior_value
