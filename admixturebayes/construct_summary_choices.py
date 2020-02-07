@@ -48,6 +48,12 @@ def get_summary_scheme(majority_tree=False,
             for prop_name,adapt in zip(prop_names, adaption):
                 if adapt:
                     summaries.append(summary.s_variable(prop_name+"_adap_param", output= 'double_missing'))
+    if priors:
+        summaries.append(summary.s_variable('branch_prior', output='double_missing'))
+        summaries.append(summary.s_variable('no_admix_prior', output='double_missing'))
+        summaries.append(summary.s_variable('admix_prop_prior', output='double_missing'))
+        summaries.append(summary.s_variable('top_prior', output='double_missing'))
+        summaries.append(summary.s_variable('add_prior', output='double_missing'))
     sample_verbose_scheme={summary.name:(1,0) for summary in summaries}
     sample_verbose_scheme_first=deepcopy(sample_verbose_scheme)
     if 'posterior' in sample_verbose_scheme and verbose_level!='silent':

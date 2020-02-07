@@ -264,12 +264,34 @@ def main(args):
                         help=SUPPRESS)#'if supplied, this will choose the name of the output files for treemix, disregarding the treemix output prefix')
     parser.add_argument('--df_treemix_adjust_to_wishart', action='store_true', default=False,
                         help=SUPPRESS)#'This will, if likelihood_treemix is flagged and df_file is a wishart-df, choose a variance matrix that gives a normal distribution with the same mode-likelihood-value as if no likelihood_treemix had been switched on.')
+    parser.add_argument('--branch_short_extension', default=False, action='store_true',
+                        help= 'This changes the prior on the branches. Instead of a simple iid exponential prior, '
+                              'it will iid of a mixture of two exponential distributions. '
+                              'One has mean 0.001 and proportion 0.1, '
+                              'and the other has proportion 0.9 and mean such that the overall mean is 1 '
+                              '(before the robustness correction). '
+                              'The values 0.001 and 0.1 can be changed with '
+                              'short_extension_mean and short_extension_proportion')
+    parser.add_argument('--short_extension_mean', type=float, default=0.001,
+                        help="This will set one of the branch prior means if branch_short_extension is used.")
+    parser.add_argument('--short_extension_proportion', type=float, default=0.1,
+                        help="This will set one of the branch prior mixture proportion if branch_short_extension is used.")
+    parser.add_argument('--branch_rate_dirichlet', default=False, action='store_true',
+                        help='This will change the branch length prior to a compound gamma-dirichlet distribution')
 
+    parser.add_argument('--save_prior_decomposition', action='store_true', default=False,
+                        help=SUPPRESS)  # 'This will add branch_prior, no_admix_prior osv. til outputtet --result_file')
 
     options=parser.parse_args(args)
 
     assert not (any((i < 8 for i in options.covariance_pipeline)) and not options.outgroup), 'In the requested analysis, the outgroup needs to be specified by the --outgroup flag and it should match one of the populations'
 
+    if options.branch_short_extension:
+        short_extension_proportion=options.short_extension_proportion
+        short_extension_mean=options.short_extension_mean
+    else:
+        short_extension_proportion=0
+        short_extension_mean=0
 
     no_add=options.outgroup_type=='None' or options.outgroup_type=='Free'
 
@@ -288,6 +310,8 @@ def main(args):
                   MCMC_chains=options.MCMC_chains,
                   cancel_preserve_root_distance=options.cancel_preserve_root_distance,
                   branch_rate_dispersion=options.branch_prior_dispersion,
+                  short_extension_mean=short_extension_mean,
+                  short_extension_proportion=short_extension_proportion,
                   no_add=no_add)
 
     before_added_outgroup, full_nodes, reduced_nodes=get_nodes(options.nodes, options.input_file, options.create_outgroup, options.outgroup)
@@ -530,7 +554,8 @@ def main(args):
                                               proposals=mp[0], 
                                               acceptance_rate_information=options.summary_acceptance_rate,
                                               admixture_proportion_string=options.summary_admixture_proportion_string,
-                                              no_chains=options.MCMC_chains, 
+                                              no_chains=options.MCMC_chains,
+                                              priors=options.save_prior_decomposition,
                                               verbose_level=options.verbose_level, 
                                               only_coldest_chain=not options.save_warm_chains)
 
@@ -572,6 +597,10 @@ def main(args):
     else:
         collapse_row=''
         likelihood_nodes=reduced_nodes
+
+
+
+
     posterior = posterior_class(emp_cov=covariance[0],
                                 M=df,
                                 p=options.p,
@@ -588,7 +617,10 @@ def main(args):
                                 prior_run=options.prior_run,
                                 unadmixed_populations=options.unadmixed_populations,
                                 collapse_row=collapse_row,
-                                add_prior_rate=options.outgroup_branch_prior_rate)
+                                add_prior_rate=options.outgroup_branch_prior_rate,
+                                short_extension_proportion=short_extension_proportion,
+                                short_extension_mean=short_extension_mean,
+                                branch_rate_dirichlet=options.branch_rate_dirichlet)
 
     if options.rs:
         assert options.MCMC_chains>1, 'More than one chain is needed to use several rs'
@@ -615,7 +647,10 @@ def main(args):
                            unadmixed_populations=options.unadmixed_populations,
                            collapse_row=collapse_row,
                             add_prior_rate=options.outgroup_branch_prior_rate,
-                           r=1.0+options.r_scale*i)
+                           r=1.0+options.r_scale*i,
+                            short_extension_proportion=short_extension_proportion,
+                            short_extension_mean=short_extension_mean,
+                            branch_rate_dirichlet=options.branch_rate_dirichlet)
             posterior_function_list.append(n_posterior)
     else:
         posterior_function_list=[]

@@ -36,6 +36,8 @@ def make_proposal(deladmix,
                   MCMC_chains,
                   cancel_preserve_root_distance=False,
                   branch_rate_dispersion=None,
+                  short_extension_mean=0,
+                  short_extension_proportion=0,
                   no_add=False,
                   ):
     extras={}
@@ -50,6 +52,19 @@ def make_proposal(deladmix,
             extras['addadmix'].update({'gamma_branch_rate': branch_rate_dispersion})
         else:
             extras['addadmix']={'gamma_branch_rate':branch_rate_dispersion}
+    if short_extension_mean>0 and short_extension_proportion>0:
+        if 'deladmix' in extras:
+            extras['deladmix'].update({'short_extension_proportion':short_extension_proportion,
+                                       'short_extension_mean':short_extension_mean})
+        else:
+            extras['deladmix']={'short_extension_proportion':short_extension_proportion,
+                                       'short_extension_mean':short_extension_mean}
+        if 'addadmix' in extras:
+            extras['addadmix'].update({'short_extension_proportion':short_extension_proportion,
+                                       'short_extension_mean':short_extension_mean})
+        else:
+            extras['addadmix']={'short_extension_proportion':short_extension_proportion,
+                                       'short_extension_mean':short_extension_mean}
     if no_add:
         extras['rescale_constrained']={'update_add':False}
         if rescale_add>0:

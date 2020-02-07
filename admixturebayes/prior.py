@@ -1,4 +1,4 @@
-from scipy.stats import expon, geom, pareto, nbinom, gamma
+from scipy.stats import expon, geom, pareto, nbinom, gamma, dirichlet
 from Rtree_operations import (get_all_branch_lengths, get_all_admixture_proportions, get_number_of_admixes, get_number_of_leaves, 
 get_leaf_keys,get_destination_of_lineages, get_categories, get_parent_of_branch, propagate_married, propagate_admixtures)
 from math import log, factorial,exp
@@ -7,6 +7,7 @@ import linear_distribution
 from uniform_topological_prior import uniform_prior, uniform_topological_prior_function
 from Rtree_to_covariance_matrix import get_admixtured_populations
 from random import random
+import warnings
 
 def calculate_branch_prior(branches, n):
     #if all((b<10 for b in branches)):
@@ -20,7 +21,7 @@ def calculate_branch_prior(branches, n):
     d=float(n2k)/float(n)
     
     return -sum(branches)*rate+log(rate)*len(branches)
-    return -sum(branches)
+    #return -sum(branches)
     #return sum(map(expon.logpdf, branches))
 
 def calculate_branch_prior_gamma(branches, n, dispersion):
@@ -29,6 +30,28 @@ def calculate_branch_prior_gamma(branches, n, dispersion):
     scale=1.0/dispersion
     v=sum((gamma.logpdf(b, scale=scale, a=shape) for b in branches))
     return v
+
+def calculate_branch_prior_exponential_short_extended(branches, n, reduced_mean=0.001, reduced_proportion=0.1):
+    desired_total_mean=float(2 * n - 2) / len(branches)
+    assert reduced_mean*reduced_proportion<1.0, 'The desired mean was not possible'
+    elevated_mean=(1.0-reduced_mean*reduced_proportion)/(1-reduced_proportion)
+    reduced_densities=[expon.pdf(b, scale=reduced_mean*desired_total_mean) for b in branches]
+    elevated_densities=[expon.pdf(b, scale=elevated_mean*desired_total_mean) for b in branches]
+    try:
+        r=sum([log(reduced_f * reduced_proportion + elevated_f * (1.0 - reduced_proportion))
+               for reduced_f, elevated_f in zip(reduced_densities, elevated_densities)])
+    except ValueError:
+        warnings.warn("branch prior could not be computed due to domain error", UserWarning)
+        print 'userwarning'
+        r=-float("Inf")
+    return r
+
+def calculate_branch_prior_dirichlet(branches, n, a_shape=1):
+    total_branch_length=sum(branches)
+    normalized_branch_lengths=[t/total_branch_length for t in branches]
+    gamma_density=gamma.logpdf(total_branch_length, a=a_shape, scale=float(2 * n - 2) )
+    return dirichlet.logpdf(normalized_branch_lengths, [1.0 for _ in branches])+gamma_density
+
 
 def illegal_admixtures(unadmixed_populations, tree):
     admixed_populations= get_admixtured_populations(tree)
@@ -42,7 +65,7 @@ def calculate_add_prior(add, rate=1):
 
 
 def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, unadmixed_populations=[], r=0, add_prior_rate=1,
-          branch_prior_dispersion=1.0):
+          branch_prior_dispersion=1.0, short_extension_mean=0, short_extension_proportion=0, branch_rate_dirichlet=False):
     tree, add=x
     no_leaves=get_number_of_leaves(tree)
     admixtures=get_all_admixture_proportions(tree)
@@ -53,6 +76,12 @@ def prior(x, p=0.5, use_skewed_distr=False, pks={}, use_uniform_prior=False, una
         return -float('inf')
     if branch_prior_dispersion<0.9999 or branch_prior_dispersion>1.0001:
         branch_prior=calculate_branch_prior_gamma(branches,no_leaves,branch_prior_dispersion)
+    elif short_extension_mean>0 and short_extension_proportion>0:
+        branch_prior = calculate_branch_prior_exponential_short_extended(branches, no_leaves,
+                                                                         reduced_mean=short_extension_mean,
+                                                                         reduced_proportion=short_extension_proportion)
+    elif branch_rate_dirichlet:
+        branch_prior = calculate_branch_prior_dirichlet(branches, no_leaves)
     else:
         branch_prior=calculate_branch_prior(branches, no_leaves)
     no_admix_prior=no_admixes(p, len(admixtures), r=r)
@@ -84,7 +113,7 @@ def no_admixes(p, admixes, hard_cutoff=20, r=0):
         return -float('inf')
     if r>1:
         if hard_cutoff is None:
-            return nbinom.logpmf(admixes,n=r, p=1.0-p)
+            return nbinom.logpmf(admixes, n=r, p=1.0-p)
         else:
             return nbinom.logpmf(admixes, n=r, p=1.0 - p) - nbinom.logcdf(hard_cutoff ,n=r, p= 1.0 - p)
     else:
@@ -318,7 +347,9 @@ if __name__=='__main__':
     for i in range(25):
         print exp(no_admixes(0.5,i,20))
     
-    tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None], 's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None], 'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
+    tree_trouble={'s3': ['n1', None, None, 0.13, None, None, None], 's2': ['n2', None, None, 0.14, None, None, None],
+                  's1': ['n1', None, None, 0.14, None, None, None], 'a3': ['r', 'r', 0.6, 0.14, 0.13, 'n2', None],
+                  'n1': ['n2', None, None, 0.13, None, 's1', 's3'], 'n2': ['a3', None, None, 0.12, None, 's2', 'n1']}
     #print tree_prior(tree_trouble)
     
     for i in range(200):

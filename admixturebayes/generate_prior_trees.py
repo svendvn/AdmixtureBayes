@@ -64,7 +64,11 @@ def simulate_number_of_admixture_events(p=0.5):
 def get_admixture_factor(n,k):
     return float(2*n-2+3*k)/float(2*n-2)
 
-def generate_phylogeny(size,admixes=None, p=0.5, leaf_nodes=None, skewed_admixture_prior=False):
+def generate_phylogeny(size,
+                       admixes=None,
+                       p=0.5,
+                       leaf_nodes=None,
+                       skewed_admixture_prior=False):
     if admixes is None:
         admixes=simulate_number_of_admixture_events(p)
     tree=generate_admix_topology(size, admixes, leaf_nodes)

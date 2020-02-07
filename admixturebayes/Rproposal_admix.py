@@ -77,7 +77,7 @@ class deladmix_class(object):
 def float_equal(x,y):
     return float((x-y)**2)<1e-5
 
-def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None):
+def addadmix(tree,new_node_names=None,pks={}, fixed_sink_source=None, new_branch_length=None, new_to_root_length=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None, short_extension_mean=0, short_extension_proportion=0):
     '''
     This proposal adds an admixture to the tree. There are a lot of free parameters but only 5 are in play here:
         c1: the branch length of the source population
@@ -166,6 +166,25 @@ def generate_branch_length(x=None):
         return expon.pdf(x)
 
 
+def short_extended_branches(short_extension_mean, short_extension_proportion):
+    elevated_mean = (1.0 - short_extension_mean * short_extension_proportion) / (1 - short_extension_proportion)
+    def get_short_extension_branch_length(x=None):
+        if x is None:
+            if short_extension_proportion<random():
+                x=expon.rvs(scale=short_extension_mean)
+            else:
+                x=expon.rvs(scale=elevated_mean)
+            short_prior=short_extension_proportion*expon.pdf(x, scale=short_extension_mean)
+            long_prior=(1.0-short_extension_proportion)*expon.pdf(x, scale=elevated_mean)
+
+            return x, short_prior+long_prior
+        else:
+            short_prior = short_extension_proportion * expon.pdf(x, scale=short_extension_mean)
+            long_prior = (1.0 - short_extension_proportion) * expon.pdf(x, scale=elevated_mean)
+            return short_prior+long_prior
+    return get_short_extension_branch_length
+
+
 def gamma_branches(dispersion):
 
     def get_gamma_admixture_branch_length(x=None):
@@ -196,10 +215,13 @@ def get_insertion_spot(x=None, length=1.0):
         return 1.0/length
     
 
-def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=False, gamma_branch_rate=None):
+def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_name=None, sink_name=None, pks={}, new_branch_length=None, new_to_root_length=None, preserve_root_distance=False, gamma_branch_rate=None, short_extension_mean=0, short_extension_proportion=0):
     #print "new branch", new_branch_length
     if gamma_branch_rate is not None:
         branch_length_distribution=gamma_branches(gamma_branch_rate)
+    elif short_extension_mean>0 and short_extension_proportion>0:
+        branch_length_distribution=short_extended_branches(short_extension_proportion=short_extension_proportion,
+                                                           short_extension_mean=short_extension_mean)
     else:
         branch_length_distribution=generate_branch_length
 
@@ -243,7 +265,7 @@ def insert_admix(tree, source_key, source_branch, sink_key, sink_branch, source_
     return tree,q1*q2*q3*q4,1, multip
 
 
-def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None):
+def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root_distance=True, gamma_branch_rate=None, short_extension_mean=0, short_extension_proportion=0):
     '''
     Reversible Jump MCMC transition which removes a random admixture branch. This is the reverse of the other proposal in this file. 
     '''
@@ -284,7 +306,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
         update_branch_length(new_tree, child_key, child_branch, old_length)
     else:
         multip=1.0
-    backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=gamma_branch_rate)
+    backward_density= get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=gamma_branch_rate, short_extension_mean=short_extension_mean, short_extension_proportion=short_extension_proportion)
     forward_density= 1.0
     
     forward_choices=float(len(candidates))
@@ -334,7 +356,7 @@ def deladmix(tree,pks={}, fixed_remove=None, check_opposite=False, preserve_root
 
 
 
-def get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=None):
+def get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=None, short_extension_proportion=0, short_extension_mean=0):
     '''
     remembering this ugly sketch:
     
@@ -353,6 +375,9 @@ def get_backward_remove_density(t1,t2,t3,t4,t5, alpha, gamma_branch_rate=None):
     '''
     if gamma_branch_rate is not None:
         branch_length_distribution=gamma_branches(gamma_branch_rate)
+    elif short_extension_proportion>0 and short_extension_mean>0:
+        branch_length_distribution=short_extended_branches(short_extension_mean=short_extension_mean,
+                                                           short_extension_proportion=short_extension_proportion)
     else:
         branch_length_distribution=generate_branch_length
 

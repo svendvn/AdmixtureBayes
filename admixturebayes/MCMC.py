@@ -161,7 +161,7 @@ def basic_chain(start_x, summaries, posterior_function, proposal, post=None, N=1
                                                                old_post=post,
                                                                old_tree=scale_tree_copy(x[0],1.0/multiplier),
                                                                iteration_number=i,**proposal_knowledge_scraper))
-            if temperature<1.00001 and explain_rejection_frequency!=0 and i%explain_rejection_frequency==0:
+            if False: #temperature<1.00001 and explain_rejection_frequency!=0 and i%explain_rejection_frequency==0:
                 explain_rejection(proposal_knowledge_scraper, new_x, new_post, posterior_function)
             if appending_result_file is not None:
                 count+=1
