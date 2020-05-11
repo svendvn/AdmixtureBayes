@@ -69,7 +69,7 @@ def run_posterior_main(args):
                              'the reroot population and the graph root), this will either 1) "stop" the program'
                              'or 2) "force" the rerooting through by removing the problematic admixture events or '
                              '3) "ignore" rerooting by simply not doing the rerooting when not possible.')
-    parser.add_argument('--summarize_posterior_distributions', default=False,
+    parser.add_argument('--summarize_posterior_distributions', default=False, action='store_true',
                         help='If set to true, the posterior distibutions will be summarized even further.')
     parser.add_argument('--min_w', default=0.0, type=float,
                         help='a lower threshold of which descendants matter when the consensus_method is descendant_frequencies.')
