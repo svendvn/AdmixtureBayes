@@ -1,4 +1,7 @@
 # AdmixtureBayes
+
+The project has been migrated to https://github.com/avaughn271/AdmixtureBayes.
+
 ## Purpose
 AdmixtureBayes estimates posterior samples of admixture graphs (phylogenies incorporating admixture events) given an allele count file.
 
